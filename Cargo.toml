@@ -1,0 +1,6 @@
+[workspace]
+members = ["analyze", "japanese-input-native", "kanji-vg"]
+
+resolver = "3"
+[profile.release]
+debug = true

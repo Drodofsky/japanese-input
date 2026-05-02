@@ -1,0 +1,15 @@
+[package]
+name = "kanji-vg"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+quick-xml = "0.39"
+thiserror = "2"
+lyon_path = {version =  "1", features = ["serialization"]}
+lyon_extra = "1"
+serde = { version = "1", features = ["derive"] }
+
+
+[dev-dependencies]
+postcard = { version = "1", features = ["alloc"] }

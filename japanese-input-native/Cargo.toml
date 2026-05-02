@@ -1,0 +1,16 @@
+[package]
+name = "japanese-input-native"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "japanese_input_native"
+crate-type = ["cdylib"]
+
+
+[dependencies]
+analyze = {path = "../analyze"}
+pyo3 = {version = "0.28", features = ["extension-module", "abi3-py38"]}
+lyon_path = "1.0"
+postcard = { version = "1", features = ["alloc"] }
+wana_kana= "4"
