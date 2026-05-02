@@ -77,7 +77,7 @@ jobs:
         run: |
           mkdir -p addon_out
           cp -r japanese_input/* addon_out/
-
+          mkdir -p addon_out/lib
           # Native binaries — one per platform
           cp artifacts/japanese_input-ubuntu-latest/*.so       addon_out/lib/
           cp artifacts/japanese_input-windows-latest/*.pyd     addon_out/lib/
