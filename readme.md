@@ -7,6 +7,10 @@ An Anki addon for writing Japanese characters by hand. Draw kana or kanji on a c
 - **Hiragana recognition.** Draw a hiragana on the canvas, get the matching character. 
 - **Kanji handwriting feedback** *(experimental)*. Draw a target kanji and get back what was wrong: missing strokes, extra strokes, wrong order, position issues, and per-stroke shape quality.
 
+
+![alt text](back.png) 
+![alt text](front.png)
+
 ## Install the Add-on
 
 1. Open Anki
