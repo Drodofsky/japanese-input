@@ -12,7 +12,7 @@ An Anki addon for writing Japanese characters by hand. Draw kana or kanji on a c
 1. Open Anki
 2. Go to Tools → Add-ons
 3. Click Get Add-ons...
-4. Enter this Add-on ID: 
+4. Enter this Add-on ID: 1324989483
 5. Restart Anki after installation.
 
 
