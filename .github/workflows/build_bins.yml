@@ -1,0 +1,103 @@
+name: Build japanese_input addon
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: windows-latest
+          - os: macos-latest        # macOS arm64
+          - os: macos-15-intel      # macOS x86_64
+    env:
+      PYO3_BUILD_EXTENSION_MODULE: "1"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build with cargo (non-macOS)
+        if: runner.os != 'macOS'
+        run: cargo build --release
+
+      - name: Build with cargo (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          export RUSTFLAGS="-C link-arg=-undefined -C link-arg=dynamic_lookup"
+          cargo build --release
+
+      - name: Collect built binary
+        shell: bash
+        run: |
+          mkdir -p dist
+          case "${{ runner.os }}" in
+            Linux)
+              cp target/release/libjapanese_input_native.so \
+                 dist/japanese_input_native.linux-x86_64.so
+              ;;
+            macOS)
+              arch="$(uname -m)"
+              cp target/release/libjapanese_input_native.dylib \
+                 "dist/japanese_input_native.macos-${arch}.so"
+              ;;
+            Windows)
+              cp target/release/japanese_input_native.dll \
+                 dist/japanese_input_native.windows-x86_64.pyd
+              ;;
+          esac
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: japanese_input-${{ matrix.os }}
+          path: dist/*
+
+  package:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all built binaries
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Assemble addon directory
+        run: |
+          mkdir -p addon_out
+          cp -r japanese_input/* addon_out/
+
+          # Native binaries — one per platform
+          cp artifacts/japanese_input-ubuntu-latest/*.so       addon_out/lib/
+          cp artifacts/japanese_input-windows-latest/*.pyd     addon_out/lib/
+          cp artifacts/japanese_input-macos-latest/*.so        addon_out/lib/
+          cp artifacts/japanese_input-macos-15-intel/*.so      addon_out/lib/
+
+          # Data file shipped under user_files (preserved across addon updates)
+          mkdir -p addon_out/user_files/assets
+          cp data/generated/kanji.bin addon_out/user_files/assets/kanji.bin
+
+          # KanjiVG license attribution
+          cp data/License.txt addon_out/LICENSE.txt
+
+      - name: Zip addon
+        run: |
+          cd addon_out
+          zip -r ../japanese_input.ankiaddon *
+
+      - name: Upload combined addon zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: japanese_input-anki-addon
+          path: japanese_input.ankiaddon
