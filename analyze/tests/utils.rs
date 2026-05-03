@@ -33,3 +33,9 @@ pub struct StrokeFile {
     pub character: char,
     pub strokes: Vec<Vec<(f32, f32)>>,
 }
+pub fn match_node(
+    reference: &AnalyzedKanjiNode,
+    user: &[Vec<(f32, f32)>],
+) -> Vec<analyze::match_node::MatchInfo> {
+    analyze::match_node::match_node(reference, user)
+}

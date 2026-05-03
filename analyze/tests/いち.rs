@@ -1,7 +1,5 @@
 mod utils;
 
-use analyze::match_node::match_node;
-
 use crate::utils::*;
 
 #[test]
