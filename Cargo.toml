@@ -1,6 +1,8 @@
 [workspace]
 members = ["analyze", "japanese-input-native", "kanji-vg"]
 
+exclude = ["kanji-draw"]
+
 resolver = "3"
 [profile.release]
 debug = true
