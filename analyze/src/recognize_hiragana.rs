@@ -1,6 +1,6 @@
 use crate::KanjiMap;
 use crate::analyzed_kanji_node::AnalyzedKanjiNode;
-use crate::match_node::match_node_2;
+use crate::match_node::match_node;
 
 const HIRAGANA_BASE: &[char] = &[
     'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ', 'さ', 'し', 'す', 'せ', 'そ', 'た',
@@ -71,7 +71,7 @@ impl HiraganaRecognizer {
             .candidates
             .iter()
             .filter_map(|(c, node)| {
-                let matches = match_node_2(node, user_strokes, 10);
+                let matches = match_node(node, user_strokes);
                 let score = matches.first()?.score;
                 Some(RecognitionResult {
                     character: *c,

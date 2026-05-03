@@ -4,7 +4,7 @@ use crate::KanjiNode;
 use crate::analyzed_kanji_node::AnalyzedKanjiNode;
 use crate::bbox::{BBox, GenBBox};
 use crate::dtw::dtw_with_path;
-use crate::match_node::match_node_2;
+use crate::match_node::match_node;
 use crate::normalize::Normalize;
 use crate::point::OrientedPoint;
 use crate::point::ToOriented;
@@ -45,7 +45,8 @@ pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analy
     // Work in user raw-space throughout. No normalization.
     let mut working: Vec<Vec<(f32, f32)>> = user_strokes.to_vec();
 
-    let results = match_node_2(&analyzed, user_strokes, 400);
+    let results = match_node(&analyzed, user_strokes);
+
     if results.is_empty() {
         return Analysis {
             issues: vec![],
@@ -115,7 +116,7 @@ pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analy
     }
 
     // ── Stage 2: position corrections (parent-relative, outer-first) ─────────
-    let mid_match = match_node_2(&analyzed, &working, 200);
+    let mid_match = match_node(&analyzed, &working);
     let assignment_for_levels: Vec<usize> = if mid_match.is_empty() {
         (0..working.len()).collect()
     } else {
@@ -134,7 +135,8 @@ pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analy
     });
 
     // ── Stage 3: wrong order ─────────────────────────────────────────────────
-    let results2 = match_node_2(&analyzed, &working, 100);
+    let results2 = match_node(&analyzed, &working);
+
     let final_score = if results2.is_empty() {
         0.0
     } else {
@@ -169,7 +171,8 @@ pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analy
     }
 
     // ── Stage 4: per-point shape quality ─────────────────────────────────
-    let final_match = match_node_2(&analyzed, &working, 100);
+    let final_match = match_node(&analyzed, &working);
+
     let final_assignment: Vec<usize> = if final_match.is_empty() {
         vec![usize::MAX; ref_leaves.len()]
     } else {

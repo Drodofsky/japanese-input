@@ -18,17 +18,10 @@ pub struct MatchInfo {
     pub user_strokes: Vec<usize>,
     pub score: f32,
 }
-pub fn match_node(reference: &AnalyzedKanjiNode, user: &[Vec<(f32, f32)>]) -> Vec<MatchInfo> {
-    match_node_2(reference, user, 200)
-}
 
-pub fn match_node_2(
-    reference: &AnalyzedKanjiNode,
-    user: &[Vec<(f32, f32)>],
-    beam_with: usize,
-) -> Vec<MatchInfo> {
+pub fn match_node(reference: &AnalyzedKanjiNode, user: &[Vec<(f32, f32)>]) -> Vec<MatchInfo> {
     let (user_b, user_c) = prepare_user(user);
-    let mut results = beam(reference, &user_b, &user_c, beam_with);
+    let mut results = beam(reference, &user_b, &user_c, 10);
 
     let max_matched = results
         .iter()
@@ -137,8 +130,7 @@ fn beam(
             }
 
             results.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
-            results.truncate(width); // truncate back to the caller's requested width
-            results
+            truncate_with_permutation_cap(results, width)
         }
     }
 }
@@ -275,11 +267,30 @@ fn combine_children(child_candidates: &[Vec<MatchInfo>], width: usize) -> Vec<Ma
             }
         }
         next.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
-        next.truncate(width);
-        results = next;
+        results = truncate_with_permutation_cap(next, width);
     }
 
     results
+}
+
+fn truncate_with_permutation_cap(entries: Vec<MatchInfo>, width: usize) -> Vec<MatchInfo> {
+    let mut group_counts: std::collections::HashMap<Vec<usize>, usize> =
+        std::collections::HashMap::new();
+    let mut kept: Vec<MatchInfo> = Vec::with_capacity(width);
+    for entry in entries.into_iter() {
+        let mut key = entry.user_strokes.clone();
+        key.sort_unstable();
+        let cap = entry.user_strokes.len().max(1);
+        let count = group_counts.entry(key).or_insert(0);
+        if *count < cap {
+            *count += 1;
+            kept.push(entry);
+            if kept.len() >= width {
+                break;
+            }
+        }
+    }
+    kept
 }
 
 #[cfg(test)]
