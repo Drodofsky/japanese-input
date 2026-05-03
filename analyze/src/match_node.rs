@@ -270,6 +270,12 @@ fn combine_children(child_candidates: &[Vec<MatchInfo>], width: usize) -> Vec<Ma
                 });
             }
         }
+
+        let keep = (width * 4).min(next.len());
+        if keep < next.len() {
+            next.select_nth_unstable_by(keep, |a, b| a.score.partial_cmp(&b.score).unwrap());
+            next.truncate(keep);
+        }
         next.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
         results = truncate_with_permutation_cap(next, width);
     }
