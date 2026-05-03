@@ -6,5 +6,10 @@ edition = "2024"
 [dependencies]
 lyon_path = {version =  "1", features = ["serialization"]}
 serde = { version = "1", features = ["derive"] }
+smallvec = "1"
 [dev-dependencies]
 postcard = { version = "1", features = ["alloc"] }
+criterion = "0.8"
+[[bench]]
+name = "match_bench"
+harness = false

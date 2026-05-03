@@ -10,7 +10,7 @@ fn correct() {
 
     let result = match_node(&reference, &user);
 
-    assert_eq!(result[0].user_strokes, vec![0, 1]);
+    assert_eq!(result[0].user_strokes.as_slice(), vec![0, 1]);
 }
 
 #[test]
@@ -21,5 +21,5 @@ fn wo() {
 
     let result = match_node(&reference, &user);
 
-    assert_eq!(result[0].user_strokes, vec![1, 0]);
+    assert_eq!(result[0].user_strokes.as_slice(), vec![1, 0]);
 }

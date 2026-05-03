@@ -11,5 +11,5 @@ fn correct() {
     let result = match_node(&reference, &user);
 
     assert_eq!(result.len(), 1, "should find exactly one match: {result:?}");
-    assert_eq!(result[0].user_strokes, vec![0]);
+    assert_eq!(result[0].user_strokes.as_slice(), vec![0]);
 }

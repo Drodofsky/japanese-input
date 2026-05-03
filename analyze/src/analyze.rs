@@ -56,11 +56,11 @@ pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analy
     }
     let best = &results[0];
 
-    let original_indices: Vec<usize> = best
+    let original_indices: Vec<u8> = best
         .user_strokes
         .iter()
         .copied()
-        .filter(|&i| i != usize::MAX)
+        .filter(|&i| i != u8::MAX)
         .collect();
     let was_wrong_order = original_indices.windows(2).any(|w| w[0] > w[1]);
 
@@ -73,7 +73,7 @@ pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analy
     // ── Stage 1a: missing strokes ────────────────────────────────────────────
     let ref_leaves = collect_ref_leaves(&analyzed);
     for (ref_pos, &user_idx) in best.user_strokes.iter().enumerate() {
-        if user_idx == usize::MAX {
+        if user_idx == u8::MAX {
             // Map the reference stroke (in frame B [0,1]) into user-space
             // through the user's kanji bbox.
             let inserted: Vec<(f32, f32)> = ref_leaves[ref_pos]
@@ -94,33 +94,36 @@ pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analy
     }
 
     // ── Stage 1b: extra strokes ──────────────────────────────────────────────
-    let matched: std::collections::HashSet<usize> = best
+    let matched: std::collections::HashSet<u8> = best
         .user_strokes
         .iter()
         .copied()
-        .filter(|&i| i != usize::MAX)
+        .filter(|&i| i != u8::MAX)
         .collect();
-    let mut extras: Vec<usize> = (0..user_strokes.len())
-        .filter(|i| !matched.contains(i))
+    let mut extras: Vec<u8> = (0..user_strokes.len())
+        .filter(|i| !matched.contains(&(*i as u8)))
+        .map(|i| i as u8)
         .collect();
     extras.sort_by(|a, b| b.cmp(a));
 
     for user_index in extras {
-        if user_index < working.len() {
-            working.remove(user_index);
+        if (user_index as usize) < working.len() {
+            working.remove(user_index.into());
         }
         issues.push(IssueWithFix {
-            issue: StrokeIssue::Extra { user_index },
+            issue: StrokeIssue::Extra {
+                user_index: user_index.into(),
+            },
             corrected_strokes: working.clone(),
         });
     }
 
     // ── Stage 2: position corrections (parent-relative, outer-first) ─────────
     let mid_match = match_node(&analyzed, &working);
-    let assignment_for_levels: Vec<usize> = if mid_match.is_empty() {
-        (0..working.len()).collect()
+    let assignment_for_levels: Vec<_> = if mid_match.is_empty() {
+        (0..working.len()).map(|i| i as u8).collect()
     } else {
-        mid_match[0].user_strokes.clone()
+        mid_match[0].user_strokes.to_vec()
     };
 
     let max_depth = tree_depth(&analyzed);
@@ -145,11 +148,11 @@ pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analy
 
     if !results2.is_empty() {
         let best2 = &results2[0];
-        let indices2: Vec<usize> = best2
+        let indices2: Vec<u8> = best2
             .user_strokes
             .iter()
             .copied()
-            .filter(|&i| i != usize::MAX)
+            .filter(|&i| i != u8::MAX)
             .collect();
 
         if indices2.windows(2).any(|w| w[0] > w[1]) {
@@ -157,8 +160,8 @@ pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analy
             working = best2
                 .user_strokes
                 .iter()
-                .filter(|&&i| i != usize::MAX)
-                .filter_map(|&i| old.get(i).cloned())
+                .filter(|&&i| i != u8::MAX)
+                .filter_map(|&i| old.get(i as usize).cloned())
                 .collect();
 
             if was_wrong_order {
@@ -173,10 +176,10 @@ pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analy
     // ── Stage 4: per-point shape quality ─────────────────────────────────
     let final_match = match_node(&analyzed, &working);
 
-    let final_assignment: Vec<usize> = if final_match.is_empty() {
-        vec![usize::MAX; ref_leaves.len()]
+    let final_assignment: Vec<u8> = if final_match.is_empty() {
+        vec![u8::MAX; ref_leaves.len()]
     } else {
-        final_match[0].user_strokes.clone()
+        final_match[0].user_strokes.to_vec()
     };
 
     let ref_in_stroke_frame = collect_ref_in_stroke_frame(&analyzed);
@@ -185,10 +188,10 @@ pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analy
         .iter()
         .zip(final_assignment.iter())
         .map(|(ref_c, &user_idx)| {
-            if user_idx == usize::MAX {
+            if user_idx == u8::MAX {
                 return Vec::new();
             }
-            let Some(stroke) = working.get(user_idx) else {
+            let Some(stroke) = working.get(user_idx as usize) else {
                 return Vec::new();
             };
 
@@ -248,7 +251,7 @@ fn leaf_count(node: &AnalyzedKanjiNode) -> usize {
 /// its children to match truth's relative layout *within the parent's drawn bbox*.
 fn apply_level_correction(
     node: &AnalyzedKanjiNode,
-    assignment: &[usize],
+    assignment: &[u8],
     working: &mut [Vec<(f32, f32)>],
     target_depth: usize,
     current_depth: usize,
@@ -277,7 +280,7 @@ fn apply_level_correction(
 fn transform_children_relative(
     parent: &AnalyzedKanjiNode,
     children: &[AnalyzedKanjiNode],
-    parent_assignment: &[usize],
+    parent_assignment: &[u8],
     working: &mut [Vec<(f32, f32)>],
 ) {
     // Compute parent bboxes — frozen before any child transformation.
@@ -290,10 +293,10 @@ fn transform_children_relative(
     let parent_d_strokes: Vec<Vec<(f32, f32)>> = parent_assignment
         .iter()
         .filter_map(|&i| {
-            if i == usize::MAX {
+            if i == u8::MAX {
                 None
             } else {
-                working.get(i).cloned()
+                working.get(i as usize).cloned()
             }
         })
         .collect();
@@ -324,10 +327,10 @@ fn transform_children_relative(
         let child_d_strokes: Vec<Vec<(f32, f32)>> = child_assignment
             .iter()
             .filter_map(|&i| {
-                if i == usize::MAX {
+                if i == u8::MAX {
                     None
                 } else {
-                    working.get(i).cloned()
+                    working.get(i as usize).cloned()
                 }
             })
             .collect();
@@ -371,7 +374,7 @@ fn relative_target(t_parent: &BBox, t_child: &BBox, d_parent: &BBox) -> BBox {
 /// Transform the user strokes (indexed by `leaf_indices`) so their bbox goes
 /// from `current` to `target`. Per-axis: translate + scale. Identity on degenerate axes.
 fn transform_strokes(
-    leaf_indices: &[usize],
+    leaf_indices: &[u8],
     working: &mut [Vec<(f32, f32)>],
     current: &BBox,
     target: &BBox,
@@ -390,10 +393,10 @@ fn transform_strokes(
     let sy = if ch > 1e-6 { th / ch } else { 1.0 };
 
     for &i in leaf_indices {
-        if i == usize::MAX {
+        if i == u8::MAX {
             continue;
         }
-        if let Some(stroke) = working.get_mut(i) {
+        if let Some(stroke) = working.get_mut(i as usize) {
             for p in stroke.iter_mut() {
                 p.0 = (p.0 - cx) * sx + tx;
                 p.1 = (p.1 - cy) * sy + ty;

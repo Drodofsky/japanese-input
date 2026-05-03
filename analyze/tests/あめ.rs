@@ -10,5 +10,8 @@ fn correct() {
 
     let result = match_node(&reference, &user);
 
-    assert_eq!(result[0].user_strokes, vec![0, 1, 2, 3, 4, 5, 6, 7]);
+    assert_eq!(
+        result[0].user_strokes.as_slice(),
+        vec![0, 1, 2, 3, 4, 5, 6, 7]
+    );
 }
