@@ -21,7 +21,9 @@ pub type StrokeVec = SmallVec<[u8; 32]>;
 pub struct MatchInfo {
     pub user_strokes: StrokeVec,
     pub score: f32,
+        pub used_mask: u32,
 }
+
 
 pub fn match_node(reference: &AnalyzedKanjiNode, user: &[Vec<(f32, f32)>]) -> Vec<MatchInfo> {
     let (user_b, user_c) = prepare_user(user);
@@ -86,6 +88,7 @@ fn beam(
                     MatchInfo {
                         user_strokes: smallvec![i as u8],
                         score: combined,
+                        used_mask: 1u32 << (i as u32),
                     }
                 })
                 .collect();
@@ -93,6 +96,7 @@ fn beam(
             candidates.push(MatchInfo {
                 user_strokes: smallvec![u8::MAX],
                 score: MISSING_PENALTY,
+                used_mask: 0,
             });
             candidates.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
             candidates.truncate(width);
@@ -248,25 +252,22 @@ fn combine_children(child_candidates: &[Vec<MatchInfo>], width: usize) -> Vec<Ma
     let mut results: Vec<MatchInfo> = vec![MatchInfo {
         user_strokes: SmallVec::new(),
         score: 0.0,
+        used_mask: 0,
     }];
 
     for cands in child_candidates {
-        let mut next: Vec<MatchInfo> = Vec::new();
+        let mut next: Vec<MatchInfo> = Vec::with_capacity(results.len() * cands.len());
         for partial in &results {
             for candidate in cands {
-                let overlaps = candidate
-                    .user_strokes
-                    .iter()
-                    .filter(|&&i| i != u8::MAX)
-                    .any(|s| partial.user_strokes.contains(s));
-                if overlaps {
+                if (partial.used_mask & candidate.used_mask) != 0 {
                     continue;
                 }
                 let mut combined = partial.user_strokes.clone();
-                combined.extend(candidate.user_strokes.clone());
+                combined.extend(candidate.user_strokes.iter().copied());
                 next.push(MatchInfo {
                     user_strokes: combined,
                     score: partial.score + candidate.score,
+                    used_mask: partial.used_mask | candidate.used_mask,
                 });
             }
         }
