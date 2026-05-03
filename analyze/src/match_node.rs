@@ -21,9 +21,8 @@ pub type StrokeVec = SmallVec<[u8; 32]>;
 pub struct MatchInfo {
     pub user_strokes: StrokeVec,
     pub score: f32,
-        pub used_mask: u32,
+    pub used_mask: u32,
 }
-
 
 pub fn match_node(reference: &AnalyzedKanjiNode, user: &[Vec<(f32, f32)>]) -> Vec<MatchInfo> {
     let (user_b, user_c) = prepare_user(user);
@@ -279,14 +278,11 @@ fn combine_children(child_candidates: &[Vec<MatchInfo>], width: usize) -> Vec<Ma
 }
 
 fn truncate_with_permutation_cap(entries: Vec<MatchInfo>, width: usize) -> Vec<MatchInfo> {
-    let mut group_counts: std::collections::HashMap<StrokeVec, usize> =
-        std::collections::HashMap::new();
+    let mut group_counts: std::collections::HashMap<u32, usize> = std::collections::HashMap::new();
     let mut kept: Vec<MatchInfo> = Vec::with_capacity(width);
     for entry in entries.into_iter() {
-        let mut key = entry.user_strokes.clone();
-        key.sort_unstable();
         let cap = entry.user_strokes.len().max(1);
-        let count = group_counts.entry(key).or_insert(0);
+        let count = group_counts.entry(entry.used_mask).or_insert(0);
         if *count < cap {
             *count += 1;
             kept.push(entry);
@@ -297,7 +293,6 @@ fn truncate_with_permutation_cap(entries: Vec<MatchInfo>, width: usize) -> Vec<M
     }
     kept
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
