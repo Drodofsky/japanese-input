@@ -7,9 +7,13 @@ edition = "2024"
 lyon_path = {version =  "1", features = ["serialization"]}
 serde = { version = "1", features = ["derive"] }
 smallvec = "1"
+pathfinding = "4"
 [dev-dependencies]
 postcard = { version = "1", features = ["alloc"] }
 criterion = "0.8"
 [[bench]]
 name = "match_bench"
+harness = false
+[[bench]]
+name = "hiragana_bench"
 harness = false

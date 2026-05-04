@@ -2,6 +2,8 @@ pub mod analyze;
 pub mod analyzed_kanji_node;
 pub mod bbox;
 pub mod dtw;
+pub mod hungarian_matcher;
+pub mod leaf_matrix;
 pub mod match_node;
 pub mod normalize;
 pub mod point;
