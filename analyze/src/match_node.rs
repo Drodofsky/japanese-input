@@ -2,6 +2,7 @@ use smallvec::{SmallVec, smallvec};
 
 use crate::analyzed_kanji_node::AnalyzedKanjiNode;
 use crate::dtw::{DtwWeights, dtw};
+use crate::leaf_matrix::LeafMatrix;
 use crate::normalize::Normalize;
 use crate::point::{OrientedPoint, ToOriented};
 
@@ -9,9 +10,6 @@ const MAX_WIDTH: usize = 5000;
 
 pub const MISSING_PENALTY: f32 = 1.0;
 const EXTRA_PENALTY: f32 = 1.0;
-const FRAME_B_WEIGHT: f32 = 0.3;
-const FRAME_C_WEIGHT: f32 = 0.3;
-const LENGTH_WEIGHT: f32 = 0.4;
 const FRAME_G_WEIGHT: f32 = 0.5;
 const ORDER_WEIGHT: f32 = 0.2;
 
@@ -26,7 +24,8 @@ pub struct MatchInfo {
 
 pub fn match_node(reference: &AnalyzedKanjiNode, user: &[Vec<(f32, f32)>]) -> Vec<MatchInfo> {
     let (user_b, user_c) = prepare_user(user);
-    let mut results = beam(reference, &user_b, &user_c, 10);
+    let leaf_matrix = LeafMatrix::create(reference, &user_b, &user_c);
+    let mut results = beam(reference, &user_b, &leaf_matrix, 10);
 
     let max_matched = results
         .iter()
@@ -53,7 +52,9 @@ pub fn match_node(reference: &AnalyzedKanjiNode, user: &[Vec<(f32, f32)>]) -> Ve
     results
 }
 
-fn prepare_user(user: &[Vec<(f32, f32)>]) -> (Vec<Vec<OrientedPoint>>, Vec<Vec<OrientedPoint>>) {
+pub fn prepare_user(
+    user: &[Vec<(f32, f32)>],
+) -> (Vec<Vec<OrientedPoint>>, Vec<Vec<OrientedPoint>>) {
     let oriented: Vec<Vec<OrientedPoint>> =
         user.iter().map(|s| s.as_slice().to_oriented()).collect();
     let in_kanji_frame = oriented.clone().normalize();
@@ -65,36 +66,22 @@ fn prepare_user(user: &[Vec<(f32, f32)>]) -> (Vec<Vec<OrientedPoint>>, Vec<Vec<O
 fn beam(
     node: &AnalyzedKanjiNode,
     user_b: &[Vec<OrientedPoint>],
-    user_c: &[Vec<OrientedPoint>],
+    leaf_matrix: &LeafMatrix,
     width: usize,
 ) -> Vec<MatchInfo> {
     match node {
-        AnalyzedKanjiNode::Stroke {
-            in_kanji_frame: ref_b,
-            in_stroke_frame: ref_c,
-            ..
-        } => {
-            let weights = DtwWeights::default();
-            let ref_len = bbox_longer_side(ref_b);
-
-            let mut candidates: Vec<MatchInfo> = (0..user_b.len())
-                .map(|i| {
-                    let s_b = dtw(ref_b, &user_b[i], weights);
-                    let s_c = dtw(ref_c, &user_c[i], weights);
-                    let s_len = (ref_len - bbox_longer_side(&user_b[i])).abs();
-                    let combined =
-                        FRAME_B_WEIGHT * s_b + FRAME_C_WEIGHT * s_c + LENGTH_WEIGHT * s_len;
-                    MatchInfo {
-                        user_strokes: smallvec![i as u8],
-                        score: combined,
-                        used_mask: 1u32 << (i as u32),
-                    }
+        AnalyzedKanjiNode::Stroke { index, .. } => {
+            let n_user = leaf_matrix.n_user();
+            let mut candidates: Vec<MatchInfo> = (0..n_user)
+                .map(|i| MatchInfo {
+                    user_strokes: smallvec![i as u8],
+                    score: leaf_matrix.look_up(*index, i),
+                    used_mask: 1u32 << (i as u32),
                 })
                 .collect();
-
             candidates.push(MatchInfo {
                 user_strokes: smallvec![u8::MAX],
-                score: MISSING_PENALTY,
+                score: leaf_matrix.look_up(*index, n_user),
                 used_mask: 0,
             });
             candidates.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
@@ -108,7 +95,7 @@ fn beam(
             let results = loop {
                 let child_candidates: Vec<Vec<MatchInfo>> = children
                     .iter()
-                    .map(|child| beam(child, user_b, user_c, try_width))
+                    .map(|child| beam(child, user_b, leaf_matrix, try_width))
                     .collect();
 
                 let combined = combine_children(&child_candidates, try_width);
@@ -228,23 +215,6 @@ fn kendall_tau(seq: &[u8]) -> f32 {
     }
     let max = n * (n - 1) / 2;
     inv as f32 / max as f32
-}
-
-fn bbox_longer_side(stroke: &[OrientedPoint]) -> f32 {
-    if stroke.is_empty() {
-        return 0.0;
-    }
-    let mut min_x = stroke[0].position.x;
-    let mut max_x = min_x;
-    let mut min_y = stroke[0].position.y;
-    let mut max_y = min_y;
-    for op in &stroke[1..] {
-        min_x = min_x.min(op.position.x);
-        max_x = max_x.max(op.position.x);
-        min_y = min_y.min(op.position.y);
-        max_y = max_y.max(op.position.y);
-    }
-    (max_x - min_x).max(max_y - min_y)
 }
 
 fn combine_children(child_candidates: &[Vec<MatchInfo>], width: usize) -> Vec<MatchInfo> {
