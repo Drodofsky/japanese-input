@@ -13,3 +13,4 @@ serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
 postcard = { version = "1", features = ["alloc"] }
+wana_kana= "4"

@@ -5,7 +5,7 @@ mod utils;
 
 use crate::utils::*;
 fn bench_match(c: &mut Criterion) {
-    let map = load_kanji_map();
+    let map = load_hiragana_map();
     let user = load_test_file("あ");
     let recognizer = HiraganaRecognizer::new(&map);
 

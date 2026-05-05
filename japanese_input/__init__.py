@@ -62,7 +62,10 @@ def _load_native_module() -> object | None:
 
 def _kanji_map_path() -> Path:
     return Path(os.path.dirname(os.path.normpath(__file__))) / "user_files" / "assets" / "kanji.bin"
-
+def _hiragana_map_path() -> Path:
+    return Path(os.path.dirname(os.path.normpath(__file__))) / "user_files" / "assets" / "hiragana.bin"
+def _katakana_map_path() -> Path:
+    return Path(os.path.dirname(os.path.normpath(__file__))) / "user_files" / "assets" / "katakana.bin"
 
 # ── recognizer + analyzer + widget state ──────────────────────────────────────
 
@@ -71,16 +74,22 @@ _recognizer: object | None = None
 _analyzer: object | None = None
 
 if _native is not None:
-    map_path = _kanji_map_path()
-    if not map_path.exists():
-        showCritical(f"Japanese Input: kanji map not found at {map_path}")
+    kanji_map_path = _kanji_map_path()
+    if not kanji_map_path.exists():
+        showCritical(f"Japanese Input: kanji map not found at {kanji_map_path}")
+    hiragana_map_path = _hiragana_map_path()
+    if not hiragana_map_path.exists():
+        showCritical(f"Japanese Input: kanji map not found at {hiragana_map_path}")
+    katakana_map_path = _katakana_map_path()
+    if not katakana_map_path.exists():
+        showCritical(f"Japanese Input: kanji map not found at {katakana_map_path}")
     else:
         try:
-            _recognizer = _native.HiraganaRecognizer(str(map_path))  # type: ignore[attr-defined]
+            _recognizer = _native.HiraganaRecognizer(str(hiragana_map_path))  # type: ignore[attr-defined]
         except Exception as e:
             showCritical(f"Japanese Input: failed to construct recognizer\n\n{e}")
         try:
-            _analyzer = _native.KanjiAnalyzer(str(map_path))  # type: ignore[attr-defined]
+            _analyzer = _native.KanjiAnalyzer(str(kanji_map_path))  # type: ignore[attr-defined]
         except Exception as e:
             showCritical(f"Japanese Input: failed to construct analyzer\n\n{e}")
 

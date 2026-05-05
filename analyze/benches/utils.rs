@@ -12,6 +12,15 @@ pub fn load_kanji_map() -> KanjiMap {
     postcard::from_bytes(&bytes).expect("failed to deserialize kanji map")
 }
 
+pub fn load_hiragana_map() -> KanjiMap {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("data/generated/hiragana.bin");
+    let bytes = std::fs::read(path).expect("failed to read hiragana.bin");
+    postcard::from_bytes(&bytes).expect("failed to deserialize hiragana map")
+}
+
 pub fn analyzed(map: &KanjiMap, c: char) -> AnalyzedKanjiNode {
     let node = map.get(&c).unwrap_or_else(|| panic!("kanji {c} not found"));
     AnalyzedKanjiNode::from_node(node)

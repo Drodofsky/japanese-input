@@ -205,19 +205,60 @@ fn parse_svg_path(d: &str) -> Result<StrokePath, ParseError> {
 
 #[cfg(test)]
 mod tests {
+    use wana_kana::IsJapaneseChar;
+
     use crate::{KanjiMap, parse_xml};
 
     #[test]
-    fn generate() {
+    fn generate_kanji() {
         let path = "../data/raw/kanjivg.xml";
         let kanji_entries: KanjiMap = parse_xml(path)
             .unwrap()
             .into_iter()
             .map(|k| k.unwrap())
+            .filter(|k| k.0.is_kanji())
             .collect();
         let data = postcard::to_allocvec(&kanji_entries).expect("Failed to serialize");
         std::fs::write("../data/generated/kanji.bin", &data).expect("Failed to write");
-        assert_eq!(kanji_entries.len(), 6702);
+        assert_eq!(kanji_entries.len(), 6412);
+        println!(
+            "Wrote {} entries ({} bytes)",
+            kanji_entries.len(),
+            data.len()
+        );
+    }
+    #[test]
+    fn generate_hiragana() {
+        let path = "../data/raw/kanjivg.xml";
+        let kanji_entries: KanjiMap = parse_xml(path)
+            .unwrap()
+            .into_iter()
+            .map(|k| k.unwrap())
+            .filter(|k| k.0.is_hiragana() & !"ぁぃぅぇぉっゃゅょゎゕゖゐゑゔー".contains(k.0))
+            .collect();
+        let data = postcard::to_allocvec(&kanji_entries).expect("Failed to serialize");
+        std::fs::write("../data/generated/hiragana.bin", &data).expect("Failed to write");
+        assert_eq!(kanji_entries.len(), 71);
+        //println!("{:?}",kanji_entries.iter().map(|s|s.0).collect::<Vec<_>>());
+        println!(
+            "Wrote {} entries ({} bytes)",
+            kanji_entries.len(),
+            data.len()
+        );
+    }
+    #[test]
+    fn generate_katakana() {
+        let path = "../data/raw/kanjivg.xml";
+        let kanji_entries: KanjiMap = parse_xml(path)
+            .unwrap()
+            .into_iter()
+            .map(|k| k.unwrap())
+            .filter(|k| k.0.is_katakana() & !"ァィゥェォッャュョヮヵヶ・ヷ ヸ ヹ ヺ".contains(k.0))
+            .collect();
+        let data = postcard::to_allocvec(&kanji_entries).expect("Failed to serialize");
+        std::fs::write("../data/generated/katakana.bin", &data).expect("Failed to write");
+        assert_eq!(kanji_entries.len(), 75);
+        // println!("{:?}",kanji_entries.iter().map(|s|s.0).collect::<Vec<_>>());
         println!(
             "Wrote {} entries ({} bytes)",
             kanji_entries.len(),

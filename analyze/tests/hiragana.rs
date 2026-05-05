@@ -8,7 +8,7 @@ macro_rules! hiragana_test {
     ($name:ident,  $ch:literal) => {
         #[test]
         fn $name() {
-            let map = load_kanji_map();
+            let map = load_hiragana_map();
             let recognizer = HiraganaRecognizer::new(&map);
             let user = load_test_file(&$ch.to_string());
             let result = recognizer.recognize(&user);
@@ -38,7 +38,7 @@ hiragana_test!(ご, 'ご');
 #[test]
 #[ignore = "currently not able to fix"]
 fn bad_い() {
-    let map = load_kanji_map();
+    let map = load_hiragana_map();
     let recognizer = HiraganaRecognizer::new(&map);
     let user = load_test_file("い2");
     let result = recognizer.recognize(&user);
@@ -47,7 +47,7 @@ fn bad_い() {
 #[test]
 #[ignore = "currently not able to fix"]
 fn bad_く() {
-    let map = load_kanji_map();
+    let map = load_hiragana_map();
     let recognizer = HiraganaRecognizer::new(&map);
     let user = load_test_file("く2");
     let result = recognizer.recognize(&user);
@@ -55,7 +55,7 @@ fn bad_く() {
 }
 #[test]
 fn bad_ぐ() {
-    let map = load_kanji_map();
+    let map = load_hiragana_map();
     let recognizer = HiraganaRecognizer::new(&map);
     let user = load_test_file("ぐ2");
     let result = recognizer.recognize(&user);

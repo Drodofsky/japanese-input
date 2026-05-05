@@ -436,6 +436,7 @@ dependencies = [
  "quick-xml",
  "serde",
  "thiserror",
+ "wana_kana",
 ]
 
 [[package]]
