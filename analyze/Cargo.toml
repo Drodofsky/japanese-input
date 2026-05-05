@@ -17,3 +17,6 @@ harness = false
 [[bench]]
 name = "hiragana_bench"
 harness = false
+[[bench]]
+name = "kanji_bench"
+harness = false

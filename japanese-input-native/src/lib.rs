@@ -1,6 +1,7 @@
 use analyze::KanjiMap;
 use analyze::analyze::{Analysis, StrokeIssue};
-use analyze::recognize_hiragana::HiraganaRecognizer as InnerRecognizer;
+use analyze::recognize_hiragana::HiraganaRecognizer;
+use analyze::recognize_kanji::KanjiRecognizer;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use wana_kana::IsJapaneseChar;
@@ -124,20 +125,28 @@ impl KanjiAnalyzer {
     }
 }
 #[pyclass]
-pub struct HiraganaRecognizer {
-    inner: InnerRecognizer,
+pub struct Recognizer {
+    hiragana: HiraganaRecognizer,
+    kanji: KanjiRecognizer,
 }
 
 #[pymethods]
-impl HiraganaRecognizer {
+impl Recognizer {
     #[new]
-    fn new(map_path: &str) -> PyResult<Self> {
-        let bytes = std::fs::read(map_path)
-            .map_err(|e| PyRuntimeError::new_err(format!("failed to read {map_path}: {e}")))?;
+    fn new(hiragana_map_path: &str, kanji_map_path: &str) -> PyResult<Self> {
+        let bytes = std::fs::read(hiragana_map_path).map_err(|e| {
+            PyRuntimeError::new_err(format!("failed to read {hiragana_map_path}: {e}"))
+        })?;
         let map: KanjiMap = postcard::from_bytes(&bytes)
             .map_err(|e| PyRuntimeError::new_err(format!("failed to deserialize: {e}")))?;
-        let inner = InnerRecognizer::new(&map);
-        Ok(Self { inner })
+        let hiragana = HiraganaRecognizer::new(&map);
+        let bytes = std::fs::read(kanji_map_path).map_err(|e| {
+            PyRuntimeError::new_err(format!("failed to read {hiragana_map_path}: {e}"))
+        })?;
+        let map: KanjiMap = postcard::from_bytes(&bytes)
+            .map_err(|e| PyRuntimeError::new_err(format!("failed to deserialize: {e}")))?;
+        let kanji = KanjiRecognizer::new(&map);
+        Ok(Self { hiragana, kanji })
     }
 
     fn analyze_answer(&self, committed: Vec<Vec<Vec<(f32, f32)>>>, expected: &str) -> String {
@@ -149,7 +158,11 @@ impl HiraganaRecognizer {
                 return out;
             };
             if ch.is_hiragana() {
-                if let Some(top) = self.inner.recognize(&strokes).into_iter().next() {
+                if let Some(top) = self.hiragana.recognize(&strokes).into_iter().next() {
+                    out.push(top.character);
+                }
+            } else if ch.is_kanji() {
+                if let Some(top) = self.kanji.recognize(&strokes).into_iter().next() {
                     out.push(top.character);
                 }
             } else {
@@ -157,19 +170,19 @@ impl HiraganaRecognizer {
             }
         }
 
+        // default try recognize as hiragana
         for strokes in commits {
-            if let Some(top) = self.inner.recognize(&strokes).into_iter().next() {
+            if let Some(top) = self.hiragana.recognize(&strokes).into_iter().next() {
                 out.push(top.character);
             }
         }
-
         out
     }
 }
 
 #[pymodule]
 fn japanese_input_native(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<HiraganaRecognizer>()?;
+    m.add_class::<Recognizer>()?;
     m.add_class::<KanjiAnalyzer>()?;
     m.add_class::<PyAnalysis>()?;
     m.add_class::<PyIssueWithFix>()?;

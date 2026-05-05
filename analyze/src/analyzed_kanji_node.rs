@@ -26,6 +26,18 @@ impl AnalyzedKanjiNode {
 
         materialize(&shadow, &in_kanji_frame, &in_stroke_frame)
     }
+    pub fn len(&self) -> usize {
+        match self {
+            AnalyzedKanjiNode::Stroke { index, .. } => index + 1,
+            AnalyzedKanjiNode::Group { children, .. } => {
+                children.last().map(|child| child.len()).unwrap_or(0)
+            }
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 enum Shadow {

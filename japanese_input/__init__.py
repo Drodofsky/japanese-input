@@ -85,7 +85,7 @@ if _native is not None:
         showCritical(f"Japanese Input: kanji map not found at {katakana_map_path}")
     else:
         try:
-            _recognizer = _native.HiraganaRecognizer(str(hiragana_map_path))  # type: ignore[attr-defined]
+            _recognizer = _native.Recognizer(str(hiragana_map_path),str(kanji_map_path))  # type: ignore[attr-defined]
         except Exception as e:
             showCritical(f"Japanese Input: failed to construct recognizer\n\n{e}")
         try:
