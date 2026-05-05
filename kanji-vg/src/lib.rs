@@ -27,6 +27,31 @@ pub enum KanjiNode {
         path: lyon_path::Path,
     },
 }
+impl KanjiNode {
+    pub fn flatten_single_stroke_groups(&mut self) {
+        if let KanjiNode::Group { children, .. } = self {
+            // First, recurse into each child so deeper levels are flattened first.
+            for child in children.iter_mut() {
+                child.flatten_single_stroke_groups();
+            }
+
+            for child in children.iter_mut() {
+                if let KanjiNode::Group {
+                    children: inner, ..
+                } = child
+                {
+                    if inner.len() == 1 {
+                        if let KanjiNode::Stroke { .. } = inner[0] {
+                            // Take the inner stroke out and replace the group with it.
+                            let stroke = inner.remove(0);
+                            *child = stroke;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 pub fn parse_xml(path: impl AsRef<Path>) -> Result<GlyphIter<BufReader<File>>, ParseError> {
     let file = File::open(path)?;
@@ -131,12 +156,13 @@ fn parse_one_kanji<R: BufRead>(
     };
 
     // root group ends on </kanji>, not </g>
-    let root = parse_group(reader, buf, &mut stroke_index, element, b"kanji")?;
+    let mut root = parse_group(reader, buf, &mut stroke_index, element, b"kanji")?;
 
     let character = match &root {
         KanjiNode::Group { element, .. } => element.ok_or(ParseError::MissingElement)?,
         KanjiNode::Stroke { .. } => return Err(ParseError::UnexpectedXml),
     };
+    root.flatten_single_stroke_groups();
 
     Ok((character, root))
 }

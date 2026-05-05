@@ -110,15 +110,6 @@ fn beam(
 
             // Group-level extras: frame G + order continuity
             for r in results.iter_mut() {
-                let matched: Vec<u8> = r
-                    .user_strokes
-                    .iter()
-                    .copied()
-                    .filter(|&i| i != u8::MAX)
-                    .collect();
-                if matched.len() < 2 {
-                    continue;
-                }
                 let extra = group_extras(node, &r.user_strokes, user_b);
                 r.score += extra;
             }
