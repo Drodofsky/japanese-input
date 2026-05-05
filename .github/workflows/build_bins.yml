@@ -87,6 +87,10 @@ jobs:
           # Data file shipped under user_files (preserved across addon updates)
           mkdir -p addon_out/user_files/assets
           cp data/generated/kanji.bin addon_out/user_files/assets/kanji.bin
+          cp data/generated/hiragana.bin addon_out/user_files/assets/hiragana.bin
+          cp data/generated/katakana.bin addon_out/user_files/assets/katakana.bin
+
+
 
           # KanjiVG license attribution
           cp data/License.txt addon_out/LICENSE.txt
