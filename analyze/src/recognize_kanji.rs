@@ -15,6 +15,7 @@ pub struct KanjiRecognizer {
 }
 
 impl KanjiRecognizer {
+    #[must_use]
     pub fn new(kanji_map: &KanjiMap) -> Self {
         let mut candidates = Vec::new();
         for &c in kanji_map.keys() {
@@ -28,6 +29,7 @@ impl KanjiRecognizer {
     /// Recognizes a hiragana character from user strokes. Returns ranked candidates,
     /// best first. If the user's drawing bbox max side is ≤ 0.5 (in normalized canvas
     /// space), the result character is mapped to its small variant when one exists.
+    #[must_use]
     pub fn recognize(&self, user_strokes: &[Vec<(f32, f32)>]) -> Vec<RecognitionResult> {
         if user_strokes.is_empty() {
             return Vec::new();

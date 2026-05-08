@@ -8,6 +8,7 @@ const SCORE_SCALE: f32 = 1_000_000.0;
 
 const EXTRA_PENALTY: f32 = 1.0;
 
+#[must_use]
 pub fn match_hungarian(leaf_matrix: &LeafMatrix) -> Vec<MatchInfo> {
     let n_user = leaf_matrix.n_user();
     let n_leaves = leaf_matrix.n_leaves();
@@ -45,7 +46,7 @@ pub fn match_hungarian(leaf_matrix: &LeafMatrix) -> Vec<MatchInfo> {
     let mut used_mask: u32 = 0;
     let mut assigned_real_count = 0usize;
 
-    for &col in assignment.iter() {
+    for &col in &assignment {
         if col < n_user {
             user_strokes.push(col as u8);
             used_mask |= 1u32 << (col as u32);

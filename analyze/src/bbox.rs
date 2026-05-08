@@ -8,6 +8,7 @@ pub struct BBox {
 }
 
 impl BBox {
+    #[must_use]
     pub fn zero() -> Self {
         BBox {
             min: point(0.0, 0.0),
@@ -15,9 +16,11 @@ impl BBox {
         }
     }
 
+    #[must_use]
     pub fn width(&self) -> f32 {
         self.max.x - self.min.x
     }
+    #[must_use]
     pub fn height(&self) -> f32 {
         self.max.y - self.min.y
     }
@@ -130,6 +133,7 @@ impl GenBBox for Vec<&Vec<(f32, f32)>> {
     }
 }
 impl BBox {
+    #[must_use]
     pub fn center(&self) -> (f32, f32) {
         (
             (self.min.x + self.max.x) * 0.5,

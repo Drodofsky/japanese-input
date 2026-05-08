@@ -15,6 +15,7 @@ impl Default for DtwWeights {
     }
 }
 
+#[must_use]
 pub fn dtw(a: &[OrientedPoint], b: &[OrientedPoint], weights: DtwWeights) -> f32 {
     let n = a.len();
     let m = b.len();
@@ -35,6 +36,7 @@ pub fn dtw(a: &[OrientedPoint], b: &[OrientedPoint], weights: DtwWeights) -> f32
 
     dp[n][m] / (n + m) as f32
 }
+#[must_use]
 pub fn dtw_with_path(
     a: &[OrientedPoint],
     b: &[OrientedPoint],

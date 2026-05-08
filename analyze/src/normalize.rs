@@ -17,7 +17,7 @@ impl Normalize for Vec<OrientedPoint> {
 impl Normalize for Vec<Vec<OrientedPoint>> {
     fn normalize(mut self) -> Self {
         let bbox = self.gen_bbox();
-        for stroke in self.iter_mut() {
+        for stroke in &mut self {
             normalize_in_place(stroke, &bbox);
         }
         self

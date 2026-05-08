@@ -16,25 +16,30 @@ pub enum AnalyzedKanjiNode {
 }
 
 impl AnalyzedKanjiNode {
+    #[must_use]
     pub fn from_node(node: &KanjiNode) -> AnalyzedKanjiNode {
         let mut raw_strokes: Vec<Vec<OrientedPoint>> = Vec::new();
         let shadow = walk(node, &mut raw_strokes);
 
         let in_kanji_frame = raw_strokes.clone().normalize();
-        let in_stroke_frame: Vec<Vec<OrientedPoint>> =
-            raw_strokes.into_iter().map(|s| s.normalize()).collect();
+        let in_stroke_frame: Vec<Vec<OrientedPoint>> = raw_strokes
+            .into_iter()
+            .map(super::normalize::Normalize::normalize)
+            .collect();
 
         materialize(&shadow, &in_kanji_frame, &in_stroke_frame)
     }
+    #[must_use]
     pub fn len(&self) -> usize {
         match self {
             AnalyzedKanjiNode::Stroke { index, .. } => index + 1,
             AnalyzedKanjiNode::Group { children, .. } => {
-                children.last().map(|child| child.len()).unwrap_or(0)
+                children.last().map_or(0, AnalyzedKanjiNode::len)
             }
         }
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -52,13 +57,16 @@ enum Shadow {
 }
 
 impl AnalyzedKanjiNode {
+    #[must_use]
     pub fn analyze_reference(node: &KanjiNode) -> AnalyzedKanjiNode {
         let mut raw_strokes: Vec<Vec<OrientedPoint>> = Vec::new();
         let shadow = walk(node, &mut raw_strokes);
 
         let in_kanji_frame = raw_strokes.clone().normalize();
-        let in_stroke_frame: Vec<Vec<OrientedPoint>> =
-            raw_strokes.into_iter().map(|s| s.normalize()).collect();
+        let in_stroke_frame: Vec<Vec<OrientedPoint>> = raw_strokes
+            .into_iter()
+            .map(super::normalize::Normalize::normalize)
+            .collect();
 
         materialize(&shadow, &in_kanji_frame, &in_stroke_frame)
     }

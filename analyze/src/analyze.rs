@@ -31,6 +31,7 @@ pub struct Analysis {
     pub stroke_qualities: Vec<Vec<f32>>,
 }
 
+#[must_use]
 pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analysis {
     if user_strokes.is_empty() {
         return Analysis {
@@ -261,15 +262,15 @@ fn apply_level_correction(
         if let AnalyzedKanjiNode::Group { children, .. } = node {
             transform_children_relative(node, children, assignment, working);
         }
-    } else if current_depth + 1 < target_depth {
-        if let AnalyzedKanjiNode::Group { children, .. } = node {
-            let mut counter = 0;
-            for child in children {
-                let size = leaf_count(child);
-                let slice = &assignment[counter..counter + size];
-                apply_level_correction(child, slice, working, target_depth, current_depth + 1);
-                counter += size;
-            }
+    } else if current_depth + 1 < target_depth
+        && let AnalyzedKanjiNode::Group { children, .. } = node
+    {
+        let mut counter = 0;
+        for child in children {
+            let size = leaf_count(child);
+            let slice = &assignment[counter..counter + size];
+            apply_level_correction(child, slice, working, target_depth, current_depth + 1);
+            counter += size;
         }
     }
     // current_depth + 1 > target_depth: nothing to do, we've passed it

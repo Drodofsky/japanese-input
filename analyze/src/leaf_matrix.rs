@@ -8,19 +8,20 @@ const FRAME_B_WEIGHT: f32 = 0.3;
 const FRAME_C_WEIGHT: f32 = 0.3;
 const LENGTH_WEIGHT: f32 = 0.4;
 
-/// Precomputed leaf-level match scores. For each (leaf, user_stroke) pair plus
+/// Precomputed leaf-level match scores. For each (leaf, `user_stroke`) pair plus
 /// a MISSING entry per leaf, holds the combined score (frame B DTW + frame C DTW
-/// + length difference). Built once per match_node call; consumed by beam_stroke.
+/// + length difference). Built once per `match_node` call; consumed by `beam_stroke`.
 pub struct LeafMatrix {
     n_user: usize,
     n_leaves: usize,
     /// Flat array, row-major. Row = leaf index, column = user stroke index in
-    /// 0..n_user, with column n_user holding the MISSING_PENALTY for that leaf.
-    /// Stride = n_user + 1.
+    /// `0..n_user`, with column `n_user` holding the `MISSING_PENALTY` for that leaf.
+    /// Stride = `n_user` + 1.
     scores: Vec<f32>,
 }
 
 impl LeafMatrix {
+    #[must_use]
     pub fn create(
         root: &AnalyzedKanjiNode,
         user_b: &[Vec<OrientedPoint>],
@@ -99,23 +100,26 @@ impl LeafMatrix {
 
         LeafMatrix {
             n_user,
-            scores,
             n_leaves,
+            scores,
         }
     }
 
-    /// Score for (leaf_index, user_stroke_index). Pass `n_user` as user_idx for the
+    /// Score for (`leaf_index`, `user_stroke_index`). Pass `n_user` as `user_idx` for the
     /// MISSING slot.
     #[inline]
+    #[must_use]
     pub fn look_up(&self, leaf_index: usize, user_idx: usize) -> f32 {
         let stride = self.n_user + 1;
         self.scores[leaf_index * stride + user_idx]
     }
 
     #[inline]
+    #[must_use]
     pub fn n_user(&self) -> usize {
         self.n_user
     }
+    #[must_use]
     pub fn n_leaves(&self) -> usize {
         self.n_leaves
     }

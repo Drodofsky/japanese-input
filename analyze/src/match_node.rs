@@ -22,6 +22,7 @@ pub struct MatchInfo {
     pub used_mask: u32,
 }
 
+#[must_use]
 pub fn match_node(reference: &AnalyzedKanjiNode, user: &[Vec<(f32, f32)>]) -> Vec<MatchInfo> {
     let (user_b, user_c) = prepare_user(user);
     let leaf_matrix = LeafMatrix::create(reference, &user_b, &user_c);
@@ -37,7 +38,7 @@ pub fn match_node(reference: &AnalyzedKanjiNode, user: &[Vec<(f32, f32)>]) -> Ve
     results.dedup_by_key(|m| m.user_strokes.clone());
     results.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
     let user_count = user.len();
-    for r in results.iter_mut() {
+    for r in &mut results {
         let used = r
             .user_strokes
             .iter()
@@ -52,14 +53,17 @@ pub fn match_node(reference: &AnalyzedKanjiNode, user: &[Vec<(f32, f32)>]) -> Ve
     results
 }
 
+#[must_use]
 pub fn prepare_user(
     user: &[Vec<(f32, f32)>],
 ) -> (Vec<Vec<OrientedPoint>>, Vec<Vec<OrientedPoint>>) {
     let oriented: Vec<Vec<OrientedPoint>> =
         user.iter().map(|s| s.as_slice().to_oriented()).collect();
     let in_kanji_frame = oriented.clone().normalize();
-    let in_stroke_frame: Vec<Vec<OrientedPoint>> =
-        oriented.into_iter().map(|s| s.normalize()).collect();
+    let in_stroke_frame: Vec<Vec<OrientedPoint>> = oriented
+        .into_iter()
+        .map(super::normalize::Normalize::normalize)
+        .collect();
     (in_kanji_frame, in_stroke_frame)
 }
 
@@ -109,7 +113,7 @@ fn beam(
             let mut results = results;
 
             // Group-level extras: frame G + order continuity
-            for r in results.iter_mut() {
+            for r in &mut results {
                 let extra = group_extras(node, &r.user_strokes, user_b);
                 r.score += extra;
             }
@@ -247,7 +251,7 @@ fn combine_children(child_candidates: &[Vec<MatchInfo>], width: usize) -> Vec<Ma
 fn truncate_with_permutation_cap(entries: Vec<MatchInfo>, width: usize) -> Vec<MatchInfo> {
     let mut group_counts: std::collections::HashMap<u32, usize> = std::collections::HashMap::new();
     let mut kept: Vec<MatchInfo> = Vec::with_capacity(width);
-    for entry in entries.into_iter() {
+    for entry in entries {
         let cap = entry.user_strokes.len().max(1);
         let count = group_counts.entry(entry.used_mask).or_insert(0);
         if *count < cap {

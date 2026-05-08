@@ -32,6 +32,7 @@ pub struct HiraganaRecognizer {
 }
 
 impl HiraganaRecognizer {
+    #[must_use]
     pub fn new(kanji_map: &KanjiMap) -> Self {
         let mut candidates = Vec::new();
         for &c in kanji_map.keys() {
@@ -45,6 +46,7 @@ impl HiraganaRecognizer {
     /// Recognizes a hiragana character from user strokes. Returns ranked candidates,
     /// best first. If the user's drawing bbox max side is ≤ 0.5 (in normalized canvas
     /// space), the result character is mapped to its small variant when one exists.
+    #[must_use]
     pub fn recognize(&self, user_strokes: &[Vec<(f32, f32)>]) -> Vec<RecognitionResult> {
         if user_strokes.is_empty() {
             return Vec::new();
@@ -72,7 +74,7 @@ impl HiraganaRecognizer {
         results.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
 
         if is_small {
-            for r in results.iter_mut() {
+            for r in &mut results {
                 if let Some(small) = small_variant(r.character) {
                     r.character = small;
                 }
