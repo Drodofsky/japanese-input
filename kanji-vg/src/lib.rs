@@ -23,7 +23,7 @@ pub enum KanjiNode {
         children: Vec<KanjiNode>,
     },
     Stroke {
-        index: usize,
+        index: u8,
         path: lyon_path::Path,
     },
 }
@@ -189,7 +189,7 @@ fn parse_group<R: BufRead>(
                 let d = get_attr(&e, b"d")?.ok_or(ParseError::MissingPath)?;
                 let path = parse_svg_path(&d)?;
                 children.push(KanjiNode::Stroke {
-                    index: *stroke_index,
+                    index: (*stroke_index).try_into().unwrap_or(u8::MAX),
                     path,
                 });
                 *stroke_index += 1;

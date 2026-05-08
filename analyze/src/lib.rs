@@ -20,7 +20,7 @@ pub enum KanjiNode {
         children: Vec<KanjiNode>,
     },
     Stroke {
-        index: usize,
+        index: u8,
         path: lyon_path::Path,
     },
 }

@@ -9,7 +9,7 @@ pub enum AnalyzedKanjiNode {
         children: Vec<AnalyzedKanjiNode>,
     },
     Stroke {
-        index: usize,
+        index: u8,
         in_kanji_frame: Vec<OrientedPoint>,
         in_stroke_frame: Vec<OrientedPoint>,
     },
@@ -30,7 +30,7 @@ impl AnalyzedKanjiNode {
         materialize(&shadow, &in_kanji_frame, &in_stroke_frame)
     }
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn len(&self) -> u8 {
         match self {
             AnalyzedKanjiNode::Stroke { index, .. } => index + 1,
             AnalyzedKanjiNode::Group { children, .. } => {
@@ -51,8 +51,8 @@ enum Shadow {
         children: Vec<Shadow>,
     },
     Stroke {
-        index: usize,
-        slot: usize,
+        index: u8,
+        slot: u8,
     },
 }
 
@@ -79,7 +79,7 @@ fn walk(node: &KanjiNode, raw: &mut Vec<Vec<OrientedPoint>>) -> Shadow {
             raw.push(path.to_oriented());
             Shadow::Stroke {
                 index: *index,
-                slot,
+                slot: slot.try_into().unwrap_or(u8::MAX),
             }
         }
         KanjiNode::Group { element, children } => {
@@ -100,8 +100,8 @@ fn materialize(
     match shadow {
         Shadow::Stroke { index, slot } => AnalyzedKanjiNode::Stroke {
             index: *index,
-            in_kanji_frame: b[*slot].clone(),
-            in_stroke_frame: c[*slot].clone(),
+            in_kanji_frame: b[usize::from(*slot)].clone(),
+            in_stroke_frame: c[usize::from(*slot)].clone(),
         },
         Shadow::Group { element, children } => AnalyzedKanjiNode::Group {
             element: *element,
@@ -367,7 +367,7 @@ mod tests {
         let analyzed = AnalyzedKanjiNode::from_node(&node);
         match analyzed {
             AnalyzedKanjiNode::Group { children, .. } => {
-                let indices: Vec<usize> = children
+                let indices: Vec<_> = children
                     .iter()
                     .filter_map(|c| match c {
                         AnalyzedKanjiNode::Stroke { index, .. } => Some(*index),

@@ -38,7 +38,7 @@ impl KanjiRecognizer {
         let mut results: Vec<RecognitionResult> = self
             .candidates
             .iter()
-            .filter(|p| p.1.len() == user_strokes.len())
+            .filter(|p| usize::from(p.1.len()) == user_strokes.len())
             .filter_map(|(c, node)| {
                 let (user_b, user_c) = prepare_user(user_strokes);
 

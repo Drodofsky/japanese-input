@@ -17,7 +17,7 @@ pub fn match_hungarian(leaf_matrix: &LeafMatrix) -> Vec<MatchInfo> {
     // i64::MAX/2 avoids overflow when Hungarian sums and subtracts.
     let blocked: i64 = i64::MAX / 4;
 
-    let mut cost: Vec<i64> = Vec::with_capacity(n_leaves * n_cols);
+    let mut cost: Vec<i64> = Vec::with_capacity(usize::from(n_leaves) * usize::from(n_cols));
     for leaf in 0..n_leaves {
         // Real user stroke costs.
         for u in 0..n_user {
@@ -35,20 +35,21 @@ pub fn match_hungarian(leaf_matrix: &LeafMatrix) -> Vec<MatchInfo> {
         }
     }
 
-    let matrix = Matrix::from_vec(n_leaves, n_cols, cost).expect("cost matrix dimensions mismatch");
+    let matrix = Matrix::from_vec(n_leaves.into(), n_cols.into(), cost)
+        .expect("cost matrix dimensions mismatch");
 
     let (total_cost_scaled, assignment) = kuhn_munkres_min(&matrix);
 
     // Decode assignment[leaf] = column.
     // - If column < n_user: user stroke `column` was picked.
     // - If column >= n_user: MISSING.
-    let mut user_strokes: StrokeVec = SmallVec::with_capacity(n_leaves);
+    let mut user_strokes: StrokeVec = SmallVec::with_capacity(n_leaves.into());
     let mut used_mask: u32 = 0;
-    let mut assigned_real_count = 0usize;
+    let mut assigned_real_count = 0;
 
     for &col in &assignment {
-        if col < n_user {
-            user_strokes.push(col as u8);
+        if col < n_user.into() {
+            user_strokes.push(col.try_into().unwrap_or(u8::MAX));
             used_mask |= 1u32 << (col as u32);
             assigned_real_count += 1;
         } else {

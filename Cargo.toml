@@ -13,6 +13,11 @@ all = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
 #restriction = { level = "warn", priority = -2 }
 
+# pedantic
+similar_names ="allow"
+many_single_char_names = "allow" #fix later
+too_many_lines = "allow" #fix later
+
 # restriction:
 non_ascii_literal = "allow"
 implicit_return = "allow"

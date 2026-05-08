@@ -12,8 +12,8 @@ const LENGTH_WEIGHT: f32 = 0.4;
 /// a MISSING entry per leaf, holds the combined score (frame B DTW + frame C DTW
 /// + length difference). Built once per `match_node` call; consumed by `beam_stroke`.
 pub struct LeafMatrix {
-    n_user: usize,
-    n_leaves: usize,
+    n_user: u8,
+    n_leaves: u8,
     /// Flat array, row-major. Row = leaf index, column = user stroke index in
     /// `0..n_user`, with column `n_user` holding the `MISSING_PENALTY` for that leaf.
     /// Stride = `n_user` + 1.
@@ -28,8 +28,8 @@ impl LeafMatrix {
         user_c: &[Vec<OrientedPoint>],
     ) -> Self {
         // Find max leaf index so we know how big the matrix needs to be.
-        let mut max_idx = 0usize;
-        fn scan(n: &AnalyzedKanjiNode, max_idx: &mut usize) {
+        let mut max_idx = 0;
+        fn scan(n: &AnalyzedKanjiNode, max_idx: &mut u8) {
             match n {
                 AnalyzedKanjiNode::Stroke { index, .. } => {
                     if *index > *max_idx {
@@ -45,13 +45,13 @@ impl LeafMatrix {
         }
         scan(root, &mut max_idx);
         let n_leaves = max_idx + 1;
-        let n_user = user_b.len();
+        let n_user = user_b.len().try_into().unwrap_or(u8::MAX);
         let stride = n_user + 1;
 
         let weights = DtwWeights::default();
         let user_lens: Vec<f32> = user_b.iter().map(|s| bbox_longer_side(s)).collect();
 
-        let mut scores = vec![0.0f32; n_leaves * stride];
+        let mut scores = vec![0.0f32; usize::from(n_leaves) * usize::from(stride)];
 
         // Walk leaves and fill rows.
         fn fill(
@@ -60,7 +60,7 @@ impl LeafMatrix {
             user_c: &[Vec<OrientedPoint>],
             user_lens: &[f32],
             weights: DtwWeights,
-            stride: usize,
+            stride: u8,
             scores: &mut [f32],
         ) {
             match n {
@@ -70,16 +70,16 @@ impl LeafMatrix {
                     in_stroke_frame: ref_c,
                 } => {
                     let ref_len = bbox_longer_side(ref_b);
-                    let row_base = *index * stride;
+                    let row_base: u8 = *index * stride;
                     for (u, ub) in user_b.iter().enumerate() {
                         let s_b = dtw(ref_b, ub, weights);
                         let s_c = dtw(ref_c, &user_c[u], weights);
                         let s_len = (ref_len - user_lens[u]).abs();
-                        scores[row_base + u] =
+                        scores[usize::from(row_base) + u] =
                             FRAME_B_WEIGHT * s_b + FRAME_C_WEIGHT * s_c + LENGTH_WEIGHT * s_len;
                     }
                     // MISSING entry in the trailing column.
-                    scores[row_base + stride - 1] = MISSING_PENALTY;
+                    scores[usize::from(row_base) + usize::from(stride) - 1] = MISSING_PENALTY;
                 }
                 AnalyzedKanjiNode::Group { children, .. } => {
                     for c in children {
@@ -109,18 +109,18 @@ impl LeafMatrix {
     /// MISSING slot.
     #[inline]
     #[must_use]
-    pub fn look_up(&self, leaf_index: usize, user_idx: usize) -> f32 {
+    pub fn look_up(&self, leaf_index: u8, user_idx: u8) -> f32 {
         let stride = self.n_user + 1;
-        self.scores[leaf_index * stride + user_idx]
+        self.scores[usize::from(leaf_index) * usize::from(stride) + usize::from(user_idx)]
     }
 
     #[inline]
     #[must_use]
-    pub fn n_user(&self) -> usize {
+    pub fn n_user(&self) -> u8 {
         self.n_user
     }
     #[must_use]
-    pub fn n_leaves(&self) -> usize {
+    pub fn n_leaves(&self) -> u8 {
         self.n_leaves
     }
 }
