@@ -6,3 +6,17 @@ exclude = ["kanji-draw"]
 resolver = "3"
 [profile.release]
 debug = true
+
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+#restriction = { level = "warn", priority = -2 }
+
+# restriction:
+non_ascii_literal = "allow"
+implicit_return = "allow"
+missing_docs_in_private_items = "allow"
+single_call_fn = "allow"
+min_ident_chars = "allow"
+float_arithmetic = "allow"
