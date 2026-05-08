@@ -102,8 +102,8 @@ pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analy
         .filter(|&i| i != u8::MAX)
         .collect();
     let mut extras: Vec<u8> = (0..user_strokes.len())
-        .filter(|i| !matched.contains(&(*i as u8)))
-        .map(|i| i as u8)
+        .filter(|i| !matched.contains(&((*i).try_into().unwrap_or(u8::MAX))))
+        .map(|i| i.try_into().unwrap_or(u8::MAX))
         .collect();
     extras.sort_by(|a, b| b.cmp(a));
 
@@ -122,7 +122,9 @@ pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analy
     // ── Stage 2: position corrections (parent-relative, outer-first) ─────────
     let mid_match = match_node(&analyzed, &working);
     let assignment_for_levels: Vec<_> = if mid_match.is_empty() {
-        (0..working.len()).map(|i| i as u8).collect()
+        (0..working.len())
+            .map(|i| i.try_into().unwrap_or(u8::MAX))
+            .collect()
     } else {
         mid_match[0].user_strokes.to_vec()
     };
@@ -441,7 +443,13 @@ fn aggregate_per_user_point(path: &[(usize, usize, f32)], user_len: usize) -> Ve
     }
     sums.iter()
         .zip(counts.iter())
-        .map(|(&s, &c)| if c > 0 { s / c as f32 } else { 0.0 })
+        .map(|(&s, &c)| {
+            if c > 0 {
+                s / c.try_into().unwrap_or(u16::MAX) as f32
+            } else {
+                0.0
+            }
+        })
         .collect()
 }
 

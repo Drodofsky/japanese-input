@@ -34,7 +34,7 @@ pub fn dtw(a: &[OrientedPoint], b: &[OrientedPoint], weights: DtwWeights) -> f32
         }
     }
 
-    dp[n][m] / (n + m) as f32
+    dp[n][m] / (n + m).try_into().unwrap_or(u16::MAX) as f32
 }
 #[must_use]
 pub fn dtw_with_path(
@@ -76,7 +76,10 @@ pub fn dtw_with_path(
     }
     path.reverse();
 
-    (dp[n][m] / (n + m) as f32, path)
+    (
+        dp[n][m] / (n + m).try_into().unwrap_or(u16::MAX) as f32,
+        path,
+    )
 }
 fn cost(p: &OrientedPoint, q: &OrientedPoint, w: DtwWeights) -> f32 {
     let dx = p.position.x - q.position.x;

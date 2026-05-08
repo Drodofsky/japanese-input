@@ -46,7 +46,7 @@ pub fn match_node(reference: &AnalyzedKanjiNode, user: &[Vec<(f32, f32)>]) -> Ve
             .filter(|&i| i != u8::MAX)
             .count();
         let extras = user_count.saturating_sub(used);
-        r.score += EXTRA_PENALTY * extras as f32;
+        r.score += EXTRA_PENALTY * extras.try_into().unwrap_or(u16::MAX) as f32;
     }
 
     results.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
@@ -80,7 +80,7 @@ fn beam(
                 .map(|i| MatchInfo {
                     user_strokes: smallvec![i],
                     score: leaf_matrix.look_up(*index, i),
-                    used_mask: 1u32 << u32::from(i),
+                    used_mask: 1u32 << u16::from(i),
                 })
                 .collect();
             candidates.push(MatchInfo {
@@ -162,7 +162,7 @@ fn group_extras(
         .zip(user_g.iter())
         .map(|(r, u)| dtw(r, u, weights))
         .sum();
-    let dtw_avg = dtw_sum / matched.len() as f32;
+    let dtw_avg = dtw_sum / matched.len().try_into().unwrap_or(u16::MAX) as f32;
 
     // Kendall tau on the user-stroke indices.
     let user_indices: Vec<u8> = leaf_pairs
@@ -200,7 +200,7 @@ fn kendall_tau(seq: &[u8]) -> f32 {
     if n < 2 {
         return 0.0;
     }
-    let mut inv = 0usize;
+    let mut inv = 0;
     for i in 0..n {
         for j in (i + 1)..n {
             if seq[i] > seq[j] {

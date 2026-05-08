@@ -50,7 +50,7 @@ pub fn match_hungarian(leaf_matrix: &LeafMatrix) -> Vec<MatchInfo> {
     for &col in &assignment {
         if col < n_user.into() {
             user_strokes.push(col.try_into().unwrap_or(u8::MAX));
-            used_mask |= 1u32 << (col as u32);
+            used_mask |= 1u32 << col.try_into().unwrap_or(u32::MAX);
             assigned_real_count += 1;
         } else {
             user_strokes.push(u8::MAX);
@@ -58,7 +58,8 @@ pub fn match_hungarian(leaf_matrix: &LeafMatrix) -> Vec<MatchInfo> {
     }
 
     // Hungarian's score (raw assignment sum), unscaled.
-    let mut score = (total_cost_scaled as f32) / SCORE_SCALE;
+    let mut score =
+        ((total_cost_scaled.try_into().unwrap_or(u32::MAX) as f64) / SCORE_SCALE as f64) as f32;
 
     // Apply EXTRA_PENALTY for user strokes the kanji didn't claim.
     let unused = n_user.saturating_sub(assigned_real_count);
