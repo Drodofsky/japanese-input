@@ -445,7 +445,7 @@ fn aggregate_per_user_point(path: &[(usize, usize, f32)], user_len: usize) -> Ve
         .zip(counts.iter())
         .map(|(&s, &c)| {
             if c > 0 {
-                s / c.try_into().unwrap_or(u16::MAX) as f32
+                s / f32::from(c.try_into().unwrap_or(u16::MAX))
             } else {
                 0.0
             }

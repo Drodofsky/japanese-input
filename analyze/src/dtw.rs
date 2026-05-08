@@ -34,7 +34,7 @@ pub fn dtw(a: &[OrientedPoint], b: &[OrientedPoint], weights: DtwWeights) -> f32
         }
     }
 
-    dp[n][m] / (n + m).try_into().unwrap_or(u16::MAX) as f32
+    dp[n][m] / f32::from((n + m).try_into().unwrap_or(u16::MAX))
 }
 #[must_use]
 pub fn dtw_with_path(
@@ -77,7 +77,7 @@ pub fn dtw_with_path(
     path.reverse();
 
     (
-        dp[n][m] / (n + m).try_into().unwrap_or(u16::MAX) as f32,
+        dp[n][m] / f32::from((n + m).try_into().unwrap_or(u16::MAX)),
         path,
     )
 }

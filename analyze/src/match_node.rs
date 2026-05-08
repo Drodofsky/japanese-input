@@ -46,7 +46,7 @@ pub fn match_node(reference: &AnalyzedKanjiNode, user: &[Vec<(f32, f32)>]) -> Ve
             .filter(|&i| i != u8::MAX)
             .count();
         let extras = user_count.saturating_sub(used);
-        r.score += EXTRA_PENALTY * extras.try_into().unwrap_or(u16::MAX) as f32;
+        r.score += EXTRA_PENALTY * f32::from(extras.try_into().unwrap_or(u16::MAX));
     }
 
     results.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
@@ -162,7 +162,7 @@ fn group_extras(
         .zip(user_g.iter())
         .map(|(r, u)| dtw(r, u, weights))
         .sum();
-    let dtw_avg = dtw_sum / matched.len().try_into().unwrap_or(u16::MAX) as f32;
+    let dtw_avg = dtw_sum / f32::from(matched.len().try_into().unwrap_or(u16::MAX));
 
     // Kendall tau on the user-stroke indices.
     let user_indices: Vec<u8> = leaf_pairs
