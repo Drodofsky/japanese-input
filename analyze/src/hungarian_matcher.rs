@@ -62,7 +62,7 @@ pub fn match_hungarian(leaf_matrix: &LeafMatrix) -> Vec<MatchInfo> {
 
     // Apply EXTRA_PENALTY for user strokes the kanji didn't claim.
     let unused = n_user.saturating_sub(assigned_real_count);
-    score += EXTRA_PENALTY * unused as f32;
+    score += EXTRA_PENALTY * f32::from(unused);
 
     vec![MatchInfo {
         user_strokes,

@@ -78,9 +78,9 @@ fn beam(
             let n_user = leaf_matrix.n_user();
             let mut candidates: Vec<MatchInfo> = (0..n_user)
                 .map(|i| MatchInfo {
-                    user_strokes: smallvec![i as u8],
+                    user_strokes: smallvec![i],
                     score: leaf_matrix.look_up(*index, i),
-                    used_mask: 1u32 << (i as u32),
+                    used_mask: 1u32 << u32::from(i),
                 })
                 .collect();
             candidates.push(MatchInfo {
