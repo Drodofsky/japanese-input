@@ -35,8 +35,8 @@ pub fn match_hungarian(leaf_matrix: &LeafMatrix) -> Vec<MatchInfo> {
         }
     }
 
-    let matrix = Matrix::from_vec(n_leaves.into(), n_cols.into(), cost)
-        .expect("cost matrix dimensions mismatch");
+    let matrix =
+        Matrix::from_vec(n_leaves.into(), n_cols.into(), cost).unwrap_or(Matrix::new_empty(0));
 
     let (total_cost_scaled, assignment) = kuhn_munkres_min(&matrix);
 

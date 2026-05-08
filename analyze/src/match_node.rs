@@ -36,7 +36,7 @@ pub fn match_node(reference: &AnalyzedKanjiNode, user: &[Vec<(f32, f32)>]) -> Ve
     results.retain(|m| m.user_strokes.iter().filter(|&&i| i != u8::MAX).count() == max_matched);
     results.sort_by_key(|m| m.user_strokes.clone());
     results.dedup_by_key(|m| m.user_strokes.clone());
-    results.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
+    results.sort_by(|a, b| a.score.total_cmp(&b.score));
     let user_count = user.len();
     for r in &mut results {
         let used = r
@@ -49,7 +49,7 @@ pub fn match_node(reference: &AnalyzedKanjiNode, user: &[Vec<(f32, f32)>]) -> Ve
         r.score += EXTRA_PENALTY * f32::from(extras.try_into().unwrap_or(u16::MAX));
     }
 
-    results.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
+    results.sort_by(|a, b| a.score.total_cmp(&b.score));
     results
 }
 
@@ -88,7 +88,7 @@ fn beam(
                 score: leaf_matrix.look_up(*index, n_user),
                 used_mask: 0,
             });
-            candidates.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
+            candidates.sort_by(|a, b| a.score.total_cmp(&b.score));
             candidates.truncate(width);
             candidates
         }
@@ -118,7 +118,7 @@ fn beam(
                 r.score += extra;
             }
 
-            results.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
+            results.sort_by(|a, b| a.score.total_cmp(&b.score));
             truncate_with_permutation_cap(results, width)
         }
     }
@@ -239,10 +239,10 @@ fn combine_children(child_candidates: &[Vec<MatchInfo>], width: usize) -> Vec<Ma
 
         let keep = (width * 4).min(next.len());
         if keep < next.len() {
-            next.select_nth_unstable_by(keep, |a, b| a.score.partial_cmp(&b.score).unwrap());
+            next.select_nth_unstable_by(keep, |a, b| a.score.total_cmp(&b.score));
             next.truncate(keep);
         }
-        next.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
+        next.sort_by(|a, b| a.score.total_cmp(&b.score));
         results = truncate_with_permutation_cap(next, width);
     }
 

@@ -3,6 +3,7 @@ use crate::point::OrientedPoint;
 use lyon_path::math::point;
 
 pub trait Normalize {
+    #[must_use]
     fn normalize(self) -> Self;
 }
 

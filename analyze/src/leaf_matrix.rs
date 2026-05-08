@@ -29,21 +29,8 @@ impl LeafMatrix {
     ) -> Self {
         // Find max leaf index so we know how big the matrix needs to be.
         let mut max_idx = 0;
-        fn scan(n: &AnalyzedKanjiNode, max_idx: &mut u8) {
-            match n {
-                AnalyzedKanjiNode::Stroke { index, .. } => {
-                    if *index > *max_idx {
-                        *max_idx = *index;
-                    }
-                }
-                AnalyzedKanjiNode::Group { children, .. } => {
-                    for c in children {
-                        scan(c, max_idx);
-                    }
-                }
-            }
-        }
-        scan(root, &mut max_idx);
+
+        Self::scan(root, &mut max_idx);
         let n_leaves = max_idx + 1;
         let n_user = user_b.len().try_into().unwrap_or(u8::MAX);
         let stride = n_user + 1;
@@ -54,41 +41,7 @@ impl LeafMatrix {
         let mut scores = vec![0.0f32; usize::from(n_leaves) * usize::from(stride)];
 
         // Walk leaves and fill rows.
-        fn fill(
-            n: &AnalyzedKanjiNode,
-            user_b: &[Vec<OrientedPoint>],
-            user_c: &[Vec<OrientedPoint>],
-            user_lens: &[f32],
-            weights: DtwWeights,
-            stride: u8,
-            scores: &mut [f32],
-        ) {
-            match n {
-                AnalyzedKanjiNode::Stroke {
-                    index,
-                    in_kanji_frame: ref_b,
-                    in_stroke_frame: ref_c,
-                } => {
-                    let ref_len = bbox_longer_side(ref_b);
-                    let row_base: u8 = *index * stride;
-                    for (u, ub) in user_b.iter().enumerate() {
-                        let s_b = dtw(ref_b, ub, weights);
-                        let s_c = dtw(ref_c, &user_c[u], weights);
-                        let s_len = (ref_len - user_lens[u]).abs();
-                        scores[usize::from(row_base) + u] =
-                            FRAME_B_WEIGHT * s_b + FRAME_C_WEIGHT * s_c + LENGTH_WEIGHT * s_len;
-                    }
-                    // MISSING entry in the trailing column.
-                    scores[usize::from(row_base) + usize::from(stride) - 1] = MISSING_PENALTY;
-                }
-                AnalyzedKanjiNode::Group { children, .. } => {
-                    for c in children {
-                        fill(c, user_b, user_c, user_lens, weights, stride, scores);
-                    }
-                }
-            }
-        }
-        fill(
+        Self::fill(
             root,
             user_b,
             user_c,
@@ -122,6 +75,54 @@ impl LeafMatrix {
     #[must_use]
     pub fn n_leaves(&self) -> u8 {
         self.n_leaves
+    }
+    fn scan(n: &AnalyzedKanjiNode, max_idx: &mut u8) {
+        match n {
+            AnalyzedKanjiNode::Stroke { index, .. } => {
+                if *index > *max_idx {
+                    *max_idx = *index;
+                }
+            }
+            AnalyzedKanjiNode::Group { children, .. } => {
+                for c in children {
+                    Self::scan(c, max_idx);
+                }
+            }
+        }
+    }
+    fn fill(
+        n: &AnalyzedKanjiNode,
+        user_b: &[Vec<OrientedPoint>],
+        user_c: &[Vec<OrientedPoint>],
+        user_lens: &[f32],
+        weights: DtwWeights,
+        stride: u8,
+        scores: &mut [f32],
+    ) {
+        match n {
+            AnalyzedKanjiNode::Stroke {
+                index,
+                in_kanji_frame: ref_b,
+                in_stroke_frame: ref_c,
+            } => {
+                let ref_len = bbox_longer_side(ref_b);
+                let row_base: u8 = *index * stride;
+                for (u, ub) in user_b.iter().enumerate() {
+                    let s_b = dtw(ref_b, ub, weights);
+                    let s_c = dtw(ref_c, &user_c[u], weights);
+                    let s_len = (ref_len - user_lens[u]).abs();
+                    scores[usize::from(row_base) + u] =
+                        FRAME_B_WEIGHT * s_b + FRAME_C_WEIGHT * s_c + LENGTH_WEIGHT * s_len;
+                }
+                // MISSING entry in the trailing column.
+                scores[usize::from(row_base) + usize::from(stride) - 1] = MISSING_PENALTY;
+            }
+            AnalyzedKanjiNode::Group { children, .. } => {
+                for c in children {
+                    Self::fill(c, user_b, user_c, user_lens, weights, stride, scores);
+                }
+            }
+        }
     }
 }
 

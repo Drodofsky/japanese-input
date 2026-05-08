@@ -39,14 +39,12 @@ impl KanjiNode {
                 if let KanjiNode::Group {
                     children: inner, ..
                 } = child
+                    && inner.len() == 1
+                    && let KanjiNode::Stroke { .. } = inner[0]
                 {
-                    if inner.len() == 1 {
-                        if let KanjiNode::Stroke { .. } = inner[0] {
-                            // Take the inner stroke out and replace the group with it.
-                            let stroke = inner.remove(0);
-                            *child = stroke;
-                        }
-                    }
+                    // Take the inner stroke out and replace the group with it.
+                    let stroke = inner.remove(0);
+                    *child = stroke;
                 }
             }
         }

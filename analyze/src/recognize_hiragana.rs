@@ -71,7 +71,7 @@ impl HiraganaRecognizer {
             })
             .collect();
 
-        results.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
+        results.sort_by(|a, b| a.score.total_cmp(&b.score));
 
         if is_small {
             for r in &mut results {
