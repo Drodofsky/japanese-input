@@ -210,7 +210,7 @@ fn kendall_tau(seq: &[u8]) -> f32 {
     }
     let n = n.try_into().unwrap_or(u16::MAX);
     let max = n * (n - 1) / 2;
-    inv as f32 / max as f32
+    f32::from(inv) / f32::from(max)
 }
 
 fn combine_children(child_candidates: &[Vec<MatchInfo>], width: usize) -> Vec<MatchInfo> {
