@@ -5,7 +5,7 @@ use analyze::recognize_kanji::KanjiRecognizer;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use wana_kana::IsJapaneseChar;
-#[pyclass]
+#[pyclass(skip_from_py_object)]
 #[derive(Clone)]
 pub enum PyStrokeIssue {
     Missing { ref_index: usize },
@@ -30,7 +30,7 @@ impl From<&StrokeIssue> for PyStrokeIssue {
         }
     }
 }
-#[pyclass]
+#[pyclass(skip_from_py_object)]
 #[derive(Clone)]
 pub struct PyIssueWithFix {
     #[pyo3(get)]
@@ -45,7 +45,7 @@ impl PyIssueWithFix {
         format!("IssueWithFix(strokes={})", self.corrected_strokes.len())
     }
 }
-#[pyclass]
+#[pyclass(skip_from_py_object)]
 #[derive(Clone)]
 pub struct PyAnalysis {
     #[pyo3(get)]
