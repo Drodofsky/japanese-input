@@ -13,4 +13,4 @@ analyze = {path = "../analyze"}
 pyo3 = {version = "0.28", features = ["extension-module", "abi3-py38"]}
 lyon_path = "1.0"
 postcard = { version = "1", features = ["alloc"] }
-wana_kana= "4"
+wana_kana= "5.0.0"
