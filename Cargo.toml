@@ -15,6 +15,7 @@ pedantic = { level = "warn", priority = -1 }
 
 # pedantic
 similar_names ="allow"
+cast_possible_truncation = "allow" # should not be a problem
 many_single_char_names = "allow" #fix later
 too_many_lines = "allow" #fix later
 
