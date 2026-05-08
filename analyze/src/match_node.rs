@@ -200,7 +200,7 @@ fn kendall_tau(seq: &[u8]) -> f32 {
     if n < 2 {
         return 0.0;
     }
-    let mut inv = 0;
+    let mut inv: i16 = 0;
     for i in 0..n {
         for j in (i + 1)..n {
             if seq[i] > seq[j] {
@@ -208,6 +208,7 @@ fn kendall_tau(seq: &[u8]) -> f32 {
             }
         }
     }
+    let n = n.try_into().unwrap_or(u16::MAX);
     let max = n * (n - 1) / 2;
     inv as f32 / max as f32
 }
