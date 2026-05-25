@@ -77,11 +77,11 @@ pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analy
     );
     remove_extra_strokes(&first_match, user_strokes.len(), &mut working, &mut issues);
 
-    // Stage 2: position corrections (parent-relative, outer-first)
-    apply_position_corrections(&analyzed, &mut working, &mut issues);
-
-    // Stage 3: wrong order
+    // Stage 2: wrong order
     let score = fix_wrong_order(was_wrong_order, &analyzed, &mut working, &mut issues);
+
+    // Stage 3: position corrections (parent-relative, outer-first)
+    apply_position_corrections(&analyzed, &mut working, &mut issues);
 
     // Stage 4: per-point shape quality
     let stroke_qualities = compute_stroke_qualities(&analyzed, &working);
@@ -179,7 +179,7 @@ fn remove_extra_strokes(
     }
 }
 
-/// Stage 2 — nudge strokes toward their expected positions, one tree depth at a time.
+/// Stage 3 — nudge strokes toward their expected positions, one tree depth at a time.
 fn apply_position_corrections(
     analyzed: &AnalyzedKanjiNode,
     working: &mut [Vec<(f32, f32)>],
@@ -212,7 +212,7 @@ fn apply_position_corrections(
     }
 }
 
-/// Stage 3 — reorder strokes if they are out of order. Returns the final match score.
+/// Stage 2 — reorder strokes if they are out of order. Returns the final match score.
 fn fix_wrong_order(
     was_wrong_order: bool,
     analyzed: &AnalyzedKanjiNode,
