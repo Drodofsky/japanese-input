@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use analyze::{KanjiMap, analyzed_kanji_node::AnalyzedKanjiNode};
+use analyze::{KanjiMap, analyze::AnalyzedKanjiNode};
 use serde::{Deserialize, Serialize};
 
 pub fn load_kanji_map() -> KanjiMap {

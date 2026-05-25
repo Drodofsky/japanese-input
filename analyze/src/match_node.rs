@@ -1,6 +1,6 @@
 use smallvec::{SmallVec, smallvec};
 
-use crate::analyzed_kanji_node::AnalyzedKanjiNode;
+use crate::analyze::AnalyzedKanjiNode;
 use crate::dtw::{DtwWeights, dtw};
 use crate::leaf_matrix::LeafMatrix;
 use crate::normalize::Normalize;

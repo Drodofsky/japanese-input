@@ -1,5 +1,5 @@
 use crate::{
-    analyzed_kanji_node::AnalyzedKanjiNode,
+    analyze::AnalyzedKanjiNode,
     dtw::{DtwWeights, dtw},
     match_node::MISSING_PENALTY,
     point::OrientedPoint,

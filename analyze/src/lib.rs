@@ -1,5 +1,4 @@
 pub mod analyze;
-pub mod analyzed_kanji_node;
 pub mod bbox;
 pub mod dtw;
 pub mod hungarian_matcher;

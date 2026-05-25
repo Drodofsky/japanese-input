@@ -21,14 +21,13 @@ impl AnalyzedKanjiNode {
         let mut raw_strokes: Vec<Vec<OrientedPoint>> = Vec::new();
         let shadow = walk(node, &mut raw_strokes);
 
-        let in_kanji_frame = raw_strokes.clone().normalize();
-        let in_stroke_frame: Vec<Vec<OrientedPoint>> = raw_strokes
-            .into_iter()
-            .map(super::normalize::Normalize::normalize)
-            .collect();
+        let kanji_frame = raw_strokes.clone().normalize();
+        let stroke_frame: Vec<Vec<OrientedPoint>> =
+            raw_strokes.into_iter().map(Normalize::normalize).collect();
 
-        materialize(&shadow, &in_kanji_frame, &in_stroke_frame)
+        materialize(&shadow, &kanji_frame, &stroke_frame)
     }
+
     #[must_use]
     pub fn len(&self) -> u8 {
         match self {
@@ -45,6 +44,8 @@ impl AnalyzedKanjiNode {
     }
 }
 
+/// Intermediate tree that records the flat slot index each stroke maps to,
+/// built during the first pass over the `KanjiNode` tree.
 enum Shadow {
     Group {
         element: Option<char>,
@@ -54,22 +55,6 @@ enum Shadow {
         index: u8,
         slot: u8,
     },
-}
-
-impl AnalyzedKanjiNode {
-    #[must_use]
-    pub fn analyze_reference(node: &KanjiNode) -> AnalyzedKanjiNode {
-        let mut raw_strokes: Vec<Vec<OrientedPoint>> = Vec::new();
-        let shadow = walk(node, &mut raw_strokes);
-
-        let in_kanji_frame = raw_strokes.clone().normalize();
-        let in_stroke_frame: Vec<Vec<OrientedPoint>> = raw_strokes
-            .into_iter()
-            .map(super::normalize::Normalize::normalize)
-            .collect();
-
-        materialize(&shadow, &in_kanji_frame, &in_stroke_frame)
-    }
 }
 
 fn walk(node: &KanjiNode, raw: &mut Vec<Vec<OrientedPoint>>) -> Shadow {
@@ -94,21 +79,25 @@ fn walk(node: &KanjiNode, raw: &mut Vec<Vec<OrientedPoint>>) -> Shadow {
 
 fn materialize(
     shadow: &Shadow,
-    b: &[Vec<OrientedPoint>],
-    c: &[Vec<OrientedPoint>],
+    kanji_frame: &[Vec<OrientedPoint>],
+    stroke_frame: &[Vec<OrientedPoint>],
 ) -> AnalyzedKanjiNode {
     match shadow {
         Shadow::Stroke { index, slot } => AnalyzedKanjiNode::Stroke {
             index: *index,
-            in_kanji_frame: b[usize::from(*slot)].clone(),
-            in_stroke_frame: c[usize::from(*slot)].clone(),
+            in_kanji_frame: kanji_frame[usize::from(*slot)].clone(),
+            in_stroke_frame: stroke_frame[usize::from(*slot)].clone(),
         },
         Shadow::Group { element, children } => AnalyzedKanjiNode::Group {
             element: *element,
-            children: children.iter().map(|s| materialize(s, b, c)).collect(),
+            children: children
+                .iter()
+                .map(|s| materialize(s, kanji_frame, stroke_frame))
+                .collect(),
         },
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -189,8 +178,7 @@ mod tests {
             _ => panic!(),
         };
 
-        // Frame B: kanji bbox is (20,20)..(80,80), square. Top stroke should be
-        // near y=0 in frame B, middle near y=0.5, bottom near y=1.
+        // Kanji frame: bbox is (20,20)..(80,80). Top stroke → y≈0, middle → y≈0.5, bottom → y≈1.
         let y_top = match &strokes[0] {
             AnalyzedKanjiNode::Stroke { in_kanji_frame, .. } => in_kanji_frame[0].position.y,
             _ => panic!(),
@@ -212,7 +200,7 @@ mod tests {
     #[test]
     fn frame_c_centers_each_stroke_individually() {
         // Three horizontal strokes — each one alone is wide-flat.
-        // Frame C should center each one vertically at y=0.5.
+        // Stroke frame should center each one vertically at y=0.5.
         let node = KanjiNode::Group {
             element: Some('三'),
             children: vec![
@@ -263,9 +251,9 @@ mod tests {
     }
 
     #[test]
-    fn frames_b_and_c_differ() {
+    fn frames_differ_for_corner_stroke() {
         // A small stroke at the corner of a big kanji should be in totally
-        // different positions in frame B vs frame C.
+        // different positions in kanji frame vs stroke frame.
         let node = KanjiNode::Group {
             element: None,
             children: vec![
@@ -286,7 +274,7 @@ mod tests {
             _ => panic!(),
         };
 
-        let (b, c) = match &strokes[0] {
+        let (kanji, stroke) = match &strokes[0] {
             AnalyzedKanjiNode::Stroke {
                 in_kanji_frame,
                 in_stroke_frame,
@@ -295,10 +283,10 @@ mod tests {
             _ => panic!(),
         };
 
-        // First stroke in frame B: lives near the top-left corner (y is small).
-        assert!(b[0].position.y < 0.2);
-        // First stroke in frame C: centered vertically at 0.5.
-        assert!(approx(c[0].position.y, 0.5));
+        // First stroke in kanji frame: lives near the top-left corner (y is small).
+        assert!(kanji[0].position.y < 0.2);
+        // First stroke in stroke frame: centered vertically at 0.5.
+        assert!(approx(stroke[0].position.y, 0.5));
     }
 
     #[test]

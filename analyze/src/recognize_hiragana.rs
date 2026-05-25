@@ -1,5 +1,5 @@
 use crate::KanjiMap;
-use crate::analyzed_kanji_node::AnalyzedKanjiNode;
+use crate::analyze::AnalyzedKanjiNode;
 use crate::hungarian_matcher::match_hungarian;
 use crate::leaf_matrix::LeafMatrix;
 use crate::match_node::prepare_user;
