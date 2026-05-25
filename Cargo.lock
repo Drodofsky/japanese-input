@@ -411,6 +411,7 @@ dependencies = [
  "lyon_path",
  "postcard",
  "pyo3",
+ "serde",
  "wana_kana 5.0.0",
 ]
 

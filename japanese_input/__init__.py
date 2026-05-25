@@ -66,12 +66,15 @@ def _hiragana_map_path() -> Path:
     return Path(os.path.dirname(os.path.normpath(__file__))) / "user_files" / "assets" / "hiragana.bin"
 def _katakana_map_path() -> Path:
     return Path(os.path.dirname(os.path.normpath(__file__))) / "user_files" / "assets" / "katakana.bin"
+def _log_path() -> Path:
+    return Path(os.path.dirname(os.path.normpath(__file__))) / "user_files" / "stroke_log.bin"
 
-# ── recognizer + analyzer + widget state ──────────────────────────────────────
+# ── recognizer + analyzer + logger + widget state ────────────────────────────
 
 _native = _load_native_module()
 _recognizer: object | None = None
 _analyzer: object | None = None
+_logger: object | None = None
 
 if _native is not None:
     kanji_map_path = _kanji_map_path()
@@ -92,10 +95,15 @@ if _native is not None:
             _analyzer = _native.KanjiAnalyzer(str(kanji_map_path))  # type: ignore[attr-defined]
         except Exception as e:
             showCritical(f"Japanese Input: failed to construct analyzer\n\n{e}")
+        try:
+            _logger = _native.StrokeLogger(str(_log_path()))  # type: ignore[attr-defined]
+        except Exception as e:
+            showCritical(f"Japanese Input: failed to construct logger\n\n{e}")
 
 _input_widget: InputWidget | None = None
 _review_widget: ReviewWidget | None = None
 _expected_answer: str = ""
+_recognized_answer: str = ""
 _has_type_field: bool = False
 
 
@@ -144,7 +152,7 @@ def _ensure_review_widget() -> ReviewWidget | None:
 # ── hooks ─────────────────────────────────────────────────────────────────────
 
 def _on_question_shown(card: Card) -> None:
-    global _input_widget, _expected_answer, _has_type_field
+    global _input_widget, _expected_answer, _recognized_answer, _has_type_field
     if mw is None or mw.reviewer is None:
         return
 
@@ -164,6 +172,7 @@ def _on_question_shown(card: Card) -> None:
     )
 
     _expected_answer = _get_expected_answer(card)
+    _recognized_answer = ""
 
     if _review_widget is not None:
         _review_widget.hide()
@@ -202,6 +211,12 @@ def _on_answer_shown(card: Card) -> None:
         print(f"[japanese-input] analyze failed: {e}")
         return
 
+    if _logger is not None:
+        try:
+            _logger.log(_expected_answer, commits, _recognized_answer, analyses)  # type: ignore[attr-defined]
+        except Exception as e:
+            print(f"[japanese-input] log failed: {e}")
+
     if not analyses:
         return
 
@@ -214,6 +229,7 @@ def _on_answer_shown(card: Card) -> None:
 
 
 def _on_js_message(handled: tuple[bool, object], message: str, context: object) -> tuple[bool, object]:
+    global _recognized_answer
     if message != "ans":
         return handled
     if _input_widget is None or not _input_widget.isVisible():
@@ -231,6 +247,8 @@ def _on_js_message(handled: tuple[bool, object], message: str, context: object) 
     except Exception as e:
         print(f"[japanese-input] analyze_answer failed: {e}")
         return handled
+
+    _recognized_answer = result
 
     escaped = json.dumps(result)
     mw.reviewer.web.eval(

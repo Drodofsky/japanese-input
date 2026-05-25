@@ -5,6 +5,9 @@ use analyze::recognize_kanji::KanjiRecognizer;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use wana_kana::IsJapaneseChar;
+
+mod logger;
+pub use logger::StrokeLogger;
 #[pyclass(skip_from_py_object)]
 #[derive(Clone)]
 pub enum PyStrokeIssue {
@@ -190,5 +193,6 @@ fn japanese_input_native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyAnalysis>()?;
     m.add_class::<PyIssueWithFix>()?;
     m.add_class::<PyStrokeIssue>()?;
+    m.add_class::<StrokeLogger>()?;
     Ok(())
 }
