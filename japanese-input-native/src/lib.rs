@@ -56,7 +56,9 @@ pub struct PyAnalysis {
     #[pyo3(get)]
     pub stroke_qualities: Vec<Vec<f32>>,
     #[pyo3(get)]
-    pub strokes: Vec<Vec<(f32, f32)>>,
+    pub user_strokes: Vec<Vec<(f32, f32)>>,
+    #[pyo3(get)]
+    pub corrected_strokes: Vec<Vec<(f32, f32)>>,
 }
 
 #[pymethods]
@@ -70,11 +72,10 @@ impl PyAnalysis {
     }
 }
 
-impl From<(Analysis, Vec<Vec<(f32, f32)>>)> for PyAnalysis {
-    fn from(a: (Analysis, Vec<Vec<(f32, f32)>>)) -> Self {
+impl From<Analysis> for PyAnalysis {
+    fn from(a: Analysis) -> Self {
         PyAnalysis {
             issues: a
-                .0
                 .issues
                 .iter()
                 .map(|i| PyIssueWithFix {
@@ -82,9 +83,10 @@ impl From<(Analysis, Vec<Vec<(f32, f32)>>)> for PyAnalysis {
                     corrected_strokes: i.corrected_strokes.clone(),
                 })
                 .collect(),
-            score: a.0.score,
-            stroke_qualities: a.0.stroke_qualities,
-            strokes: a.1,
+            score: a.score,
+            stroke_qualities: a.stroke_qualities,
+            user_strokes: a.user_strokes,
+            corrected_strokes: a.corrected_strokes,
         }
     }
 }
@@ -119,7 +121,7 @@ impl KanjiAnalyzer {
                 continue;
             };
             let analysis = analyze::analyze::analyze(node, &strokes);
-            out.push(PyAnalysis::from((analysis, strokes)));
+            out.push(PyAnalysis::from(analysis));
         }
 
         out

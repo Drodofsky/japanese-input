@@ -23,7 +23,13 @@ class _ResolvedView:
 
 
 class ReviewWidget(QWidget):
-    """Stepwise reviewer for one kanji's analysis."""
+    """Stepwise reviewer for one kanji's analysis.
+
+    Step layout:
+      0        – raw user strokes ("書いた字")
+      1 .. n   – one step per issue/correction
+      n + 1    – quality view with corrected strokes ("出来栄え")
+    """
 
     def __init__(
         self,
@@ -39,7 +45,7 @@ class ReviewWidget(QWidget):
 
         self._build_ui()
 
-    # --- public API ---
+    # ── public API ───────────────────────────────────────────────────────────
 
     def set_analyses(self, analyses: list[object]) -> None:
         self._analyses = list(analyses)
@@ -47,7 +53,8 @@ class ReviewWidget(QWidget):
         self._step = 0
         self._sub_step = 0
         self._refresh()
-    # --- UI construction ---
+
+    # ── UI construction ──────────────────────────────────────────────────────
 
     def _build_ui(self) -> None:
         outer = QVBoxLayout(self)
@@ -83,12 +90,12 @@ class ReviewWidget(QWidget):
         btn_row.addStretch()
         outer.addLayout(btn_row)
 
-    # --- navigation ---
+    # ── navigation ───────────────────────────────────────────────────────────
 
     def _on_next(self) -> None:
-        issues = self._current_issues()
-        max_step = len(issues)  # quality step is len(issues)
-        
+        n = len(self._current_issues())
+        max_step = n + 1  # quality step
+
         if self._sub_step < self._max_sub_step():
             self._sub_step += 1
         elif self._step < max_step:
@@ -110,22 +117,25 @@ class ReviewWidget(QWidget):
             self._sub_step = self._max_sub_step()
         elif self._kanji_idx > 0:
             self._kanji_idx -= 1
-            # land on quality step of previous kanji
-            self._step = len(self._current_issues())
+            # land on the quality step of the previous kanji
+            self._step = len(self._current_issues()) + 1
             self._sub_step = 0
         else:
             return
         self._refresh()
+
     def _max_sub_step(self) -> int:
-        if not self._current_issues():
+        n = len(self._current_issues())
+        # Step 0 (user strokes) and step n+1 (quality): no sub-steps.
+        if self._step == 0 or self._step == n + 1:
             return 0
-        if self._step == len(self._current_issues()):  # quality view
-            return 0
-        issue = self._current_issues()[self._step].issue  # type: ignore[attr-defined]
+        issue_step = self._step - 1
+        issue = self._current_issues()[issue_step].issue  # type: ignore[attr-defined]
         if type(issue).__name__ == "WrongOrder":
-            count = len(self._strokes_at_step(self._step))
+            count = len(self._strokes_at_issue(issue_step))
             return max(0, count - 1)
         return 0
+
     def _at_start(self) -> bool:
         return self._kanji_idx == 0 and self._step == 0 and self._sub_step == 0
 
@@ -134,23 +144,20 @@ class ReviewWidget(QWidget):
             return True
         if self._kanji_idx < len(self._analyses) - 1:
             return False
-        return (
-            self._step == len(self._current_issues())
-            and self._sub_step == self._max_sub_step()
-        )
-    # --- rendering ---
+        n = len(self._current_issues())
+        return self._step == n + 1 and self._sub_step == 0
+
+    # ── rendering ────────────────────────────────────────────────────────────
 
     def _refresh(self) -> None:
         if not self._analyses:
-        # ... empty state, same as before but using _analyses ...
             self._counter_label.setText("")
-            return
-        if not self._current_issues():
-            self._viewer.set_strokes([])
             self._label.setText("")
+            self._viewer.set_styled_strokes([], [])
             self._btn_prev.setEnabled(False)
             self._btn_next.setEnabled(False)
             return
+
         self._counter_label.setText(f"{self._kanji_idx + 1}/{len(self._analyses)}")
         view = self._resolve_view()
         scaled = self._scale_to_canvas(view.strokes)
@@ -159,40 +166,43 @@ class ReviewWidget(QWidget):
         self._btn_prev.setEnabled(not self._at_start())
         self._btn_next.setEnabled(not self._at_end())
 
-    def _strokes_at_step(self, step: int) -> list[list[tuple[float, float]]]:
-        """Snapshot at the given outer step."""
-        return list(self._current_issues()[step].corrected_strokes)  # type: ignore[attr-defined]
-
-    def _previous_snapshot(self, step: int) -> list[list[tuple[float, float]]]:
-        """The snapshot from before this step's fix was applied."""
-        if step == 0:
-            return self._current_user_strokes()
-        return self._strokes_at_step(step - 1)
-
     def _resolve_view(self) -> _ResolvedView:
-         # Final step: quality coloring on the last issue's snapshot
-        if self._step == len(self._current_issues()):
-            if self._current_issues():
-                strokes = self._strokes_at_step(len(self._current_issues()) - 1)
-            else:
-                strokes = self._current_user_strokes()
+        issues = self._current_issues()
+        n = len(issues)
+
+        # ── Step 0: raw user strokes ────────────────────────────────────────
+        if self._step == 0:
+            strokes = self._current_user_strokes()
+            styles = [StrokeStyle(color=_INK) for _ in strokes]
+            return _ResolvedView(strokes=strokes, styles=styles, label="書いた字")
+
+        # ── Step n+1: quality view with final corrected strokes ─────────────
+        if self._step == n + 1:
+            strokes = self._current_corrected_strokes()
+            qualities = self._current_qualities()
             styles = [
                 StrokeStyle(
                     color=_INK,
-                    qualities=(self._current_qualities()[i] if i < len(self._current_qualities()) else None),
+                    qualities=(qualities[i] if i < len(qualities) else None),
                 )
                 for i in range(len(strokes))
             ]
+            score = self._current_score()
             return _ResolvedView(
-                strokes=strokes, styles=styles, label="出来栄え",
+                strokes=strokes,
+                styles=styles,
+                label=f"出来栄え  {score:.2f}",
             )
-        issue_obj = self._current_issues()[self._step]
+
+        # ── Steps 1..n: individual corrections ──────────────────────────────
+        issue_step = self._step - 1
+        issue_obj = issues[issue_step]
         issue = issue_obj.issue  # type: ignore[attr-defined]
         kind = type(issue).__name__
 
         if kind == "Missing":
             ref_index: int = issue.ref_index  # type: ignore[attr-defined]
-            strokes = self._strokes_at_step(self._step)
+            strokes = self._strokes_at_issue(issue_step)
             styles = [StrokeStyle(color=_INK) for _ in strokes]
             if 0 <= ref_index < len(styles):
                 styles[ref_index] = StrokeStyle(color=_GREEN)
@@ -203,7 +213,7 @@ class ReviewWidget(QWidget):
 
         if kind == "Extra":
             user_index: int = issue.user_index  # type: ignore[attr-defined]
-            strokes = self._previous_snapshot(self._step)
+            strokes = self._prev_snapshot(issue_step)
             styles = [StrokeStyle(color=_INK) for _ in strokes]
             if 0 <= user_index < len(styles):
                 styles[user_index] = StrokeStyle(color=_RED, alpha=0.3)
@@ -213,7 +223,7 @@ class ReviewWidget(QWidget):
             )
 
         if kind == "WrongOrder":
-            strokes = self._strokes_at_step(self._step)
+            strokes = self._strokes_at_issue(issue_step)
             styles = [
                 StrokeStyle(color=_INK, number=i + 1)
                 for i in range(len(strokes))
@@ -228,8 +238,8 @@ class ReviewWidget(QWidget):
             )
 
         if kind == "PositionCorrection":
-            strokes = self._strokes_at_step(self._step)
-            prev = self._previous_snapshot(self._step)
+            strokes = self._strokes_at_issue(issue_step)
+            prev = self._prev_snapshot(issue_step)
             moved = self._moved_indices(prev, strokes, eps=0.01)
             styles = [
                 StrokeStyle(color=_YELLOW if i in moved else _INK)
@@ -241,13 +251,15 @@ class ReviewWidget(QWidget):
             )
 
         # Fallback for unknown variants
-        strokes = self._strokes_at_step(self._step)
+        strokes = self._strokes_at_issue(issue_step)
         return _ResolvedView(
             strokes=strokes,
             styles=[StrokeStyle(color=_INK) for _ in strokes],
             label="修正",
-       )
-    
+        )
+
+    # ── data accessors ───────────────────────────────────────────────────────
+
     def _current_analysis(self) -> object | None:
         if 0 <= self._kanji_idx < len(self._analyses):
             return self._analyses[self._kanji_idx]
@@ -255,21 +267,35 @@ class ReviewWidget(QWidget):
 
     def _current_issues(self) -> list[object]:
         a = self._current_analysis()
-        if a is None:
-            return []
-        return list(a.issues)  # type: ignore[attr-defined]
+        return list(a.issues) if a is not None else []  # type: ignore[attr-defined]
 
     def _current_user_strokes(self) -> list[list[tuple[float, float]]]:
         a = self._current_analysis()
-        if a is None:
-            return []
-        return list(a.strokes)  # type: ignore[attr-defined]
+        return list(a.user_strokes) if a is not None else []  # type: ignore[attr-defined]
+
+    def _current_corrected_strokes(self) -> list[list[tuple[float, float]]]:
+        a = self._current_analysis()
+        return list(a.corrected_strokes) if a is not None else []  # type: ignore[attr-defined]
 
     def _current_qualities(self) -> list[list[float]]:
         a = self._current_analysis()
-        if a is None:
-            return []
-        return list(a.stroke_qualities)  # type: ignore[attr-defined]
+        return list(a.stroke_qualities) if a is not None else []  # type: ignore[attr-defined]
+
+    def _current_score(self) -> float:
+        a = self._current_analysis()
+        return float(a.score) if a is not None else 0.0  # type: ignore[attr-defined]
+
+    def _strokes_at_issue(self, issue_step: int) -> list[list[tuple[float, float]]]:
+        """Stroke snapshot after issue `issue_step`'s fix was applied."""
+        return list(self._current_issues()[issue_step].corrected_strokes)  # type: ignore[attr-defined]
+
+    def _prev_snapshot(self, issue_step: int) -> list[list[tuple[float, float]]]:
+        """Stroke snapshot before issue `issue_step`'s fix was applied."""
+        if issue_step == 0:
+            return self._current_user_strokes()
+        return self._strokes_at_issue(issue_step - 1)
+
+    # ── helpers ──────────────────────────────────────────────────────────────
 
     @staticmethod
     def _moved_indices(
@@ -277,11 +303,11 @@ class ReviewWidget(QWidget):
         curr: list[list[tuple[float, float]]],
         eps: float,
     ) -> set[int]:
-        """Indices in curr whose stroke differs from prev by more than eps."""
+        """Indices in *curr* whose stroke differs from *prev* by more than *eps*."""
         moved: set[int] = set()
         for i, stroke in enumerate(curr):
             if i >= len(prev):
-                moved.add(i)  # new stroke (shouldn't happen for PositionCorrection)
+                moved.add(i)
                 continue
             old = prev[i]
             if len(old) != len(stroke):
