@@ -213,7 +213,7 @@ mod tests {
     fn diagonal_translation_uses_euclidean_not_manhattan() {
         // Moved (3, 4) → hypot = 5, not 3+4 = 7. parent_size = 10 → score = 0.5.
         let current = bbox(0.0, 0.0, 1.0, 1.0); // center (0.5, 0.5)
-        let target = bbox(3.0, 4.0, 4.0, 5.0);  // center (3.5, 4.5), delta = (3, 4)
+        let target = bbox(3.0, 4.0, 4.0, 5.0); // center (3.5, 4.5), delta = (3, 4)
         assert!(approx(correction_score(&current, &target, 10.0), 0.5));
     }
 

@@ -35,6 +35,8 @@ pub struct Analysis {
     pub issues: Vec<IssueWithFix>,
     pub score: f32,
     pub stroke_qualities: Vec<Vec<f32>>,
+    pub user_strokes: Vec<Vec<(f32, f32)>>,
+    pub corrected_strokes: Vec<Vec<(f32, f32)>>,
 }
 
 impl Analysis {
@@ -43,6 +45,8 @@ impl Analysis {
             issues: vec![],
             score: 0.0,
             stroke_qualities: vec![],
+            user_strokes: vec![],
+            corrected_strokes: vec![],
         }
     }
 }
@@ -83,6 +87,8 @@ pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analy
     let stroke_qualities = compute_stroke_qualities(&analyzed, &working);
 
     Analysis {
+        user_strokes: user_strokes.to_vec(),
+        corrected_strokes: working.clone(),
         issues,
         score,
         stroke_qualities,
@@ -194,13 +200,16 @@ fn apply_position_corrections(
         let score = apply_level_correction(analyzed, &assignment, working, depth, 0);
         max_score = max_score.max(score);
     }
-    issues.push(IssueWithFix {
-        issue: StrokeIssue::PositionCorrection {
-            depth: max_depth,
-            score: max_score,
-        },
-        corrected_strokes: working.to_owned(),
-    });
+    // only push big issues
+    if max_score > 0.3 {
+        issues.push(IssueWithFix {
+            issue: StrokeIssue::PositionCorrection {
+                depth: max_depth,
+                score: max_score,
+            },
+            corrected_strokes: working.to_owned(),
+        });
+    }
 }
 
 /// Stage 3 — reorder strokes if they are out of order. Returns the final match score.
