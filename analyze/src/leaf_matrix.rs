@@ -1,5 +1,6 @@
 use crate::{
     analyze::AnalyzedKanjiNode,
+    bbox::GenBBox,
     dtw::{DtwWeights, dtw},
     match_node::MISSING_PENALTY,
     point::OrientedPoint,
@@ -127,18 +128,6 @@ impl LeafMatrix {
 }
 
 fn bbox_longer_side(stroke: &[OrientedPoint]) -> f32 {
-    if stroke.is_empty() {
-        return 0.0;
-    }
-    let mut min_x = stroke[0].position.x;
-    let mut max_x = min_x;
-    let mut min_y = stroke[0].position.y;
-    let mut max_y = min_y;
-    for op in &stroke[1..] {
-        min_x = min_x.min(op.position.x);
-        max_x = max_x.max(op.position.x);
-        min_y = min_y.min(op.position.y);
-        max_y = max_y.max(op.position.y);
-    }
-    (max_x - min_x).max(max_y - min_y)
+    let bbox = stroke.gen_bbox();
+    bbox.width().max(bbox.height())
 }

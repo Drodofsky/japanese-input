@@ -42,6 +42,15 @@ impl AnalyzedKanjiNode {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
+
+    /// Pre-analyzes every character in `map`, returning a `(char, AnalyzedKanjiNode)` pair
+    /// for each entry. Used by recognizers to build their candidate list once at startup.
+    #[must_use]
+    pub fn preprocess_map(map: &crate::KanjiMap) -> Vec<(char, AnalyzedKanjiNode)> {
+        map.iter()
+            .map(|(&c, node)| (c, AnalyzedKanjiNode::from_node(node)))
+            .collect()
+    }
 }
 
 /// Intermediate tree that records the flat slot index each stroke maps to,

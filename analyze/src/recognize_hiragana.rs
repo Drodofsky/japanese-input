@@ -1,5 +1,6 @@
 use crate::KanjiMap;
 use crate::analyze::AnalyzedKanjiNode;
+use crate::bbox::GenBBox;
 use crate::hungarian_matcher::match_hungarian;
 use crate::leaf_matrix::LeafMatrix;
 use crate::match_node::prepare_user;
@@ -34,13 +35,9 @@ pub struct HiraganaRecognizer {
 impl HiraganaRecognizer {
     #[must_use]
     pub fn new(kanji_map: &KanjiMap) -> Self {
-        let mut candidates = Vec::new();
-        for &c in kanji_map.keys() {
-            if let Some(node) = kanji_map.get(&c) {
-                candidates.push((c, AnalyzedKanjiNode::from_node(node)));
-            }
+        Self {
+            candidates: AnalyzedKanjiNode::preprocess_map(kanji_map),
         }
-        Self { candidates }
     }
 
     /// Recognizes a hiragana character from user strokes. Returns ranked candidates,
@@ -53,17 +50,14 @@ impl HiraganaRecognizer {
         }
 
         let is_small = is_drawing_small(user_strokes);
+        let (user_b, user_c) = prepare_user(user_strokes);
 
         let mut results: Vec<RecognitionResult> = self
             .candidates
             .iter()
             .filter_map(|(c, node)| {
-                let (user_b, user_c) = prepare_user(user_strokes);
-
                 let leaf_matrix = LeafMatrix::create(node, &user_b, &user_c);
-
-                let matches = match_hungarian(&leaf_matrix);
-                let score = matches.first()?.score;
+                let score = match_hungarian(&leaf_matrix).first()?.score;
                 Some(RecognitionResult {
                     character: *c,
                     score,
@@ -85,23 +79,9 @@ impl HiraganaRecognizer {
     }
 }
 
+/// Returns `true` if the bounding box of the drawing fits within the "small kana"
+/// threshold (max side ≤ 0.5 in normalized canvas space).
 fn is_drawing_small(strokes: &[Vec<(f32, f32)>]) -> bool {
-    let mut min_x = f32::INFINITY;
-    let mut max_x = f32::NEG_INFINITY;
-    let mut min_y = f32::INFINITY;
-    let mut max_y = f32::NEG_INFINITY;
-    for s in strokes {
-        for &(x, y) in s {
-            min_x = min_x.min(x);
-            max_x = max_x.max(x);
-            min_y = min_y.min(y);
-            max_y = max_y.max(y);
-        }
-    }
-    if !min_x.is_finite() {
-        return false;
-    }
-    let w = max_x - min_x;
-    let h = max_y - min_y;
-    w.max(h) <= 0.5
+    let bbox = strokes.gen_bbox();
+    bbox.width().max(bbox.height()) <= 0.5
 }

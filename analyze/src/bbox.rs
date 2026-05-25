@@ -24,13 +24,33 @@ impl BBox {
     pub fn height(&self) -> f32 {
         self.max.y - self.min.y
     }
+    #[must_use]
+    pub fn center(&self) -> (f32, f32) {
+        (
+            (self.min.x + self.max.x) * 0.5,
+            (self.min.y + self.max.y) * 0.5,
+        )
+    }
 }
 
 pub trait GenBBox {
     fn gen_bbox(&self) -> BBox;
 }
 
-impl GenBBox for Vec<OrientedPoint> {
+/// Reduces an iterator of `BBox`es into their union.
+/// Returns [`BBox::zero`] when the iterator is empty.
+fn fold_stroke_bboxes(iter: impl Iterator<Item = BBox>) -> BBox {
+    iter.reduce(|mut a, b| {
+        a.min.x = a.min.x.min(b.min.x);
+        a.min.y = a.min.y.min(b.min.y);
+        a.max.x = a.max.x.max(b.max.x);
+        a.max.y = a.max.y.max(b.max.y);
+        a
+    })
+    .unwrap_or_else(BBox::zero)
+}
+
+impl GenBBox for &[OrientedPoint] {
     fn gen_bbox(&self) -> BBox {
         let Some(first) = self.first() else {
             return BBox::zero();
@@ -47,23 +67,12 @@ impl GenBBox for Vec<OrientedPoint> {
     }
 }
 
-impl GenBBox for Vec<Vec<OrientedPoint>> {
+impl GenBBox for Vec<OrientedPoint> {
     fn gen_bbox(&self) -> BBox {
-        let mut iter = self.iter().filter(|s| !s.is_empty());
-        let Some(first_stroke) = iter.next() else {
-            return BBox::zero();
-        };
-        let mut bbox = first_stroke.gen_bbox();
-        for stroke in iter {
-            let b = stroke.gen_bbox();
-            bbox.min.x = bbox.min.x.min(b.min.x);
-            bbox.min.y = bbox.min.y.min(b.min.y);
-            bbox.max.x = bbox.max.x.max(b.max.x);
-            bbox.max.y = bbox.max.y.max(b.max.y);
-        }
-        bbox
+        self.as_slice().gen_bbox()
     }
 }
+
 impl GenBBox for &[(f32, f32)] {
     fn gen_bbox(&self) -> BBox {
         let Some(&(fx, fy)) = self.first() else {
@@ -81,63 +90,38 @@ impl GenBBox for &[(f32, f32)] {
     }
 }
 
+impl GenBBox for Vec<Vec<OrientedPoint>> {
+    fn gen_bbox(&self) -> BBox {
+        fold_stroke_bboxes(self.iter().filter(|s| !s.is_empty()).map(GenBBox::gen_bbox))
+    }
+}
+
 impl GenBBox for Vec<Vec<(f32, f32)>> {
     fn gen_bbox(&self) -> BBox {
-        let mut iter = self.iter().filter(|s| !s.is_empty());
-        let Some(first_stroke) = iter.next() else {
-            return BBox::zero();
-        };
-        let mut bbox = first_stroke.as_slice().gen_bbox();
-        for stroke in iter {
-            let b = stroke.as_slice().gen_bbox();
-            bbox.min.x = bbox.min.x.min(b.min.x);
-            bbox.min.y = bbox.min.y.min(b.min.y);
-            bbox.max.x = bbox.max.x.max(b.max.x);
-            bbox.max.y = bbox.max.y.max(b.max.y);
-        }
-        bbox
+        fold_stroke_bboxes(
+            self.iter()
+                .filter(|s| !s.is_empty())
+                .map(|s| s.as_slice().gen_bbox()),
+        )
     }
 }
+
 impl GenBBox for &[Vec<(f32, f32)>] {
     fn gen_bbox(&self) -> BBox {
-        let mut iter = self.iter().filter(|s| !s.is_empty());
-        let Some(first_stroke) = iter.next() else {
-            return BBox::zero();
-        };
-        let mut bbox = first_stroke.as_slice().gen_bbox();
-        for stroke in iter {
-            let b = stroke.as_slice().gen_bbox();
-            bbox.min.x = bbox.min.x.min(b.min.x);
-            bbox.min.y = bbox.min.y.min(b.min.y);
-            bbox.max.x = bbox.max.x.max(b.max.x);
-            bbox.max.y = bbox.max.y.max(b.max.y);
-        }
-        bbox
+        fold_stroke_bboxes(
+            self.iter()
+                .filter(|s| !s.is_empty())
+                .map(|s| s.as_slice().gen_bbox()),
+        )
     }
 }
+
 impl GenBBox for Vec<&Vec<(f32, f32)>> {
     fn gen_bbox(&self) -> BBox {
-        let mut iter = self.iter().filter(|s| !s.is_empty());
-        let Some(first_stroke) = iter.next() else {
-            return BBox::zero();
-        };
-        let mut bbox = first_stroke.as_slice().gen_bbox();
-        for stroke in iter {
-            let b = stroke.as_slice().gen_bbox();
-            bbox.min.x = bbox.min.x.min(b.min.x);
-            bbox.min.y = bbox.min.y.min(b.min.y);
-            bbox.max.x = bbox.max.x.max(b.max.x);
-            bbox.max.y = bbox.max.y.max(b.max.y);
-        }
-        bbox
-    }
-}
-impl BBox {
-    #[must_use]
-    pub fn center(&self) -> (f32, f32) {
-        (
-            (self.min.x + self.max.x) * 0.5,
-            (self.min.y + self.max.y) * 0.5,
+        fold_stroke_bboxes(
+            self.iter()
+                .filter(|s| !s.is_empty())
+                .map(|s| s.as_slice().gen_bbox()),
         )
     }
 }

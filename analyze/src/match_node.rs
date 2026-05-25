@@ -60,10 +60,8 @@ pub fn prepare_user(
     let oriented: Vec<Vec<OrientedPoint>> =
         user.iter().map(|s| s.as_slice().to_oriented()).collect();
     let in_kanji_frame = oriented.clone().normalize();
-    let in_stroke_frame: Vec<Vec<OrientedPoint>> = oriented
-        .into_iter()
-        .map(super::normalize::Normalize::normalize)
-        .collect();
+    let in_stroke_frame: Vec<Vec<OrientedPoint>> =
+        oriented.into_iter().map(Normalize::normalize).collect();
     (in_kanji_frame, in_stroke_frame)
 }
 

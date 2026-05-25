@@ -5,8 +5,8 @@ use crate::match_node::match_node;
 use crate::normalize::Normalize;
 use crate::point::ToOriented;
 
-pub mod node;
 mod correction;
+pub mod node;
 mod quality;
 mod tree;
 

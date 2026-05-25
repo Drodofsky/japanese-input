@@ -15,17 +15,13 @@ impl Default for DtwWeights {
     }
 }
 
-#[must_use]
-pub fn dtw(a: &[OrientedPoint], b: &[OrientedPoint], weights: DtwWeights) -> f32 {
+/// Builds the DTW cost matrix for two oriented-point sequences.
+/// Caller is responsible for guarding against empty inputs.
+fn build_dtw_dp(a: &[OrientedPoint], b: &[OrientedPoint], weights: DtwWeights) -> Vec<Vec<f32>> {
     let n = a.len();
     let m = b.len();
-    if n == 0 || m == 0 {
-        return f32::INFINITY;
-    }
-
     let mut dp = vec![vec![f32::INFINITY; m + 1]; n + 1];
     dp[0][0] = 0.0;
-
     for i in 1..=n {
         for j in 1..=m {
             let c = cost(&a[i - 1], &b[j - 1], weights);
@@ -33,9 +29,20 @@ pub fn dtw(a: &[OrientedPoint], b: &[OrientedPoint], weights: DtwWeights) -> f32
             dp[i][j] = c + prev;
         }
     }
+    dp
+}
 
+#[must_use]
+pub fn dtw(a: &[OrientedPoint], b: &[OrientedPoint], weights: DtwWeights) -> f32 {
+    let n = a.len();
+    let m = b.len();
+    if n == 0 || m == 0 {
+        return f32::INFINITY;
+    }
+    let dp = build_dtw_dp(a, b, weights);
     dp[n][m] / f32::from((n + m).try_into().unwrap_or(u16::MAX))
 }
+
 #[must_use]
 pub fn dtw_with_path(
     a: &[OrientedPoint],
@@ -48,15 +55,7 @@ pub fn dtw_with_path(
         return (f32::INFINITY, Vec::new());
     }
 
-    let mut dp = vec![vec![f32::INFINITY; m + 1]; n + 1];
-    dp[0][0] = 0.0;
-    for i in 1..=n {
-        for j in 1..=m {
-            let c = cost(&a[i - 1], &b[j - 1], weights);
-            let prev = dp[i - 1][j].min(dp[i][j - 1]).min(dp[i - 1][j - 1]);
-            dp[i][j] = c + prev;
-        }
-    }
+    let dp = build_dtw_dp(a, b, weights);
 
     let mut path = Vec::new();
     let (mut i, mut j) = (n, m);
@@ -81,6 +80,7 @@ pub fn dtw_with_path(
         path,
     )
 }
+
 fn cost(p: &OrientedPoint, q: &OrientedPoint, w: DtwWeights) -> f32 {
     let dx = p.position.x - q.position.x;
     let dy = p.position.y - q.position.y;
@@ -92,6 +92,7 @@ fn cost(p: &OrientedPoint, q: &OrientedPoint, w: DtwWeights) -> f32 {
 
     w.w_pos * pos_dist + w.w_dir * dir_dist
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -199,6 +200,7 @@ mod tests {
         let score = dtw(&a, &b, DtwWeights::default());
         assert!(score < 0.2, "got {}", score);
     }
+
     #[test]
     fn handles_unequal() {
         let a = vec![op(0.0, 0.0, 1.0, 0.0), op(1.0, 0.0, 1.0, 0.0)];

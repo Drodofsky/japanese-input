@@ -17,35 +17,28 @@ pub struct KanjiRecognizer {
 impl KanjiRecognizer {
     #[must_use]
     pub fn new(kanji_map: &KanjiMap) -> Self {
-        let mut candidates = Vec::new();
-        for &c in kanji_map.keys() {
-            if let Some(node) = kanji_map.get(&c) {
-                candidates.push((c, AnalyzedKanjiNode::from_node(node)));
-            }
+        Self {
+            candidates: AnalyzedKanjiNode::preprocess_map(kanji_map),
         }
-        Self { candidates }
     }
 
-    /// Recognizes a hiragana character from user strokes. Returns ranked candidates,
-    /// best first. If the user's drawing bbox max side is ≤ 0.5 (in normalized canvas
-    /// space), the result character is mapped to its small variant when one exists.
+    /// Recognizes a kanji character from user strokes. Returns ranked candidates,
+    /// best first. Only candidates whose stroke count matches the user's are considered.
     #[must_use]
     pub fn recognize(&self, user_strokes: &[Vec<(f32, f32)>]) -> Vec<RecognitionResult> {
         if user_strokes.is_empty() {
             return Vec::new();
         }
 
+        let (user_b, user_c) = prepare_user(user_strokes);
+
         let mut results: Vec<RecognitionResult> = self
             .candidates
             .iter()
-            .filter(|p| usize::from(p.1.len()) == user_strokes.len())
+            .filter(|(_, node)| usize::from(node.len()) == user_strokes.len())
             .filter_map(|(c, node)| {
-                let (user_b, user_c) = prepare_user(user_strokes);
-
                 let leaf_matrix = LeafMatrix::create(node, &user_b, &user_c);
-
-                let matches = match_hungarian(&leaf_matrix);
-                let score = matches.first()?.score;
+                let score = match_hungarian(&leaf_matrix).first()?.score;
                 Some(RecognitionResult {
                     character: *c,
                     score,
@@ -54,7 +47,6 @@ impl KanjiRecognizer {
             .collect();
 
         results.sort_by(|a, b| a.score.total_cmp(&b.score));
-
         results
     }
 }
