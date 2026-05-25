@@ -11,7 +11,7 @@ pub enum PyStrokeIssue {
     Missing { ref_index: usize },
     Extra { user_index: usize },
     WrongOrder {},
-    PositionCorrection { depth: usize },
+    PositionCorrection { depth: usize, score: f32 },
 }
 
 impl From<&StrokeIssue> for PyStrokeIssue {
@@ -24,9 +24,10 @@ impl From<&StrokeIssue> for PyStrokeIssue {
                 user_index: *user_index,
             },
             StrokeIssue::WrongOrder => PyStrokeIssue::WrongOrder {},
-            StrokeIssue::PositionCorrection { depth } => {
-                PyStrokeIssue::PositionCorrection { depth: *depth }
-            }
+            StrokeIssue::PositionCorrection { depth, score } => PyStrokeIssue::PositionCorrection {
+                depth: *depth,
+                score: *score,
+            },
         }
     }
 }

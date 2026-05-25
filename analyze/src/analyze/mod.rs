@@ -21,7 +21,7 @@ pub enum StrokeIssue {
     Missing { ref_index: usize },
     WrongOrder,
     Extra { user_index: usize },
-    PositionCorrection { depth: usize },
+    PositionCorrection { depth: usize, score: f32 },
 }
 
 #[derive(Debug, Clone)]
@@ -189,11 +189,16 @@ fn apply_position_corrections(
     );
 
     let max_depth = tree_depth(analyzed);
+    let mut max_score = 0.0_f32;
     for depth in 0..=max_depth {
-        apply_level_correction(analyzed, &assignment, working, depth, 0);
+        let score = apply_level_correction(analyzed, &assignment, working, depth, 0);
+        max_score = max_score.max(score);
     }
     issues.push(IssueWithFix {
-        issue: StrokeIssue::PositionCorrection { depth: max_depth },
+        issue: StrokeIssue::PositionCorrection {
+            depth: max_depth,
+            score: max_score,
+        },
         corrected_strokes: working.to_owned(),
     });
 }
