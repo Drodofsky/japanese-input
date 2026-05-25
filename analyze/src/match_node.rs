@@ -279,10 +279,10 @@ mod tests {
     }
 
     fn user_line(x0: f32, y0: f32, x1: f32, y1: f32) -> Vec<(f32, f32)> {
-        let n = 20;
+        let n = 20_u8;
         (0..=n)
             .map(|i| {
-                let t = i as f32 / n as f32;
+                let t = f32::from(i) / f32::from(n);
                 (x0 + t * (x1 - x0), y0 + t * (y1 - y0))
             })
             .collect()

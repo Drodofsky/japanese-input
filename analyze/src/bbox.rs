@@ -145,6 +145,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::float_cmp)] // degenerate bbox: max == min, so width/height are exactly 0.0
     fn single_point_stroke_has_degenerate_bbox() {
         let v = vec![op(3.0, 4.0)];
         let b = v.gen_bbox();

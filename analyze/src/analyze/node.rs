@@ -152,10 +152,10 @@ mod tests {
                         assert!(!in_kanji_frame.is_empty());
                         assert!(!in_stroke_frame.is_empty());
                     }
-                    _ => panic!("expected Stroke leaf"),
+                    AnalyzedKanjiNode::Group { .. } => panic!("expected Stroke leaf"),
                 }
             }
-            _ => panic!("expected Group root"),
+            AnalyzedKanjiNode::Stroke { .. } => panic!("expected Group root"),
         }
     }
 
@@ -181,24 +181,25 @@ mod tests {
         };
 
         let analyzed = AnalyzedKanjiNode::from_node(&node);
-
-        let strokes = match analyzed {
-            AnalyzedKanjiNode::Group { children, .. } => children,
-            _ => panic!(),
+        let AnalyzedKanjiNode::Group {
+            children: strokes, ..
+        } = analyzed
+        else {
+            panic!()
         };
 
         // Kanji frame: bbox is (20,20)..(80,80). Top stroke → y≈0, middle → y≈0.5, bottom → y≈1.
         let y_top = match &strokes[0] {
             AnalyzedKanjiNode::Stroke { in_kanji_frame, .. } => in_kanji_frame[0].position.y,
-            _ => panic!(),
+            AnalyzedKanjiNode::Group { .. } => panic!(),
         };
         let y_mid = match &strokes[1] {
             AnalyzedKanjiNode::Stroke { in_kanji_frame, .. } => in_kanji_frame[0].position.y,
-            _ => panic!(),
+            AnalyzedKanjiNode::Group { .. } => panic!(),
         };
         let y_bot = match &strokes[2] {
             AnalyzedKanjiNode::Stroke { in_kanji_frame, .. } => in_kanji_frame[0].position.y,
-            _ => panic!(),
+            AnalyzedKanjiNode::Group { .. } => panic!(),
         };
 
         assert!(approx(y_top, 0.0));
@@ -229,9 +230,11 @@ mod tests {
         };
 
         let analyzed = AnalyzedKanjiNode::from_node(&node);
-        let strokes = match analyzed {
-            AnalyzedKanjiNode::Group { children, .. } => children,
-            _ => panic!(),
+        let AnalyzedKanjiNode::Group {
+            children: strokes, ..
+        } = analyzed
+        else {
+            panic!()
         };
 
         for s in &strokes {
@@ -249,12 +252,12 @@ mod tests {
                     }
                     // x should span [0, 1]
                     let xs: Vec<f32> = in_stroke_frame.iter().map(|p| p.position.x).collect();
-                    let min_x = xs.iter().cloned().fold(f32::INFINITY, f32::min);
-                    let max_x = xs.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+                    let min_x = xs.iter().copied().fold(f32::INFINITY, f32::min);
+                    let max_x = xs.iter().copied().fold(f32::NEG_INFINITY, f32::max);
                     assert!(approx(min_x, 0.0));
                     assert!(approx(max_x, 1.0));
                 }
-                _ => panic!(),
+                AnalyzedKanjiNode::Group { .. } => panic!(),
             }
         }
     }
@@ -278,9 +281,11 @@ mod tests {
         };
 
         let analyzed = AnalyzedKanjiNode::from_node(&node);
-        let strokes = match analyzed {
-            AnalyzedKanjiNode::Group { children, .. } => children,
-            _ => panic!(),
+        let AnalyzedKanjiNode::Group {
+            children: strokes, ..
+        } = analyzed
+        else {
+            panic!()
         };
 
         let (kanji, stroke) = match &strokes[0] {
@@ -289,7 +294,7 @@ mod tests {
                 in_stroke_frame,
                 ..
             } => (in_kanji_frame.clone(), in_stroke_frame.clone()),
-            _ => panic!(),
+            AnalyzedKanjiNode::Group { .. } => panic!(),
         };
 
         // First stroke in kanji frame: lives near the top-left corner (y is small).
@@ -334,7 +339,7 @@ mod tests {
                             AnalyzedKanjiNode::Stroke { index: 0, .. }
                         ));
                     }
-                    _ => panic!("expected nested Group"),
+                    AnalyzedKanjiNode::Stroke { .. } => panic!("expected nested Group"),
                 }
                 // Second child is a direct stroke.
                 assert!(matches!(
@@ -342,7 +347,7 @@ mod tests {
                     AnalyzedKanjiNode::Stroke { index: 1, .. }
                 ));
             }
-            _ => panic!(),
+            AnalyzedKanjiNode::Stroke { .. } => panic!(),
         }
     }
 
@@ -368,12 +373,12 @@ mod tests {
                     .iter()
                     .filter_map(|c| match c {
                         AnalyzedKanjiNode::Stroke { index, .. } => Some(*index),
-                        _ => None,
+                        AnalyzedKanjiNode::Group { .. } => None,
                     })
                     .collect();
                 assert_eq!(indices, vec![5, 7]);
             }
-            _ => panic!(),
+            AnalyzedKanjiNode::Stroke { .. } => panic!(),
         }
     }
 }

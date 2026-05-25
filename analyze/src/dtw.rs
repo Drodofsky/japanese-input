@@ -198,7 +198,7 @@ mod tests {
             op(1.0, 0.0, 1.0, 0.0),
         ];
         let score = dtw(&a, &b, DtwWeights::default());
-        assert!(score < 0.2, "got {}", score);
+        assert!(score < 0.2, "got {score}");
     }
 
     #[test]

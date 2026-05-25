@@ -1,7 +1,7 @@
 use crate::KanjiNode;
 use crate::bbox::GenBBox;
-use crate::dtw::dtw_with_path;
-use crate::match_node::match_node;
+use crate::dtw::{DtwWeights, dtw_with_path};
+use crate::match_node::{MatchInfo, match_node};
 use crate::normalize::Normalize;
 use crate::point::ToOriented;
 
@@ -37,58 +37,96 @@ pub struct Analysis {
     pub stroke_qualities: Vec<Vec<f32>>,
 }
 
+impl Analysis {
+    fn empty() -> Self {
+        Analysis {
+            issues: vec![],
+            score: 0.0,
+            stroke_qualities: vec![],
+        }
+    }
+}
+
 #[must_use]
 pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analysis {
     if user_strokes.is_empty() {
-        return Analysis {
-            issues: vec![],
-            score: 0.0,
-            stroke_qualities: vec![],
-        };
+        return Analysis::empty();
     }
 
     let analyzed = AnalyzedKanjiNode::from_node(reference);
-
-    // Work in user raw-space throughout. No normalization.
     let mut working: Vec<Vec<(f32, f32)>> = user_strokes.to_vec();
 
-    let results = match_node(&analyzed, user_strokes);
+    let Some(first_match) = best_match(&analyzed, user_strokes) else {
+        return Analysis::empty();
+    };
 
-    if results.is_empty() {
-        return Analysis {
-            issues: vec![],
-            score: 0.0,
-            stroke_qualities: vec![],
-        };
+    let was_wrong_order = is_out_of_order(&first_match.user_strokes);
+    let mut issues: Vec<IssueWithFix> = Vec::new();
+
+    // Stage 1: structural corrections (missing + extra strokes)
+    insert_missing_strokes(
+        &first_match,
+        &analyzed,
+        user_strokes,
+        &mut working,
+        &mut issues,
+    );
+    remove_extra_strokes(&first_match, user_strokes.len(), &mut working, &mut issues);
+
+    // Stage 2: position corrections (parent-relative, outer-first)
+    apply_position_corrections(&analyzed, &mut working, &mut issues);
+
+    // Stage 3: wrong order
+    let score = fix_wrong_order(was_wrong_order, &analyzed, &mut working, &mut issues);
+
+    // Stage 4: per-point shape quality
+    let stroke_qualities = compute_stroke_qualities(&analyzed, &working);
+
+    Analysis {
+        issues,
+        score,
+        stroke_qualities,
     }
-    let best = &results[0];
+}
 
-    let original_indices: Vec<u8> = best
-        .user_strokes
+// ── Private helpers ──────────────────────────────────────────────────────────
+
+fn best_match(analyzed: &AnalyzedKanjiNode, strokes: &[Vec<(f32, f32)>]) -> Option<MatchInfo> {
+    match_node(analyzed, strokes).into_iter().next()
+}
+
+/// Returns `true` if the matched (non-sentinel) indices are not in ascending order.
+fn is_out_of_order(assignment: &[u8]) -> bool {
+    let indices: Vec<u8> = assignment
         .iter()
         .copied()
         .filter(|&i| i != u8::MAX)
         .collect();
-    let was_wrong_order = original_indices.windows(2).any(|w| w[0] > w[1]);
+    indices.windows(2).any(|w| w[0] > w[1])
+}
 
-    let mut issues: Vec<IssueWithFix> = Vec::new();
+/// Stage 1a — insert placeholder strokes for each reference stroke missing from the drawing.
+///
+/// Each placeholder is the reference stroke mapped from frame B ([0,1]²) into the
+/// user's raw coordinate space via the user's kanji bounding box.
+fn insert_missing_strokes(
+    best: &MatchInfo,
+    analyzed: &AnalyzedKanjiNode,
+    user_strokes: &[Vec<(f32, f32)>],
+    working: &mut Vec<Vec<(f32, f32)>>,
+    issues: &mut Vec<IssueWithFix>,
+) {
+    let ref_leaves = collect_kanji_frame_strokes(analyzed);
+    let user_bbox = user_strokes.gen_bbox();
 
-    // User's whole-kanji bbox in raw space — used to map frame-B placeholder
-    // coordinates into user-space when inserting missing strokes.
-    let user_kanji_bbox = user_strokes.to_vec().gen_bbox();
-
-    // ── Stage 1a: missing strokes ────────────────────────────────────────────
-    let ref_leaves = collect_kanji_frame_strokes(&analyzed);
     for (ref_pos, &user_idx) in best.user_strokes.iter().enumerate() {
         if user_idx == u8::MAX {
-            // Map the reference stroke (in frame B [0,1]) into user-space
-            // through the user's kanji bbox.
             let inserted: Vec<(f32, f32)> = ref_leaves[ref_pos]
                 .iter()
                 .map(|op| {
                     (
-                        user_kanji_bbox.min.x + op.position.x * user_kanji_bbox.width(),
-                        user_kanji_bbox.min.y + op.position.y * user_kanji_bbox.height(),
+                        user_bbox.min.x + op.position.x * user_bbox.width(),
+                        user_bbox.min.y + op.position.y * user_bbox.height(),
                     )
                 })
                 .collect();
@@ -99,15 +137,24 @@ pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analy
             });
         }
     }
+}
 
-    // ── Stage 1b: extra strokes ──────────────────────────────────────────────
+/// Stage 1b — remove strokes that were not matched to any reference stroke.
+///
+/// Extras are removed highest-index-first so that earlier indices stay stable.
+fn remove_extra_strokes(
+    best: &MatchInfo,
+    user_stroke_count: usize,
+    working: &mut Vec<Vec<(f32, f32)>>,
+    issues: &mut Vec<IssueWithFix>,
+) {
     let matched: std::collections::HashSet<u8> = best
         .user_strokes
         .iter()
         .copied()
         .filter(|&i| i != u8::MAX)
         .collect();
-    let mut extras: Vec<u8> = (0..user_strokes.len())
+    let mut extras: Vec<u8> = (0..user_stroke_count)
         .filter(|i| !matched.contains(&((*i).try_into().unwrap_or(u8::MAX))))
         .map(|i| i.try_into().unwrap_or(u8::MAX))
         .collect();
@@ -124,76 +171,78 @@ pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analy
             corrected_strokes: working.clone(),
         });
     }
+}
 
-    // ── Stage 2: position corrections (parent-relative, outer-first) ─────────
-    let mid_match = match_node(&analyzed, &working);
-    let assignment_for_levels: Vec<_> = if mid_match.is_empty() {
-        (0..working.len())
-            .map(|i| i.try_into().unwrap_or(u8::MAX))
-            .collect()
-    } else {
-        mid_match[0].user_strokes.to_vec()
-    };
+/// Stage 2 — nudge strokes toward their expected positions, one tree depth at a time.
+fn apply_position_corrections(
+    analyzed: &AnalyzedKanjiNode,
+    working: &mut [Vec<(f32, f32)>],
+    issues: &mut Vec<IssueWithFix>,
+) {
+    let assignment = best_match(analyzed, working).map_or_else(
+        || {
+            (0..working.len())
+                .map(|i| i.try_into().unwrap_or(u8::MAX))
+                .collect()
+        },
+        |m| m.user_strokes.to_vec(),
+    );
 
-    let max_depth = tree_depth(&analyzed);
-
-    // Depth 0 is a no-op (root has no parent above it). Start from depth 1.
+    let max_depth = tree_depth(analyzed);
     for depth in 0..=max_depth {
-        apply_level_correction(&analyzed, &assignment_for_levels, &mut working, depth, 0);
+        apply_level_correction(analyzed, &assignment, working, depth, 0);
     }
     issues.push(IssueWithFix {
         issue: StrokeIssue::PositionCorrection { depth: max_depth },
-        corrected_strokes: working.clone(),
+        corrected_strokes: working.to_owned(),
     });
+}
 
-    // ── Stage 3: wrong order ─────────────────────────────────────────────────
-    let results2 = match_node(&analyzed, &working);
-
-    let final_score = if results2.is_empty() {
-        0.0
-    } else {
-        results2[0].score
+/// Stage 3 — reorder strokes if they are out of order. Returns the final match score.
+fn fix_wrong_order(
+    was_wrong_order: bool,
+    analyzed: &AnalyzedKanjiNode,
+    working: &mut Vec<Vec<(f32, f32)>>,
+    issues: &mut Vec<IssueWithFix>,
+) -> f32 {
+    let Some(best) = best_match(analyzed, working) else {
+        return 0.0;
     };
+    let score = best.score;
 
-    if !results2.is_empty() {
-        let best2 = &results2[0];
-        let indices2: Vec<u8> = best2
+    if is_out_of_order(&best.user_strokes) {
+        let old = working.clone();
+        *working = best
             .user_strokes
             .iter()
-            .copied()
-            .filter(|&i| i != u8::MAX)
+            .filter(|&&i| i != u8::MAX)
+            .filter_map(|&i| old.get(i as usize).cloned())
             .collect();
 
-        if indices2.windows(2).any(|w| w[0] > w[1]) {
-            let old = working.clone();
-            working = best2
-                .user_strokes
-                .iter()
-                .filter(|&&i| i != u8::MAX)
-                .filter_map(|&i| old.get(i as usize).cloned())
-                .collect();
-
-            if was_wrong_order {
-                issues.push(IssueWithFix {
-                    issue: StrokeIssue::WrongOrder,
-                    corrected_strokes: working.clone(),
-                });
-            }
+        if was_wrong_order {
+            issues.push(IssueWithFix {
+                issue: StrokeIssue::WrongOrder,
+                corrected_strokes: working.clone(),
+            });
         }
     }
+    score
+}
 
-    // ── Stage 4: per-point shape quality ─────────────────────────────────
-    let final_match = match_node(&analyzed, &working);
+/// Stage 4 — compute per-point quality scores for each reference stroke.
+fn compute_stroke_qualities(
+    analyzed: &AnalyzedKanjiNode,
+    working: &[Vec<(f32, f32)>],
+) -> Vec<Vec<f32>> {
+    let ref_leaves = collect_kanji_frame_strokes(analyzed);
+    let final_assignment = best_match(analyzed, working).map_or_else(
+        || vec![u8::MAX; ref_leaves.len()],
+        |m| m.user_strokes.to_vec(),
+    );
 
-    let final_assignment: Vec<u8> = if final_match.is_empty() {
-        vec![u8::MAX; ref_leaves.len()]
-    } else {
-        final_match[0].user_strokes.to_vec()
-    };
+    let ref_in_stroke_frame = collect_stroke_frame_strokes(analyzed);
 
-    let ref_in_stroke_frame = collect_stroke_frame_strokes(&analyzed);
-
-    let stroke_qualities: Vec<Vec<f32>> = ref_in_stroke_frame
+    ref_in_stroke_frame
         .iter()
         .zip(final_assignment.iter())
         .map(|(ref_c, &user_idx)| {
@@ -203,20 +252,11 @@ pub fn analyze(reference: &KanjiNode, user_strokes: &[Vec<(f32, f32)>]) -> Analy
             let Some(stroke) = working.get(user_idx as usize) else {
                 return Vec::new();
             };
-
-            let oriented = stroke.as_slice().to_oriented();
-            let user_c = vec![oriented].normalize().pop().unwrap_or_default();
-
-            let (_score, path) = dtw_with_path(ref_c, &user_c, crate::dtw::DtwWeights::default());
+            let user_c = stroke.as_slice().to_oriented().normalize();
+            let (_score, path) = dtw_with_path(ref_c, &user_c, DtwWeights::default());
             aggregate_per_user_point(&path, user_c.len())
         })
-        .collect();
-
-    Analysis {
-        issues,
-        score: final_score,
-        stroke_qualities,
-    }
+        .collect()
 }
 
 #[cfg(test)]
@@ -235,10 +275,10 @@ mod tests {
     }
 
     fn user_line(x0: f32, y0: f32, x1: f32, y1: f32) -> Vec<(f32, f32)> {
-        let n = 20;
+        let n = 20_u8;
         (0..=n)
             .map(|i| {
-                let t = i as f32 / n as f32;
+                let t = f32::from(i) / f32::from(n);
                 (x0 + t * (x1 - x0), y0 + t * (y1 - y0))
             })
             .collect()

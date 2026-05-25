@@ -219,7 +219,7 @@ mod tests {
             .iter()
             .map(|p| p.position.y)
             .fold(0.0_f32, f32::max);
-        assert!(max_y > 5.0, "curve should arc upward, max y was {}", max_y);
+        assert!(max_y > 5.0, "curve should arc upward, max y was {max_y}");
     }
     #[test]
     fn rdp_keeps_endpoints() {
