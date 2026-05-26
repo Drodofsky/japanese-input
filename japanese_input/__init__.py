@@ -105,6 +105,8 @@ _review_widget: ReviewWidget | None = None
 _expected_answer: str = ""
 _recognized_answer: str = ""
 _has_type_field: bool = False
+# buffered until the rating button is pressed
+_pending_log: tuple | None = None  # (expected, commits, recognized, analyses)
 
 
 # ── card utilities ────────────────────────────────────────────────────────────
@@ -152,7 +154,7 @@ def _ensure_review_widget() -> ReviewWidget | None:
 # ── hooks ─────────────────────────────────────────────────────────────────────
 
 def _on_question_shown(card: Card) -> None:
-    global _input_widget, _expected_answer, _recognized_answer, _has_type_field
+    global _input_widget, _expected_answer, _recognized_answer, _has_type_field, _pending_log
     if mw is None or mw.reviewer is None:
         return
 
@@ -173,6 +175,7 @@ def _on_question_shown(card: Card) -> None:
 
     _expected_answer = _get_expected_answer(card)
     _recognized_answer = ""
+    _pending_log = None
 
     if _review_widget is not None:
         _review_widget.hide()
@@ -193,6 +196,7 @@ def _on_question_shown(card: Card) -> None:
 
 
 def _on_answer_shown(card: Card) -> None:
+    global _pending_log
     if _input_widget is not None:
         _input_widget.hide()
     if not _has_type_field:
@@ -211,11 +215,7 @@ def _on_answer_shown(card: Card) -> None:
         print(f"[japanese-input] analyze failed: {e}")
         return
 
-    if _logger is not None:
-        try:
-            _logger.log(_expected_answer, commits, _recognized_answer, analyses)  # type: ignore[attr-defined]
-        except Exception as e:
-            print(f"[japanese-input] log failed: {e}")
+    _pending_log = (_expected_answer, commits, _recognized_answer, analyses)
 
     if not analyses:
         return
@@ -226,6 +226,18 @@ def _on_answer_shown(card: Card) -> None:
 
     review.set_analyses(analyses)
     review.show()
+
+
+def _on_answer_card(_reviewer: object, _card: Card, ease: int) -> None:
+    global _pending_log
+    if _logger is None or _pending_log is None:
+        return
+    expected, commits, recognized, analyses = _pending_log
+    _pending_log = None
+    try:
+        _logger.log(expected, commits, recognized, analyses, ease)  # type: ignore[attr-defined]
+    except Exception as e:
+        print(f"[japanese-input] log failed: {e}")
 
 
 def _on_js_message(handled: tuple[bool, object], message: str, context: object) -> tuple[bool, object]:
@@ -266,5 +278,6 @@ def _on_reviewer_will_end() -> None:
 
 gui_hooks.reviewer_did_show_question.append(_on_question_shown)
 gui_hooks.reviewer_did_show_answer.append(_on_answer_shown)
+gui_hooks.reviewer_did_answer_card.append(_on_answer_card)
 gui_hooks.webview_did_receive_js_message.append(_on_js_message)
 gui_hooks.reviewer_will_end.append(_on_reviewer_will_end)

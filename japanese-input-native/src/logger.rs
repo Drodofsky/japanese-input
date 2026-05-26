@@ -48,6 +48,9 @@ pub struct LogEntry {
     pub score: Option<f32>,
     /// Issues found during analysis (kanji only).
     pub issues: Vec<LogIssue>,
+    /// Anki ease rating the user pressed: 1=Again, 2=Hard, 3=Good, 4=Easy.
+    /// None when not yet rated (should not appear in completed log files).
+    pub rating: Option<u8>,
 }
 
 // ── file format ──────────────────────────────────────────────────────────────
@@ -123,6 +126,9 @@ impl StrokeLogger {
     }
 
     /// Log one answer attempt.
+    ///
+    /// `rating` is the Anki ease the user pressed: 1=Again, 2=Hard, 3=Good,
+    /// 4=Easy. Pass `None` only if the rating is genuinely unavailable.
     pub fn log(
         &self,
         py: Python<'_>,
@@ -130,6 +136,7 @@ impl StrokeLogger {
         committed: Vec<Vec<Vec<(f32, f32)>>>,
         recognized: &str,
         analyses: Vec<Py<PyAnalysis>>,
+        rating: Option<u8>,
     ) -> PyResult<()> {
         let now_ms = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -186,6 +193,7 @@ impl StrokeLogger {
                 strokes,
                 score,
                 issues,
+                rating,
             };
 
             append_entry(&mut file, &entry)
