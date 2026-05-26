@@ -35,6 +35,8 @@ pub struct LogEntry {
     pub version: String,
     /// Unix time in milliseconds when the answer was shown.
     pub timestamp_ms: u64,
+    /// The full word / phrase that was being reviewed.
+    pub word: String,
     /// The character the user was supposed to write.
     pub expected: char,
     /// The character the recognizer returned (None if not determined).
@@ -186,6 +188,7 @@ impl StrokeLogger {
             let entry = LogEntry {
                 version: env!("CARGO_PKG_VERSION").to_owned(),
                 timestamp_ms: now_ms,
+                word: expected.to_owned(),
                 expected: ch,
                 recognized: recognized_ch,
                 correct,
