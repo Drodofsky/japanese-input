@@ -93,7 +93,10 @@ jobs:
 
 
           # KanjiVG license attribution
-          cp data/License.txt addon_out/LICENSE.txt
+          cp data/License.txt addon_out/user_files/assets/LICENSE.txt
+
+          # own license
+          cp LICENSE addon_out/LICENSE.txt
 
       - name: Zip addon
         run: |
