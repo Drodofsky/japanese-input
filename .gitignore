@@ -16,6 +16,7 @@
 !japanese-input/src/bbox.rs
 !japanese-input/src/normalize.rs
 !japanese-input/src/stroke_point.rs
+!japanese-input/src/convert_lossy.rs
 !data/License.txt
 !data/raw/kanjivg.xml
 !data/test/*.bin
