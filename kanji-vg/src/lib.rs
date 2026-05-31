@@ -1,4 +1,4 @@
-use lyon_extra::parser::{ParserOptions, PathParser, Source};
+use kurbo::{Affine, BezPath};
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
@@ -7,8 +7,6 @@ use std::{
     str::Utf8Error,
 };
 use thiserror::Error;
-
-use lyon_path::{Path as StrokePath, math::Transform};
 
 use quick_xml::{
     Reader,
@@ -24,7 +22,7 @@ pub enum KanjiNode {
     },
     Stroke {
         index: u8,
-        path: lyon_path::Path,
+        path: BezPath,
     },
 }
 impl KanjiNode {
@@ -82,7 +80,7 @@ pub enum ParseError {
     #[error("Unexpected XML")]
     UnexpectedXml,
     #[error("svg path")]
-    Path(#[from] lyon_extra::parser::ParseError),
+    Path(#[from] kurbo::SvgParseError),
 }
 
 pub struct GlyphIter<R: BufRead> {
@@ -215,18 +213,12 @@ fn get_attr(e: &BytesStart, name: &[u8]) -> Result<Option<String>, ParseError> {
     Ok(None)
 }
 
-fn parse_svg_path(d: &str) -> Result<StrokePath, ParseError> {
-    let mut parser = PathParser::new();
-    let options = ParserOptions::DEFAULT;
-    let mut source = Source::new(d.chars());
-    let mut builder = StrokePath::builder();
-
-    parser.parse(&options, &mut source, &mut builder)?;
-    let path = builder.build();
+fn parse_svg_path(d: &str) -> Result<BezPath, ParseError> {
+    let mut path = BezPath::from_svg(d)?;
     let scale = 1.0 / 109.0;
-    Ok(path.transformed(&Transform::scale(scale, scale)))
+    path.apply_affine(Affine::scale(scale));
+    Ok(path)
 }
-
 #[cfg(test)]
 mod tests {
     use wana_kana::IsJapaneseChar;
