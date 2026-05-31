@@ -7,8 +7,11 @@
 !readme.md
 !LICNESE
 !License.txt
-!media/
-!kanji-vg/
-!data/raw/
-!data/test/
+!media/back.png
+!media/front.png
+!kanji-vg/Cargo.toml
+!kanji-vg/src/lib.
+!data/License.txt
+!data/raw/kanjivg.xml
+!data/test/*.bin
 !Cargo.toml
