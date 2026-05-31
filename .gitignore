@@ -12,7 +12,7 @@
 !kanji-vg/Cargo.toml
 !kanji-vg/src/lib.rs
 !japanese-input/Cargo.toml
-!japanese-input/lib.rs
+!japanese-input/src/lib.rs
 !data/License.txt
 !data/raw/kanjivg.xml
 !data/test/*.bin
