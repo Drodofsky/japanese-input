@@ -14,6 +14,7 @@
 !japanese-input/Cargo.toml
 !japanese-input/src/lib.rs
 !japanese-input/src/bbox.rs
+!japanese-input/src/normalize.rs
 !japanese-input/src/stroke_point.rs
 !data/License.txt
 !data/raw/kanjivg.xml
