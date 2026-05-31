@@ -1,6 +1,14 @@
-.venv/
-.vscode/
-flamegraph.svg
-kanji-draw/
-perf*
-target/
+# Deny everythink
+*
+
+
+# allow:
+!.gitignore
+!readme.md
+!LICNESE
+!License.txt
+!media/
+!kanji-vg/
+!data/raw/
+!data/test/
+!Cargo.toml
