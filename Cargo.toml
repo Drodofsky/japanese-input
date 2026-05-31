@@ -1,5 +1,5 @@
 [workspace]
-members = ["kanji-vg"]
+members = ["japanese-input","kanji-vg"]
 
 exclude = ["kanji-draw"]
 

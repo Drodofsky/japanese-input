@@ -11,6 +11,8 @@
 !media/front.png
 !kanji-vg/Cargo.toml
 !kanji-vg/src/lib.rs
+!japanese-input/Cargo.toml
+!japanese-input/lib.rs
 !data/License.txt
 !data/raw/kanjivg.xml
 !data/test/*.bin
