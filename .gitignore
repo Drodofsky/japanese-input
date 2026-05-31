@@ -1,6 +1,6 @@
 # Deny everythink
 *
-
+!*/
 
 # allow:
 !.gitignore
