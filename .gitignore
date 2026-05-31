@@ -10,7 +10,7 @@
 !media/back.png
 !media/front.png
 !kanji-vg/Cargo.toml
-!kanji-vg/src/lib.
+!kanji-vg/src/lib.rs
 !data/License.txt
 !data/raw/kanjivg.xml
 !data/test/*.bin
