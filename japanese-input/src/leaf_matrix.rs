@@ -123,4 +123,11 @@ impl LeafMatrix {
         let (total, _) = kuhn_munkres_min(&matrix);
         Ok(total.into_inner())
     }
+    #[must_use]
+    #[inline]
+    pub fn cost(&self, reference: usize, user: usize) -> Option<f64> {
+        let size = self.n_user.checked_add(self.n_ref)?;
+        let idx = user.checked_mul(size)?.checked_add(reference)?;
+        self.costs.get(idx).map(|c| c.into_inner())
+    }
 }
