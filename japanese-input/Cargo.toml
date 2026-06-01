@@ -6,5 +6,12 @@ edition = "2024"
 [dependencies]
 kurbo={ version = "0.13",features = ["serde"]}
 dtw_rs = "0.10"
+ordered-float = "5"
+pathfinding = "4"
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+postcard = { version = "1", features = ["alloc"] }
+
 [lints]
 workspace = true
