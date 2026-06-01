@@ -13,5 +13,16 @@ serde = { version = "1", features = ["derive"] }
 [dev-dependencies]
 postcard = { version = "1", features = ["alloc"] }
 
+criterion = "0.8"
+
+
+[[bench]]
+name = "hiragana_bench"
+harness = false
+[[bench]]
+name = "kanji_bench"
+harness = false
+
+
 [lints]
 workspace = true
