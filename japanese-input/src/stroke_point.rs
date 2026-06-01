@@ -1,6 +1,6 @@
 use kurbo::{
     BezPath, ParamCurve as _, ParamCurveArclen as _, ParamCurveCurvature as _,
-    ParamCurveDeriv as _, PathSeg, Point, Vec2,
+    ParamCurveDeriv as _, PathSeg, Point, Vec2, fit_to_bezpath, simplify::SimplifyBezPath,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -14,12 +14,39 @@ pub struct StrokePoint {
 pub trait ToStrokePoint {
     fn to_stroke_points(&self) -> Vec<StrokePoint>;
 }
+pub trait ToStrokeVector {
+    fn to_stroke_vector(&self) -> Vec<Vec<StrokePoint>>;
+}
+
+impl<I: ToStrokePoint> ToStrokeVector for &[I] {
+    #[inline]
+    fn to_stroke_vector(&self) -> Vec<Vec<StrokePoint>> {
+        self.iter()
+            .map(ToStrokePoint::to_stroke_points)
+            .collect::<Vec<Vec<_>>>()
+    }
+}
+impl<I: ToStrokePoint> ToStrokeVector for Vec<I> {
+    #[inline]
+    fn to_stroke_vector(&self) -> Vec<Vec<StrokePoint>> {
+        self.iter()
+            .map(ToStrokePoint::to_stroke_points)
+            .collect::<Vec<Vec<_>>>()
+    }
+}
 
 impl ToStrokePoint for BezPath {
     #[inline]
     fn to_stroke_points(&self) -> Vec<StrokePoint> {
         const SPACING: f64 = 0.01;
         sample_by_spacing(self, SPACING)
+    }
+}
+
+impl ToStrokePoint for Vec<(f32, f32)> {
+    #[inline]
+    fn to_stroke_points(&self) -> Vec<StrokePoint> {
+        fit_user_stroke(self).to_stroke_points()
     }
 }
 
@@ -85,6 +112,24 @@ fn sample_seg(segment: PathSeg, t: f64) -> StrokePoint {
         tangent,
         curvature,
     }
+}
+
+fn fit_user_stroke(raw: &[(f32, f32)]) -> BezPath {
+    const FIT_TOLERANCE: f64 = 0.02;
+
+    let mut polyline = BezPath::new();
+    let mut points = raw
+        .iter()
+        .map(|&(x, y)| Point::new(f64::from(x), f64::from(y)));
+    if let Some(first) = points.next() {
+        polyline.move_to(first);
+        for p in points {
+            polyline.line_to(p);
+        }
+    }
+
+    let source = SimplifyBezPath::new(polyline);
+    fit_to_bezpath(&source, FIT_TOLERANCE)
 }
 
 #[cfg(test)]
