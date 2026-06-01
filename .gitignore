@@ -18,6 +18,7 @@
 !japanese-input/src/stroke_point.rs
 !japanese-input/src/convert_lossy.rs
 !japanese-input/src/dtw.rs
+!japanese-input/src/leaf_matrix.rs
 !data/License.txt
 !data/raw/kanjivg.xml
 !data/test/*.bin
