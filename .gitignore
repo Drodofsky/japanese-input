@@ -5,7 +5,7 @@
 # allow:
 !.gitignore
 !readme.md
-!LICNESE
+!LICENSE
 !License.txt
 !media/back.png
 !media/front.png
