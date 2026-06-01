@@ -38,7 +38,7 @@ impl<I: ToStrokePoint> ToStrokeVector for Vec<I> {
 impl ToStrokePoint for BezPath {
     #[inline]
     fn to_stroke_points(&self) -> Vec<StrokePoint> {
-        const SPACING: f64 = 0.01;
+        const SPACING: f64 = 0.05;
         sample_by_spacing(self, SPACING)
     }
 }
