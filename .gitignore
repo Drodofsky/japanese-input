@@ -17,6 +17,7 @@
 !japanese-input/src/normalize.rs
 !japanese-input/src/stroke_point.rs
 !japanese-input/src/kanji_node.rs
+!japanese-input/src/analyzed_kanji_node.rs
 !japanese-input/src/convert_lossy.rs
 !japanese-input/src/dtw.rs
 !japanese-input/src/leaf_matrix.rs

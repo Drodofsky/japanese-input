@@ -1,3 +1,4 @@
+pub mod analyzed_kanji_node;
 pub mod bbox;
 pub mod convert_lossy;
 pub mod dtw;
