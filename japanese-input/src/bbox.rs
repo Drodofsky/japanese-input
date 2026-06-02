@@ -22,6 +22,13 @@ impl BBox for Vec<StrokePoint> {
     }
 }
 
+impl BBox for &[StrokePoint] {
+    #[inline]
+    fn bbox(&self) -> Option<Rect> {
+        bbox_of(self.iter())
+    }
+}
+
 impl BBox for Vec<Vec<StrokePoint>> {
     #[inline]
     fn bbox(&self) -> Option<Rect> {
