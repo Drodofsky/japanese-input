@@ -130,4 +130,14 @@ impl LeafMatrix {
         let idx = user.checked_mul(size)?.checked_add(reference)?;
         self.costs.get(idx).map(|c| c.into_inner())
     }
+    #[must_use]
+    #[inline]
+    pub fn user_stroke_count(&self) -> usize {
+        self.n_user
+    }
+    #[must_use]
+    #[inline]
+    pub fn reference_stroke_count(&self) -> usize {
+        self.n_ref
+    }
 }
