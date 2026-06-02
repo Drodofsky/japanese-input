@@ -1,6 +1,7 @@
 pub mod analyzed_kanji_node;
 pub mod bbox;
 pub mod convert_lossy;
+pub mod convert_stroke_index;
 pub mod dtw;
 pub mod kanji_node;
 pub mod leaf_matrix;
