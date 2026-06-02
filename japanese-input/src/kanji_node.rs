@@ -1,0 +1,40 @@
+use kurbo::BezPath;
+use serde::{Deserialize, Serialize};
+
+use crate::stroke_point::{StrokePoint, ToStrokePoint as _};
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[non_exhaustive]
+pub enum KanjiNode {
+    Group {
+        element: Option<char>,
+        children: Vec<KanjiNode>,
+    },
+    Stroke {
+        index: u8,
+        path: BezPath,
+    },
+}
+
+impl KanjiNode {
+    #[must_use]
+    #[inline]
+    pub fn collect_strokes(&self) -> Vec<Vec<StrokePoint>> {
+        let mut strokes = Vec::new();
+        collect_into(self, &mut strokes);
+        strokes
+    }
+}
+
+fn collect_into(node: &KanjiNode, out: &mut Vec<Vec<StrokePoint>>) {
+    match node {
+        KanjiNode::Stroke { path, .. } => {
+            out.push(path.to_stroke_points());
+        }
+        KanjiNode::Group { children, .. } => {
+            for child in children {
+                collect_into(child, out);
+            }
+        }
+    }
+}

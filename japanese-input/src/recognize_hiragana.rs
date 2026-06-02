@@ -1,9 +1,9 @@
+use crate::KanjiMap;
 use crate::bbox::BBox as _;
 use crate::dtw::{Weights, dtw};
 use crate::leaf_matrix::LeafMatrix;
 use crate::normalize::Normalize as _;
 use crate::stroke_point::StrokePoint;
-use crate::{KanjiMap, collect_strokes};
 const WEIGHTS: Weights = Weights {
     position: 1.0,
     curvature: 0.0,
@@ -45,7 +45,7 @@ impl HiraganaRecognizer {
         let candidates = kanji_map
             .iter()
             .map(|(&c, node)| {
-                let strokes = collect_strokes(node);
+                let strokes = node.collect_strokes();
                 let normalized = strokes.normalized();
                 (c, normalized)
             })

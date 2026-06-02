@@ -1,8 +1,8 @@
+use crate::KanjiMap;
 use crate::dtw::{Weights, dtw};
 use crate::leaf_matrix::LeafMatrix;
 use crate::normalize::Normalize as _;
 use crate::stroke_point::StrokePoint;
-use crate::{KanjiMap, collect_strokes};
 const WEIGHTS: Weights = Weights {
     position: 1.0,
     curvature: 0.0,
@@ -27,7 +27,7 @@ impl KanjiRecognizer {
     pub fn new(kanji_map: &KanjiMap) -> Self {
         let candidates = kanji_map
             .iter()
-            .map(|(&c, node)| (c, collect_strokes(node).normalized()))
+            .map(|(&c, node)| (c, node.collect_strokes().normalized()))
             .collect();
         Self { candidates }
     }
