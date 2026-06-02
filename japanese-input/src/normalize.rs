@@ -3,8 +3,9 @@ use crate::stroke_point::StrokePoint;
 use kurbo::Point;
 
 pub trait Normalize {
+    type Output;
     #[must_use]
-    fn normalized(&self) -> Self;
+    fn normalized(&self) -> Self::Output;
 }
 
 fn transform_point(p: &StrokePoint, center: Point, scale: f64) -> StrokePoint {
@@ -33,8 +34,19 @@ fn normalize_with(points: &[StrokePoint], rect: kurbo::Rect) -> Vec<StrokePoint>
 }
 
 impl Normalize for Vec<StrokePoint> {
+    type Output = Self;
     #[inline]
-    fn normalized(&self) -> Self {
+    fn normalized(&self) -> Self::Output {
+        match self.bbox() {
+            Some(rect) => normalize_with(self, rect),
+            None => Vec::new(),
+        }
+    }
+}
+impl Normalize for &[StrokePoint] {
+    type Output = Vec<StrokePoint>;
+    #[inline]
+    fn normalized(&self) -> Self::Output {
         match self.bbox() {
             Some(rect) => normalize_with(self, rect),
             None => Vec::new(),
@@ -43,8 +55,9 @@ impl Normalize for Vec<StrokePoint> {
 }
 
 impl Normalize for Vec<Vec<StrokePoint>> {
+    type Output = Self;
     #[inline]
-    fn normalized(&self) -> Self {
+    fn normalized(&self) -> Self::Output {
         match self.bbox() {
             Some(rect) => self
                 .iter()
