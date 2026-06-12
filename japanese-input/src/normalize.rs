@@ -67,6 +67,19 @@ impl Normalize for Vec<Vec<StrokePoint>> {
         }
     }
 }
+impl Normalize for Vec<&Vec<StrokePoint>> {
+    type Output = Vec<Vec<StrokePoint>>;
+    #[inline]
+    fn normalized(&self) -> Self::Output {
+        match self.bbox() {
+            Some(rect) => self
+                .iter()
+                .map(|stroke| normalize_with(stroke, rect))
+                .collect(),
+            None => Vec::new(),
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
