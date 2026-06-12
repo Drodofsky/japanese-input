@@ -1,4 +1,4 @@
-use crate::stroke_point::StrokePoint;
+use crate::{stroke_geometry::StrokeGeometry, stroke_point::StrokePoint};
 use kurbo::Rect;
 
 pub trait BBox {
@@ -56,6 +56,14 @@ impl BBox for &[Vec<StrokePoint>] {
     fn bbox(&self) -> Option<Rect> {
         self.iter()
             .filter_map(BBox::bbox)
+            .reduce(|acc, r| acc.union(r))
+    }
+}
+impl BBox for [StrokeGeometry] {
+    #[inline]
+    fn bbox(&self) -> Option<Rect> {
+        self.iter()
+            .filter_map(|g| g.bbox)
             .reduce(|acc, r| acc.union(r))
     }
 }
