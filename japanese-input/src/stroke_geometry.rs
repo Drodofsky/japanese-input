@@ -3,7 +3,7 @@ use kurbo::{Point, Rect};
 use crate::{bbox::BBox as _, centroid::Centroid as _, stroke_point::StrokePoint};
 
 #[non_exhaustive]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct StrokeGeometry {
     pub bbox: Option<Rect>,
     pub centroid: Option<Point>,
