@@ -26,6 +26,13 @@ impl AnalyzedKanjiNode {
         collect_into(self, &mut strokes);
         strokes
     }
+    #[must_use]
+    #[inline]
+    pub fn collect_geometry(&self) -> Vec<StrokeGeometry> {
+        let mut geometries = Vec::new();
+        collect_into_geometry(self, &mut geometries);
+        geometries
+    }
 }
 
 fn collect_into(node: &AnalyzedKanjiNode, out: &mut Vec<Vec<StrokePoint>>) {
@@ -36,6 +43,18 @@ fn collect_into(node: &AnalyzedKanjiNode, out: &mut Vec<Vec<StrokePoint>>) {
         AnalyzedKanjiNode::Group { children, .. } => {
             for child in children {
                 collect_into(child, out);
+            }
+        }
+    }
+}
+fn collect_into_geometry(node: &AnalyzedKanjiNode, out: &mut Vec<StrokeGeometry>) {
+    match node {
+        AnalyzedKanjiNode::Stroke { geometry, .. } => {
+            out.push(*geometry);
+        }
+        AnalyzedKanjiNode::Group { children, .. } => {
+            for child in children {
+                collect_into_geometry(child, out);
             }
         }
     }
