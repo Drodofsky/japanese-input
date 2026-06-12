@@ -1,4 +1,8 @@
+use kurbo::{Point, Rect};
+
 use crate::{
+    bbox::BBox as _,
+    centroid::Centroid as _,
     kanji_node::KanjiNode,
     stroke_point::{StrokePoint, ToStrokePoint as _},
 };
@@ -13,6 +17,8 @@ pub enum AnalyzedKanjiNode {
     Stroke {
         index: u8,
         path: Vec<StrokePoint>,
+        bbox: Option<Rect>,
+        centroid: Option<Point>,
     },
 }
 
@@ -48,10 +54,17 @@ impl KanjiNode {
                 element,
                 children: children.into_iter().map(KanjiNode::to_analyzed).collect(),
             },
-            KanjiNode::Stroke { index, path } => AnalyzedKanjiNode::Stroke {
-                index,
-                path: path.to_stroke_points(),
-            },
+            KanjiNode::Stroke { index, path } => {
+                let path = path.to_stroke_points();
+                let bbox = path.bbox();
+                let centroid = path.centroid();
+                AnalyzedKanjiNode::Stroke {
+                    index,
+                    path,
+                    bbox,
+                    centroid,
+                }
+            }
         }
     }
 }
