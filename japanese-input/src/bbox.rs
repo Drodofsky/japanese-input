@@ -21,8 +21,14 @@ impl BBox for Vec<StrokePoint> {
         bbox_of(self.iter())
     }
 }
+impl BBox for &Vec<StrokePoint> {
+    #[inline]
+    fn bbox(&self) -> Option<Rect> {
+        bbox_of(self.iter())
+    }
+}
 
-impl BBox for &[StrokePoint] {
+impl BBox for [StrokePoint] {
     #[inline]
     fn bbox(&self) -> Option<Rect> {
         bbox_of(self.iter())
@@ -30,6 +36,14 @@ impl BBox for &[StrokePoint] {
 }
 
 impl BBox for Vec<Vec<StrokePoint>> {
+    #[inline]
+    fn bbox(&self) -> Option<Rect> {
+        self.iter()
+            .filter_map(BBox::bbox)
+            .reduce(|acc, r| acc.union(r))
+    }
+}
+impl BBox for Vec<&Vec<StrokePoint>> {
     #[inline]
     fn bbox(&self) -> Option<Rect> {
         self.iter()
