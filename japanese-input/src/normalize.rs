@@ -1,6 +1,8 @@
 use crate::bbox::BBox as _;
+use crate::centroid::Centroid2D;
+use crate::stroke_geometry::StrokeGeometry;
 use crate::stroke_point::StrokePoint;
-use kurbo::Point;
+use kurbo::{Point, Rect};
 
 pub trait Normalize {
     type Output;
@@ -19,7 +21,7 @@ fn transform_point(p: &StrokePoint, center: Point, scale: f64) -> StrokePoint {
     }
 }
 
-fn normalize_with(points: &[StrokePoint], rect: kurbo::Rect) -> Vec<StrokePoint> {
+fn frame(rect: Rect) -> (Point, f64) {
     let center = rect.center();
     let extent = rect.width().max(rect.height());
     let scale = if extent > f64::EPSILON {
@@ -27,6 +29,11 @@ fn normalize_with(points: &[StrokePoint], rect: kurbo::Rect) -> Vec<StrokePoint>
     } else {
         1.0_f64
     };
+    (center, scale)
+}
+
+fn normalize_with(points: &[StrokePoint], rect: Rect) -> Vec<StrokePoint> {
+    let (center, scale) = frame(rect);
     points
         .iter()
         .map(|p| transform_point(p, center, scale))
@@ -76,6 +83,27 @@ impl Normalize for Vec<&Vec<StrokePoint>> {
                 .iter()
                 .map(|stroke| normalize_with(stroke, rect))
                 .collect(),
+            None => Vec::new(),
+        }
+    }
+}
+
+impl Normalize for [StrokeGeometry] {
+    type Output = Vec<Centroid2D>;
+    #[inline]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "vec2 translation und scaling"
+    )]
+    fn normalized(&self) -> Self::Output {
+        match self.bbox() {
+            Some(rect) => {
+                let (center, scale) = frame(rect);
+                self.iter()
+                    .filter_map(|g| g.centroid)
+                    .map(|c| ((c - center) * scale).to_point())
+                    .collect()
+            }
             None => Vec::new(),
         }
     }
