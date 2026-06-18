@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
-use japanese_input::KanjiMap;
+use japanese_input::{
+    KanjiMap, analyzed_kanji_node::AnalyzedKanjiNode, stroke_point::ToStrokeVector,
+};
 use serde::{Deserialize, Serialize};
 
 /// # Panics
@@ -40,6 +42,21 @@ pub fn load_test_file(name: &str) -> Vec<Vec<(f32, f32)>> {
     let bytes = std::fs::read(&path).unwrap_or_else(|_| panic!("failed to read {name}.bin"));
     let file: StrokeFile = postcard::from_bytes(&bytes).expect("failed to deserialize stroke file");
     file.strokes
+}
+/// # Panics
+/// Panics if `c` is not present in `map`.
+#[must_use]
+pub fn load_kanji_node(map: &KanjiMap, c: char) -> AnalyzedKanjiNode {
+    let node = map.get(&c).unwrap_or_else(|| panic!("kanji {c} not found"));
+    node.clone().to_analyzed()
+}
+
+#[must_use]
+pub fn match_strokes(
+    reference: AnalyzedKanjiNode,
+    user: &[Vec<(f32, f32)>],
+) -> Vec<japanese_input::match_strokes::MatchInfo> {
+    japanese_input::match_strokes::match_strokes(reference, user.to_stroke_vector()).clone()
 }
 
 #[derive(Deserialize, Serialize)]
