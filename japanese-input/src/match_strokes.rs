@@ -14,11 +14,11 @@ use crate::{
 };
 const MAX_WIDTH: usize = 50000;
 const PRE_FILTER_WIDTH_MULTIPLIER: usize = 2;
+const EXTRA_PENALTY: f64 = 1.0;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Weights {
     missing_penalty: f64,
-    extra_penalty: f64,
     length_weight: f64,
     order_weight: f64,
     kanji_dtw_weights: DTWWeights,
@@ -39,7 +39,6 @@ impl Weights {
     pub fn ones() -> Self {
         Self {
             missing_penalty: 1.0,
-            extra_penalty: 1.0,
             length_weight: 1.0,
             order_weight: 1.0,
             kanji_dtw_weights: DTWWeights {
@@ -108,7 +107,7 @@ pub fn match_strokes(
             .filter(|&i| i != u8::MAX)
             .count();
         let extras = user_count.saturating_sub(used);
-        r.score += weights.extra_penalty * f64::from(extras.try_into().unwrap_or(u16::MAX));
+        r.score += EXTRA_PENALTY * f64::from(extras.try_into().unwrap_or(u16::MAX));
     }
 
     results.sort_by(|a, b| a.score.total_cmp(&b.score));
