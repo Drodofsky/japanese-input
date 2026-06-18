@@ -1,9 +1,9 @@
 use crate::KanjiMap;
-use crate::dtw::{Weights, dtw};
+use crate::dtw::{DTWWeights, dtw};
 use crate::leaf_matrix::LeafMatrix;
 use crate::normalize::Normalize as _;
 use crate::stroke_point::StrokePoint;
-const WEIGHTS: Weights = Weights {
+const WEIGHTS: DTWWeights = DTWWeights {
     position: 1.0,
     tangent: 0.0,
 };

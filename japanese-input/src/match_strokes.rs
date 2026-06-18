@@ -6,7 +6,7 @@ use crate::{
     analyzed_kanji_node::AnalyzedKanjiNode,
     convert_lossy::ConvertLossy as _,
     convert_stroke_index::ConvertStrokeIndex as _,
-    dtw::{Weights, dtw},
+    dtw::{DTWWeights, dtw},
     leaf_matrix::LeafMatrix,
     normalize::Normalize as _,
     stroke_geometry::StrokeGeometry,
@@ -21,12 +21,12 @@ const FRAME_STROKE_WEIGHT: f64 = 0.6;
 const FRAME_GROUP_WEIGHT: f64 = 0.8;
 const LENGTH_WEIGHT: f64 = 0.6;
 const ORDER_WEIGHT: f64 = 0.6;
-const KANJI_DTW_WEIGHTS: Weights = Weights {
+const KANJI_DTW_WEIGHTS: DTWWeights = DTWWeights {
     position: 1.0,
     tangent: 1.0,
 };
 
-const STROKE_DTW_WEIGHTS: Weights = Weights {
+const STROKE_DTW_WEIGHTS: DTWWeights = DTWWeights {
     position: 1.0,
     tangent: 1.0,
 };

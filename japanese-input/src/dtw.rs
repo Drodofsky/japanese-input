@@ -10,12 +10,12 @@ pub struct DtwError;
 
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
-pub struct Weights {
+pub struct DTWWeights {
     pub position: f64,
     pub tangent: f64,
 }
 
-impl Default for Weights {
+impl Default for DTWWeights {
     #[inline]
     fn default() -> Self {
         Self {
@@ -26,7 +26,7 @@ impl Default for Weights {
 }
 
 #[inline]
-fn cost(a: &StrokePoint, b: &StrokePoint, w: &Weights) -> f64 {
+fn cost(a: &StrokePoint, b: &StrokePoint, w: &DTWWeights) -> f64 {
     let position = a.position.distance(b.position);
     let tangent = 1.0_f64 - a.tangent.dot(b.tangent);
     w.position * position + w.tangent * tangent
@@ -34,7 +34,7 @@ fn cost(a: &StrokePoint, b: &StrokePoint, w: &Weights) -> f64 {
 
 #[must_use]
 #[inline]
-pub fn dtw(a: &[StrokePoint], b: &[StrokePoint], weights: &Weights) -> f64 {
+pub fn dtw(a: &[StrokePoint], b: &[StrokePoint], weights: &DTWWeights) -> f64 {
     if a.is_empty() || b.is_empty() {
         return f64::INFINITY;
     }
@@ -48,7 +48,7 @@ pub fn dtw(a: &[StrokePoint], b: &[StrokePoint], weights: &Weights) -> f64 {
 pub fn dtw_with_path(
     a: &[StrokePoint],
     b: &[StrokePoint],
-    weights: &Weights,
+    weights: &DTWWeights,
 ) -> Result<DtwPath, DtwError> {
     if a.is_empty() || b.is_empty() {
         return Ok((f64::INFINITY, Vec::new()));
@@ -95,22 +95,22 @@ mod tests {
     #[test]
     fn identical_strokes_score_zero() {
         let s = vec![sp(0.0, 0.0, 1.0, 0.0), sp(0.5, 0.0, 1.0, 0.0)];
-        assert!(approx(dtw(&s, &s, &Weights::default()), 0.0));
+        assert!(approx(dtw(&s, &s, &DTWWeights::default()), 0.0));
     }
 
     #[test]
     fn empty_input_is_infinite() {
         let s = vec![sp(0.0, 0.0, 1.0, 0.0)];
-        assert!(dtw(&[], &s, &Weights::default()).is_infinite());
-        assert!(dtw(&s, &[], &Weights::default()).is_infinite());
+        assert!(dtw(&[], &s, &DTWWeights::default()).is_infinite());
+        assert!(dtw(&s, &[], &DTWWeights::default()).is_infinite());
     }
 
     #[test]
     fn symmetric() {
         let a = vec![sp(0.0, 0.0, 1.0, 0.0), sp(0.3, 0.1, 1.0, 0.0)];
         let b = vec![sp(0.1, 0.0, 1.0, 0.0), sp(0.5, 0.2, 1.0, 0.0)];
-        let ab = dtw(&a, &b, &Weights::default());
-        let ba = dtw(&b, &a, &Weights::default());
+        let ab = dtw(&a, &b, &DTWWeights::default());
+        let ba = dtw(&b, &a, &DTWWeights::default());
         assert!(approx(ab, ba), "{ab} vs {ba}");
     }
 
@@ -118,7 +118,7 @@ mod tests {
     fn known_value_no_double_normalization() {
         let a = vec![sp(0.0, 0.0, 1.0, 0.0)];
         let b = vec![sp(1.0, 0.0, 1.0, 0.0)];
-        let score = dtw(&a, &b, &Weights::default());
+        let score = dtw(&a, &b, &DTWWeights::default());
         assert!(
             approx(score, 0.5),
             "erwartet 0.5 (roh 1.0 / 2), bekam {score}"
@@ -129,12 +129,12 @@ mod tests {
     fn weights_apply() {
         let a = vec![sp(0.0, 0.0, 1.0, 0.0)];
         let b = vec![sp(0.0, 0.0, 1.0, 0.0)];
-        let on = dtw(&a, &b, &Weights::default());
+        let on = dtw(&a, &b, &DTWWeights::default());
         assert!(approx(on, 1.5), "bekam {on}");
         let off = dtw(
             &a,
             &b,
-            &Weights {
+            &DTWWeights {
                 position: 1.0,
                 tangent: 1.0,
             },
@@ -150,7 +150,7 @@ mod tests {
             sp(0.5, 0.0, 1.0, 0.0),
             sp(1.0, 0.0, 1.0, 0.0),
         ];
-        assert!(dtw(&coarse, &fine, &Weights::default()) < 0.2);
+        assert!(dtw(&coarse, &fine, &DTWWeights::default()) < 0.2);
     }
 
     #[test]
@@ -160,7 +160,7 @@ mod tests {
             sp(0.5, 0.0, 1.0, 0.0),
             sp(1.0, 0.0, 1.0, 0.0),
         ];
-        let (_, path) = dtw_with_path(&s, &s, &Weights::default()).unwrap();
+        let (_, path) = dtw_with_path(&s, &s, &DTWWeights::default()).unwrap();
         for &(i, j, c) in &path {
             assert_eq!(i, j, "diagonaler Pfad: i==j erwartet, ({i},{j})");
             assert!(
@@ -180,7 +180,7 @@ mod tests {
             sp(0.5, 0.5, 1.0, 1.0),
             sp(1.0, 1.0, 0.0, 1.0),
         ];
-        let (_, path) = dtw_with_path(&a, &b, &Weights::default()).unwrap();
+        let (_, path) = dtw_with_path(&a, &b, &DTWWeights::default()).unwrap();
         assert_eq!(path.first().map(|&(i, j, _)| (i, j)), Some((0, 0)));
         assert_eq!(
             path.last().map(|&(i, j, _)| (i, j)),
@@ -192,8 +192,8 @@ mod tests {
     fn path_score_matches_dtw() {
         let a = vec![sp(0.0, 0.0, 1.0, 0.0), sp(0.5, 0.2, 1.0, 0.0)];
         let b = vec![sp(0.1, 0.0, 1.0, 0.0), sp(0.6, 0.3, 1.0, 0.0)];
-        let s1 = dtw(&a, &b, &Weights::default());
-        let (s2, _) = dtw_with_path(&a, &b, &Weights::default()).unwrap();
+        let s1 = dtw(&a, &b, &DTWWeights::default());
+        let (s2, _) = dtw_with_path(&a, &b, &DTWWeights::default()).unwrap();
         assert!(approx(s1, s2), "{s1} vs {s2}");
     }
 }
