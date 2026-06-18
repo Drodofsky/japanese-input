@@ -6,6 +6,7 @@ pub mod convert_stroke_index;
 pub mod dtw;
 pub mod kanji_node;
 pub mod leaf_matrix;
+pub mod match_strokes;
 pub mod normalize;
 pub mod recognize_hiragana;
 pub mod recognize_kanji;

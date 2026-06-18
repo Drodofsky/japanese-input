@@ -9,6 +9,7 @@ dtw_rs = "0.10"
 ordered-float = "5"
 pathfinding = "4"
 serde = { version = "1", features = ["derive"] }
+smallvec = "1"
 
 [dev-dependencies]
 postcard = { version = "1", features = ["alloc"] }
@@ -22,7 +23,9 @@ harness = false
 [[bench]]
 name = "kanji_bench"
 harness = false
-
+[[bench]]
+name = "match_bench"
+harness = false
 
 [lints]
 workspace = true

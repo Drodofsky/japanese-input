@@ -24,6 +24,7 @@
 !japanese-input/src/convert_stroke_index.rs
 !japanese-input/src/dtw.rs
 !japanese-input/src/leaf_matrix.rs
+!japanese-input/src/match_strokes.rs
 !japanese-input/src/recognize_hiragana.rs
 !japanese-input/src/recognize_kanji.rs
 !japanese-input/tests/utils/mod.rs
