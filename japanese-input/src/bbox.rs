@@ -76,7 +76,6 @@ mod tests {
         StrokePoint {
             position: Point::new(x, y),
             tangent: Vec2::new(1.0, 0.0),
-            curvature: 0.0,
         }
     }
 

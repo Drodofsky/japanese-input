@@ -1,6 +1,6 @@
 use kurbo::{
-    BezPath, ParamCurve as _, ParamCurveArclen as _, ParamCurveCurvature as _,
-    ParamCurveDeriv as _, PathSeg, Point, Vec2, fit_to_bezpath, simplify::SimplifyBezPath,
+    BezPath, ParamCurve as _, ParamCurveArclen as _, ParamCurveDeriv as _, PathSeg, Point, Vec2,
+    fit_to_bezpath, simplify::SimplifyBezPath,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -8,7 +8,6 @@ use kurbo::{
 pub struct StrokePoint {
     pub position: Point,
     pub tangent: Vec2,
-    pub curvature: f64,
 }
 
 pub trait ToStrokePoint {
@@ -93,25 +92,21 @@ fn locate(
 fn sample_seg(segment: PathSeg, t: f64) -> StrokePoint {
     const EPS: f64 = 1e-12;
 
-    let (position, velocity, curvature) = match segment {
+    let (position, velocity) = match segment {
         #[expect(clippy::arithmetic_side_effects, reason = "False positive")]
-        PathSeg::Line(l) => (l.eval(t), l.p1 - l.p0, 0.0_f64),
-        PathSeg::Quad(q) => (q.eval(t), q.deriv().eval(t).to_vec2(), q.curvature(t)),
-        PathSeg::Cubic(c) => (c.eval(t), c.deriv().eval(t).to_vec2(), c.curvature(t)),
+        PathSeg::Line(l) => (l.eval(t), l.p1 - l.p0),
+        PathSeg::Quad(q) => (q.eval(t), q.deriv().eval(t).to_vec2()),
+        PathSeg::Cubic(c) => (c.eval(t), c.deriv().eval(t).to_vec2()),
     };
 
     let speed = velocity.hypot();
-    let (tangent, curvature) = if speed > EPS {
-        (velocity.normalize(), curvature)
+    let tangent = if speed > EPS {
+        velocity.normalize()
     } else {
-        (Vec2::ZERO, 0.0_f64)
+        Vec2::ZERO
     };
 
-    StrokePoint {
-        position,
-        tangent,
-        curvature,
-    }
+    StrokePoint { position, tangent }
 }
 
 fn fit_user_stroke(raw: &[(f32, f32)]) -> BezPath {
@@ -155,7 +150,6 @@ mod tests {
             assert!(p.position.y.is_finite(), "position.y not finite at {i}");
             assert!(p.tangent.x.is_finite(), "tangent.x not finite at {i}");
             assert!(p.tangent.y.is_finite(), "tangent.y not finite at {i}");
-            assert!(p.curvature.is_finite(), "curvature not finite at {i}");
         }
     }
 
@@ -178,11 +172,6 @@ mod tests {
         assert_unit_tangents(&pts);
 
         for p in &pts {
-            assert!(
-                approx(p.curvature, 0.0, 1e-9),
-                "curvature {} != 0",
-                p.curvature
-            );
             assert!(approx(p.tangent.x, 1.0, 1e-9));
             assert!(approx(p.tangent.y, 0.0, 1e-9));
             assert!(approx(p.position.y, 0.0, 1e-9));
@@ -201,7 +190,6 @@ mod tests {
         for p in &pts {
             assert!(approx(p.tangent.x, inv_sqrt2, 1e-9));
             assert!(approx(p.tangent.y, inv_sqrt2, 1e-9));
-            assert!(approx(p.curvature, 0.0, 1e-9));
         }
     }
 
@@ -213,22 +201,6 @@ mod tests {
             let dx = (w[1].position.x - w[0].position.x).abs();
             assert!(approx(dx, SPACING, 1e-6), "gap {dx} != {SPACING}");
         }
-    }
-
-    #[test]
-    fn curved_segment_has_nonzero_curvature() {
-        let mut path = BezPath::new();
-        path.move_to((0.0, 0.0));
-        path.curve_to((0.25, 0.5), (0.75, 0.5), (1.0, 0.0));
-        let pts = sample_by_spacing(&path, SPACING);
-
-        assert_all_finite(&pts);
-        assert_unit_tangents(&pts);
-        let max_curv = pts.iter().map(|p| p.curvature.abs()).fold(0.0, f64::max);
-        assert!(
-            max_curv > 0.0,
-            "expected some curvature on a curved segment"
-        );
     }
 
     #[test]
@@ -287,14 +259,6 @@ mod tests {
         let has_vertical_dir = pts.iter().any(|p| approx(p.tangent.y, 1.0, 1e-6));
         assert!(has_horizontal_dir, "no sample with horizontal tangent");
         assert!(has_vertical_dir, "no sample with vertical tangent");
-
-        for p in &pts {
-            assert!(
-                approx(p.curvature, 0.0, 1e-9),
-                "curvature {} != 0",
-                p.curvature
-            );
-        }
 
         let last = pts.last().unwrap();
         assert!(approx(last.position.x, 1.0, 1e-6));

@@ -17,7 +17,6 @@ fn transform_point(p: &StrokePoint, center: Point, scale: f64) -> StrokePoint {
             (p.position.y - center.y) * scale,
         ),
         tangent: p.tangent,
-        curvature: p.curvature / scale,
     }
 }
 
@@ -118,14 +117,6 @@ mod tests {
         StrokePoint {
             position: Point::new(x, y),
             tangent: Vec2::new(1.0, 0.0),
-            curvature: 0.0,
-        }
-    }
-    fn sp_c(x: f64, y: f64, curv: f64) -> StrokePoint {
-        StrokePoint {
-            position: Point::new(x, y),
-            tangent: Vec2::new(1.0, 0.0),
-            curvature: curv,
         }
     }
     fn approx(a: f64, b: f64) -> bool {
@@ -154,15 +145,6 @@ mod tests {
         let n = stroke.normalized();
         for p in &n {
             assert!(approx(p.tangent.x, 1.0) && approx(p.tangent.y, 0.0));
-        }
-    }
-
-    #[test]
-    fn curvature_scales_inversely_with_size() {
-        let stroke = vec![sp_c(0.0, 0.0, 4.0), sp_c(0.5, 0.5, 4.0)];
-        let n = stroke.normalized();
-        for p in &n {
-            assert!(approx(p.curvature, 2.0), "curvature was {}", p.curvature);
         }
     }
 

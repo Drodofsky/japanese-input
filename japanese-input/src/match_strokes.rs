@@ -23,13 +23,11 @@ const LENGTH_WEIGHT: f64 = 0.6;
 const ORDER_WEIGHT: f64 = 0.6;
 const KANJI_DTW_WEIGHTS: Weights = Weights {
     position: 1.0,
-    curvature: 0.0,
     tangent: 1.0,
 };
 
 const STROKE_DTW_WEIGHTS: Weights = Weights {
     position: 1.0,
-    curvature: 0.0,
     tangent: 1.0,
 };
 

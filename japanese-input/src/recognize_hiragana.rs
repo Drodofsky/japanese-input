@@ -6,7 +6,6 @@ use crate::normalize::Normalize as _;
 use crate::stroke_point::StrokePoint;
 const WEIGHTS: Weights = Weights {
     position: 1.0,
-    curvature: 0.0,
     tangent: 1.0,
 };
 const MISSING_PENALTY: f64 = 1.0;
