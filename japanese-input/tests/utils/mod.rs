@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 
 use japanese_input::{
-    KanjiMap, analyzed_kanji_node::AnalyzedKanjiNode, stroke_point::ToStrokeVector,
+    KanjiMap, analyzed_kanji_node::AnalyzedKanjiNode, match_strokes::Weights,
+    stroke_point::ToStrokeVector,
 };
 use serde::{Deserialize, Serialize};
 
@@ -56,7 +57,12 @@ pub fn match_strokes(
     reference: AnalyzedKanjiNode,
     user: &[Vec<(f32, f32)>],
 ) -> Vec<japanese_input::match_strokes::MatchInfo> {
-    japanese_input::match_strokes::match_strokes(reference, user.to_stroke_vector()).clone()
+    japanese_input::match_strokes::match_strokes(
+        reference,
+        user.to_stroke_vector(),
+        Weights::default(),
+    )
+    .clone()
 }
 
 #[derive(Deserialize, Serialize)]

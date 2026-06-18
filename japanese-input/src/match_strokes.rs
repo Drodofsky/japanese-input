@@ -14,22 +14,46 @@ use crate::{
 };
 const MAX_WIDTH: usize = 50000;
 const PRE_FILTER_WIDTH_MULTIPLIER: usize = 2;
-const MISSING_PENALTY: f64 = 0.45;
-const EXTRA_PENALTY: f64 = 1.0;
-const FRAME_KANJI_WEIGHT: f64 = 0.3;
-const FRAME_STROKE_WEIGHT: f64 = 0.6;
-const FRAME_GROUP_WEIGHT: f64 = 0.8;
-const LENGTH_WEIGHT: f64 = 0.6;
-const ORDER_WEIGHT: f64 = 0.6;
-const KANJI_DTW_WEIGHTS: DTWWeights = DTWWeights {
-    position: 1.0,
-    tangent: 1.0,
-};
 
-const STROKE_DTW_WEIGHTS: DTWWeights = DTWWeights {
-    position: 1.0,
-    tangent: 1.0,
-};
+#[derive(Debug, Clone, Copy)]
+pub struct Weights {
+    missing_penalty: f64,
+    extra_penalty: f64,
+    length_weight: f64,
+    order_weight: f64,
+    kanji_dtw_weights: DTWWeights,
+    stroke_dtw_weights: DTWWeights,
+    group_weight: f64,
+}
+
+impl Default for Weights {
+    #[inline]
+    fn default() -> Self {
+        Weights::ones()
+    }
+}
+
+impl Weights {
+    #[must_use]
+    #[inline]
+    pub fn ones() -> Self {
+        Self {
+            missing_penalty: 1.0,
+            extra_penalty: 1.0,
+            length_weight: 1.0,
+            order_weight: 1.0,
+            kanji_dtw_weights: DTWWeights {
+                position: 1.0,
+                tangent: 1.0,
+            },
+            stroke_dtw_weights: DTWWeights {
+                position: 1.0,
+                tangent: 1.0,
+            },
+            group_weight: 1.0,
+        }
+    }
+}
 
 pub type StrokeVec = SmallVec<[u8; 32]>;
 #[non_exhaustive]
@@ -42,21 +66,39 @@ pub struct MatchInfo {
 }
 
 #[inline]
+#[must_use]
 pub fn match_strokes(
     kanji_tree: AnalyzedKanjiNode,
     user_strokes: Vec<Vec<StrokePoint>>,
+    weights: Weights,
 ) -> Vec<MatchInfo> {
+    let leaf_score = |a: &[StrokePoint], b: &[StrokePoint]| -> f64 {
+        dtw(a, b, &weights.kanji_dtw_weights)
+            + dtw(
+                &a.normalized(),
+                &b.normalized(),
+                &weights.stroke_dtw_weights,
+            )
+            + weights.length_weight * (arc_len(a) - arc_len(b)).abs()
+    };
+
     let leaf_matrix = LeafMatrix::build(
         &user_strokes,
         &kanji_tree.collect_strokes(),
-        MISSING_PENALTY,
+        weights.missing_penalty,
         leaf_score,
     );
     let user_stroke_geometries: Vec<StrokeGeometry> = user_strokes
         .iter()
         .map(|s| StrokeGeometry::from_stroke(s))
         .collect();
-    let mut results = beam(&kanji_tree, &user_stroke_geometries, &leaf_matrix, 100);
+    let mut results = beam(
+        &kanji_tree,
+        &user_stroke_geometries,
+        &leaf_matrix,
+        100,
+        weights,
+    );
     let user_count = user_strokes.len();
     for r in &mut results {
         let used = r
@@ -66,18 +108,11 @@ pub fn match_strokes(
             .filter(|&i| i != u8::MAX)
             .count();
         let extras = user_count.saturating_sub(used);
-        r.score += EXTRA_PENALTY * f64::from(extras.try_into().unwrap_or(u16::MAX));
+        r.score += weights.extra_penalty * f64::from(extras.try_into().unwrap_or(u16::MAX));
     }
 
     results.sort_by(|a, b| a.score.total_cmp(&b.score));
     results
-}
-
-#[inline]
-fn leaf_score(a: &[StrokePoint], b: &[StrokePoint]) -> f64 {
-    FRAME_KANJI_WEIGHT * dtw(a, b, &KANJI_DTW_WEIGHTS)
-        + FRAME_STROKE_WEIGHT * dtw(&a.normalized(), &b.normalized(), &STROKE_DTW_WEIGHTS)
-        + LENGTH_WEIGHT * (arc_len(a) - arc_len(b)).abs()
 }
 
 #[inline]
@@ -94,6 +129,7 @@ fn beam(
     user_stroke_geometries: &[StrokeGeometry],
     leaf_matrix: &LeafMatrix,
     width: usize,
+    weights: Weights,
 ) -> Vec<MatchInfo> {
     match group_tree {
         AnalyzedKanjiNode::Stroke { index, .. } => {
@@ -119,9 +155,15 @@ fn beam(
         AnalyzedKanjiNode::Group { children, .. } => {
             let mut current_width = width;
             let mut results = loop {
-                let child_candidates = children
-                    .iter()
-                    .map(|child| beam(child, user_stroke_geometries, leaf_matrix, current_width));
+                let child_candidates = children.iter().map(|child| {
+                    beam(
+                        child,
+                        user_stroke_geometries,
+                        leaf_matrix,
+                        current_width,
+                        weights,
+                    )
+                });
                 let combined = combine_children(
                     child_candidates,
                     current_width.saturating_mul(PRE_FILTER_WIDTH_MULTIPLIER),
@@ -136,6 +178,7 @@ fn beam(
                     group_tree,
                     &result.user_stroke_order,
                     user_stroke_geometries,
+                    weights,
                 );
                 result.score += group_score;
             }
@@ -148,6 +191,7 @@ fn score_group(
     group: &AnalyzedKanjiNode,
     user_stroke_order: &[u8],
     user_stroke_geometries: &[StrokeGeometry],
+    weights: Weights,
 ) -> f64 {
     let (reference_stroke_geometries, user_stroke_geometries): (
         Vec<StrokeGeometry>,
@@ -189,7 +233,7 @@ fn score_group(
         .collect();
     let order_score = kendall_tau(&filtered_user_stroke_order);
 
-    FRAME_GROUP_WEIGHT * centroid_score + ORDER_WEIGHT * order_score
+    weights.group_weight * centroid_score + weights.order_weight * order_score
 }
 
 fn combine_children(
