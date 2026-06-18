@@ -23,6 +23,7 @@ impl From<MatrixFormatError> for LeafMatrixError {
 pub struct LeafMatrix {
     n_user: usize,
     n_ref: usize,
+    missing_penalty: f64,
     costs: Vec<Cost>,
 }
 #[non_exhaustive]
@@ -77,6 +78,7 @@ impl LeafMatrix {
         Self {
             n_user,
             n_ref,
+            missing_penalty,
             costs,
         }
     }
@@ -125,10 +127,15 @@ impl LeafMatrix {
     }
     #[must_use]
     #[inline]
-    pub fn cost(&self, reference: usize, user: usize) -> Option<f64> {
-        let size = self.n_user.checked_add(self.n_ref)?;
-        let idx = user.checked_mul(size)?.checked_add(reference)?;
-        self.costs.get(idx).map(|c| c.into_inner())
+    pub fn cost(&self, reference: usize, user: usize) -> f64 {
+        if user >= self.user_stroke_count() {
+            return self.missing_penalty;
+        }
+        let size = self.user_stroke_count().saturating_add(self.n_ref);
+        let idx = user.saturating_mul(size).saturating_add(reference);
+        self.costs
+            .get(idx)
+            .map_or(self.missing_penalty, |c| c.into_inner())
     }
     #[must_use]
     #[inline]
