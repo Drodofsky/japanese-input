@@ -26,6 +26,42 @@ pub struct Weights {
     group_weight: f64,
 }
 
+impl TryFrom<&[f64]> for Weights {
+    type Error = String;
+    fn try_from(value: &[f64]) -> Result<Self, Self::Error> {
+        Ok(Weights {
+            missing_penalty: *value
+                .get(0)
+                .ok_or::<String>("weights could not be converted".into())?,
+            length_weight: *value
+                .get(1)
+                .ok_or::<String>("weights could not be converted".into())?,
+            order_weight: *value
+                .get(2)
+                .ok_or::<String>("weights could not be converted".into())?,
+            kanji_dtw_weights: DTWWeights {
+                position: *value
+                    .get(3)
+                    .ok_or::<String>("weights could not be converted".into())?,
+                tangent: *value
+                    .get(4)
+                    .ok_or::<String>("weights could not be converted".into())?,
+            },
+            stroke_dtw_weights: DTWWeights {
+                position: *value
+                    .get(5)
+                    .ok_or::<String>("weights could not be converted".into())?,
+                tangent: *value
+                    .get(6)
+                    .ok_or::<String>("weights could not be converted".into())?,
+            },
+            group_weight: *value
+                .get(7)
+                .ok_or::<String>("weights could not be converted".into())?,
+        })
+    }
+}
+
 impl Default for Weights {
     #[inline]
     fn default() -> Self {
@@ -70,6 +106,7 @@ pub fn match_strokes(
     kanji_tree: AnalyzedKanjiNode,
     user_strokes: Vec<Vec<StrokePoint>>,
     weights: Weights,
+    beam_with: usize,
 ) -> Vec<MatchInfo> {
     let leaf_score = |a: &[StrokePoint], b: &[StrokePoint]| -> f64 {
         dtw(a, b, &weights.kanji_dtw_weights)
@@ -95,7 +132,7 @@ pub fn match_strokes(
         &kanji_tree,
         &user_stroke_geometries,
         &leaf_matrix,
-        100,
+        beam_with,
         weights,
     );
     let user_count = user_strokes.len();

@@ -61,6 +61,7 @@ pub fn match_strokes(
         reference,
         user.to_stroke_vector(),
         Weights::default(),
+        100,
     )
     .clone()
 }
