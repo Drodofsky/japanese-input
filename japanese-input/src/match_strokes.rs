@@ -28,10 +28,11 @@ pub struct Weights {
 
 impl TryFrom<&[f64]> for Weights {
     type Error = String;
+    #[inline]
     fn try_from(value: &[f64]) -> Result<Self, Self::Error> {
         Ok(Weights {
             missing_penalty: *value
-                .get(0)
+                .first()
                 .ok_or::<String>("weights could not be converted".into())?,
             length_weight: *value
                 .get(1)

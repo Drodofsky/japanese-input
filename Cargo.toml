@@ -15,6 +15,8 @@ restriction = { level = "warn", priority = -2 }
 #pedantic
 needless_pass_by_value = "allow"
 struct_field_names = "allow"
+unreadable_literal = "allow"
+
 # restriction
 blanket_clippy_restriction_lints = "allow"
 implicit_return = "allow"
