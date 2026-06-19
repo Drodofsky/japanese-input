@@ -2,6 +2,9 @@
 *
 !*/
 
+# Deny folders
+optimize-stroke-match-weights/
+
 # allow:
 !.gitignore
 !readme.md
