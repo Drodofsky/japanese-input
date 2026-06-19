@@ -1,7 +1,6 @@
 [workspace]
 members = ["japanese-input","kanji-vg"]
-
-exclude = ["kanji-draw"]
+exclude = [ "optimize-stroke-match-weights"]
 
 resolver = "3"
 [profile.release]
