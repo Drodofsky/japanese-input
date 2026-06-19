@@ -65,7 +65,7 @@ impl TryFrom<&[f64]> for Weights {
 impl Default for Weights {
     #[inline]
     fn default() -> Self {
-        Weights::ones()
+        Weights::v1()
     }
 }
 
@@ -86,6 +86,24 @@ impl Weights {
                 tangent: 1.0,
             },
             group_weight: 1.0,
+        }
+    }
+    #[must_use]
+    #[inline]
+    pub fn v1() -> Self {
+        Self {
+            missing_penalty: 2.2505911627725426,
+            length_weight: 0.7371296007755844,
+            order_weight: 1.0182675079160632,
+            kanji_dtw_weights: DTWWeights {
+                position: 2.9998551498526016,
+                tangent: 0.27604052730957745,
+            },
+            stroke_dtw_weights: DTWWeights {
+                position: 2.908390915339651,
+                tangent: 1.1446443685757839,
+            },
+            group_weight: 3.0010654971186557,
         }
     }
 }
