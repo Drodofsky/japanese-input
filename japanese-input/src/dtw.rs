@@ -128,10 +128,29 @@ mod tests {
     #[test]
     fn weights_apply() {
         let a = vec![sp(0.0, 0.0, 1.0, 0.0)];
-        let b = vec![sp(0.0, 0.0, 1.0, 0.0)];
-        let on = dtw(&a, &b, &DTWWeights::default());
-        assert!(approx(on, 1.5), "bekam {on}");
-        let off = dtw(
+        let b = vec![sp(1.0, 0.0, 0.0, 1.0)];
+
+        let pos_only = dtw(
+            &a,
+            &b,
+            &DTWWeights {
+                position: 1.0,
+                tangent: 0.0,
+            },
+        );
+        assert!(approx(pos_only, 0.5), "nur Position: bekam {pos_only}");
+
+        let tan_only = dtw(
+            &a,
+            &b,
+            &DTWWeights {
+                position: 0.0,
+                tangent: 1.0,
+            },
+        );
+        assert!(approx(tan_only, 0.5), "nur Tangente: bekam {tan_only}");
+
+        let both = dtw(
             &a,
             &b,
             &DTWWeights {
@@ -139,7 +158,7 @@ mod tests {
                 tangent: 1.0,
             },
         );
-        assert!(approx(off, 0.0), "bekam {off}");
+        assert!(approx(both, 1.0), "beide: bekam {both}");
     }
 
     #[test]
