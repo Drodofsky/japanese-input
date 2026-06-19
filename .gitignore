@@ -49,6 +49,7 @@ optimize-stroke-match-weights/
 !japanese-input/benches/utils/mod.rs
 !japanese-input/benches/hiragana_bench.rs
 !japanese-input/benches/kanji_bench.rs
+!japanese-input/benches/match_bench.rs
 !data/License.txt
 !data/raw/kanjivg.xml
 !data/test/*.bin
