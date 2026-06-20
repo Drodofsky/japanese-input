@@ -32,6 +32,10 @@ hiragana_test!(ぎ, 'ぎ');
 hiragana_test!(ぐ, 'ぐ');
 hiragana_test!(げ, 'げ');
 hiragana_test!(ご, 'ご');
+hiragana_test!(ゃ, 'ゃ');
+hiragana_test!(ゅ, 'ゅ');
+hiragana_test!(ょ, 'ょ');
+hiragana_test!(っ, 'っ');
 
 // not nicely drawn:
 #[test]
