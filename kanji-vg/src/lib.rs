@@ -224,6 +224,24 @@ mod tests {
     use wana_kana::IsJapaneseChar;
 
     use crate::{KanjiMap, parse_xml};
+    #[test]
+    fn generate_reference_data() {
+        let path = "../data/raw/kanjivg.xml";
+        let kanji_entries: KanjiMap = parse_xml(path)
+            .unwrap()
+            .into_iter()
+            .map(|k| k.unwrap())
+            .filter(|k| k.0.is_japanese())
+            .collect();
+        let data = postcard::to_allocvec(&kanji_entries).expect("Failed to serialize");
+        std::fs::write("../data/generated/reference_data.bin", &data).expect("Failed to write");
+        assert_eq!(kanji_entries.len(), 6604);
+        println!(
+            "Wrote {} entries ({} bytes)",
+            kanji_entries.len(),
+            data.len()
+        );
+    }
 
     #[test]
     fn generate_kanji() {
