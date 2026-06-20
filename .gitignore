@@ -28,9 +28,11 @@ optimize-stroke-match-weights/
 !japanese-input/src/dtw.rs
 !japanese-input/src/leaf_matrix.rs
 !japanese-input/src/match_strokes.rs
+!japanese-input/src/recognize_character.rs
 !japanese-input/src/recognize_hiragana.rs
 !japanese-input/src/recognize_kanji.rs
 !japanese-input/tests/utils/mod.rs
+!japanese-input/tests/recognize.rs
 !japanese-input/tests/hiragana.rs
 !japanese-input/tests/kanji.rs
 !japanese-input/tests/あめ.rs

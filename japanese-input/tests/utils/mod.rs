@@ -19,6 +19,18 @@ pub fn load_kanji_map() -> KanjiMap {
 }
 
 /// # Panics
+/// Panics if `data/generated/reference_data.bin` cannot be read or deserialized.
+#[must_use]
+pub fn load_reference_map() -> KanjiMap {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("data/generated/reference_data.bin");
+    let bytes = std::fs::read(path).expect("failed to read reference_data.bin");
+    postcard::from_bytes(&bytes).expect("failed to deserialize kanji map")
+}
+
+/// # Panics
 /// Panics if `data/generated/hiragana.bin` cannot be read or deserialized.
 #[must_use]
 pub fn load_hiragana_map() -> KanjiMap {
