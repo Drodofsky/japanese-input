@@ -33,6 +33,16 @@ impl AnalyzedKanjiNode {
         collect_into_geometry(self, &mut geometries);
         geometries
     }
+    #[must_use]
+    #[inline]
+    pub fn leaf_count(&self) -> usize {
+        match self {
+            AnalyzedKanjiNode::Stroke { .. } => 1,
+            AnalyzedKanjiNode::Group { children, .. } => {
+                children.iter().map(Self::leaf_count).sum()
+            }
+        }
+    }
 }
 
 fn collect_into(node: &AnalyzedKanjiNode, out: &mut Vec<Vec<StrokePoint>>) {
