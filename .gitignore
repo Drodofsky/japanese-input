@@ -19,6 +19,7 @@ optimize-stroke-match-weights/
 !japanese-input/src/bbox.rs
 !japanese-input/src/normalize.rs
 !japanese-input/src/stroke_point.rs
+!japanese-input/src/to_bez_path.rs
 !japanese-input/src/stroke_geometry.rs
 !japanese-input/src/kanji_node.rs
 !japanese-input/src/analyzed_kanji_node.rs

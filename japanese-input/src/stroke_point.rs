@@ -1,7 +1,8 @@
 use kurbo::{
     BezPath, ParamCurve as _, ParamCurveArclen as _, ParamCurveDeriv as _, PathSeg, Point, Vec2,
-    fit_to_bezpath, simplify::SimplifyBezPath,
 };
+
+use crate::to_bez_path::ToBezPathPath as _;
 
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
@@ -47,11 +48,7 @@ impl ToStrokePoint for BezPath {
 impl ToStrokePoint for Vec<(f32, f32)> {
     #[inline]
     fn to_stroke_points(&self) -> Vec<StrokePoint> {
-        fit_points_to_bez_path(
-            self.iter()
-                .map(|(x, y)| Point::new((*x).into(), (*y).into())),
-        )
-        .to_stroke_points()
+        self.to_bez_path().to_stroke_points()
     }
 }
 
@@ -113,22 +110,6 @@ fn sample_seg(segment: PathSeg, t: f64) -> StrokePoint {
     };
 
     StrokePoint { position, tangent }
-}
-/// # Panics
-/// Panics for non regular stroke (len = 1).
-pub fn fit_points_to_bez_path(mut points: impl Iterator<Item = Point>) -> BezPath {
-    const FIT_TOLERANCE: f64 = 0.02;
-
-    let mut polyline = BezPath::new();
-    if let Some(first) = points.next() {
-        polyline.move_to(first);
-        for p in points {
-            polyline.line_to(p);
-        }
-    }
-
-    let source = SimplifyBezPath::new(polyline);
-    fit_to_bezpath(&source, FIT_TOLERANCE)
 }
 
 #[cfg(test)]

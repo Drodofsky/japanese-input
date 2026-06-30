@@ -13,6 +13,7 @@ pub mod recognize_hiragana;
 pub mod recognize_kanji;
 pub mod stroke_geometry;
 pub mod stroke_point;
+pub mod to_bez_path;
 use std::collections::HashMap;
 
 use crate::kanji_node::KanjiNode;
