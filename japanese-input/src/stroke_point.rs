@@ -42,10 +42,16 @@ impl ToStrokePoint for BezPath {
     }
 }
 
+/// # Panics
+/// Panics for non regular stroke (len = 1).
 impl ToStrokePoint for Vec<(f32, f32)> {
     #[inline]
     fn to_stroke_points(&self) -> Vec<StrokePoint> {
-        fit_user_stroke(self).to_stroke_points()
+        fit_points_to_bez_path(
+            self.iter()
+                .map(|(x, y)| Point::new((*x).into(), (*y).into())),
+        )
+        .to_stroke_points()
     }
 }
 
@@ -108,14 +114,12 @@ fn sample_seg(segment: PathSeg, t: f64) -> StrokePoint {
 
     StrokePoint { position, tangent }
 }
-
-fn fit_user_stroke(raw: &[(f32, f32)]) -> BezPath {
+/// # Panics
+/// Panics for non regular stroke (len = 1).
+pub fn fit_points_to_bez_path(mut points: impl Iterator<Item = Point>) -> BezPath {
     const FIT_TOLERANCE: f64 = 0.02;
 
     let mut polyline = BezPath::new();
-    let mut points = raw
-        .iter()
-        .map(|&(x, y)| Point::new(f64::from(x), f64::from(y)));
     if let Some(first) = points.next() {
         polyline.move_to(first);
         for p in points {
@@ -161,6 +165,12 @@ mod tests {
                 "tangent not unit length ({len}) at {i}"
             );
         }
+    }
+
+    #[test]
+    #[should_panic]
+    fn non_regular_stroke() {
+        let _stroke = vec![(0.5f32, 0.5f32)].to_stroke_points();
     }
 
     #[test]
