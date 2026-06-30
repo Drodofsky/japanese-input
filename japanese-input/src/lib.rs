@@ -4,6 +4,7 @@ pub mod centroid;
 pub mod convert_lossy;
 pub mod convert_stroke_index;
 pub mod dtw;
+pub mod gen_svg;
 pub mod kanji_node;
 pub mod leaf_matrix;
 pub mod match_strokes;
