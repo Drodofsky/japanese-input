@@ -24,6 +24,13 @@ impl KanjiNode {
         collect_into(self, &mut strokes);
         strokes
     }
+    #[must_use]
+    #[inline]
+    pub fn collect_paths(&self) -> Vec<BezPath> {
+        let mut strokes = Vec::new();
+        collect_paths(self, &mut strokes);
+        strokes
+    }
 }
 
 fn collect_into(node: &KanjiNode, out: &mut Vec<Vec<StrokePoint>>) {
@@ -34,6 +41,18 @@ fn collect_into(node: &KanjiNode, out: &mut Vec<Vec<StrokePoint>>) {
         KanjiNode::Group { children, .. } => {
             for child in children {
                 collect_into(child, out);
+            }
+        }
+    }
+}
+fn collect_paths(node: &KanjiNode, out: &mut Vec<BezPath>) {
+    match node {
+        KanjiNode::Stroke { path, .. } => {
+            out.push(path.clone());
+        }
+        KanjiNode::Group { children, .. } => {
+            for child in children {
+                collect_paths(child, out);
             }
         }
     }
