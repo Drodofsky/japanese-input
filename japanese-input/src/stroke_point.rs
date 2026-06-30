@@ -2,7 +2,7 @@ use kurbo::{
     BezPath, ParamCurve as _, ParamCurveArclen as _, ParamCurveDeriv as _, PathSeg, Point, Vec2,
 };
 
-use crate::to_bez_path::ToBezPathPath as _;
+use crate::to_bez_path::ToBezPath as _;
 
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]

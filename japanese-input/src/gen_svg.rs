@@ -356,7 +356,7 @@ mod tests {
     use crate::{
         KanjiMap,
         gen_svg::{gen_batsu_remove_strokes, gen_kanji_grid, gen_kanji_grid_with_hint},
-        to_bez_path::ToBezPathPath,
+        to_bez_path::ToBezPath,
     };
 
     #[test]

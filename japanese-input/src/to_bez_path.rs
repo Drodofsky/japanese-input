@@ -2,13 +2,13 @@ use kurbo::{BezPath, Point, fit_to_bezpath, simplify::SimplifyBezPath};
 
 use crate::stroke_point::StrokePoint;
 
-pub trait ToBezPathPath {
+pub trait ToBezPath {
     fn to_bez_path(&self) -> BezPath;
 }
 
 /// # Panics
 /// Panics for non regular stroke (len = 1).
-impl ToBezPathPath for [StrokePoint] {
+impl ToBezPath for [StrokePoint] {
     #[inline]
     fn to_bez_path(&self) -> BezPath {
         fit_points_to_bez_path(self.iter().map(|p| p.position))
@@ -17,7 +17,7 @@ impl ToBezPathPath for [StrokePoint] {
 
 /// # Panics
 /// Panics for non regular stroke (len = 1).
-impl ToBezPathPath for [(f32, f32)] {
+impl ToBezPath for [(f32, f32)] {
     #[inline]
     fn to_bez_path(&self) -> BezPath {
         fit_points_to_bez_path(
