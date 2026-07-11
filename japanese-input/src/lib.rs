@@ -1,3 +1,4 @@
+pub mod analyze;
 pub mod analyzed_kanji_node;
 pub mod bbox;
 pub mod centroid;

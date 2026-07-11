@@ -16,6 +16,7 @@ optimize-stroke-match-weights/
 !kanji-vg/src/lib.rs
 !japanese-input/Cargo.toml
 !japanese-input/src/lib.rs
+!japanese-input/src/analyze.rs
 !japanese-input/src/bbox.rs
 !japanese-input/src/normalize.rs
 !japanese-input/src/stroke_point.rs
@@ -36,6 +37,7 @@ optimize-stroke-match-weights/
 !japanese-input/src/gen_svg.rs
 !japanese-input/src/recognize_kanji.rs
 !japanese-input/tests/utils/mod.rs
+!japanese-input/tests/analyze.rs
 !japanese-input/tests/recognize.rs
 !japanese-input/tests/hiragana.rs
 !japanese-input/tests/kanji.rs

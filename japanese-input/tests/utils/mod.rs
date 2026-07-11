@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 
 use japanese_input::{
-    KanjiMap, analyzed_kanji_node::AnalyzedKanjiNode, match_strokes::Weights,
+    KanjiMap,
+    analyze::{AnalyzeResult, Analyzer},
+    analyzed_kanji_node::{self, AnalyzedKanjiNode},
+    match_strokes::Weights,
     stroke_point::ToStrokeVector,
 };
 use serde::{Deserialize, Serialize};
@@ -76,6 +79,19 @@ pub fn match_strokes(
         100,
     )
     .clone()
+}
+
+#[must_use]
+pub fn analyze(kanji: char, test_strokes: &str) -> AnalyzeResult {
+    let kanji_map = load_kanji_map();
+    let analyzer = Analyzer::new(kanji_map);
+    let user_strokes = load_test_file(test_strokes).to_stroke_vector();
+    let grid_color = "gray";
+    let corner_radius = 8.0;
+    let stroke_color = "darkgrey";
+    analyzer
+        .analyze_kanji(kanji, user_strokes, grid_color, corner_radius, stroke_color)
+        .unwrap()
 }
 
 #[derive(Deserialize, Serialize)]
