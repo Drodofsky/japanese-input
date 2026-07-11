@@ -57,4 +57,5 @@ optimize-stroke-match-weights/
 !data/License.txt
 !data/raw/kanjivg.xml
 !data/test/*.bin
+!data/test/*.svg
 !Cargo.toml
