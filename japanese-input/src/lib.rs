@@ -7,6 +7,7 @@ pub mod dtw;
 pub mod gen_svg;
 pub mod kanji_node;
 pub mod leaf_matrix;
+pub mod map_space_to;
 pub mod match_strokes;
 pub mod normalize;
 pub mod recognize_character;
