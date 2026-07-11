@@ -4,6 +4,7 @@
 
 # Deny folders
 optimize-stroke-match-weights/
+pyenv/
 
 # allow:
 !.gitignore
@@ -58,6 +59,9 @@ optimize-stroke-match-weights/
 !japanese-input/benches/hiragana_bench.rs
 !japanese-input/benches/kanji_bench.rs
 !japanese-input/benches/match_bench.rs
+!japanese-input-py/Cargo.toml
+!japanese-input-py/src/lib.rs
+!japanese-input-py/gen_stubs.sh
 !data/License.txt
 !data/raw/kanjivg.xml
 !data/test/*.bin
