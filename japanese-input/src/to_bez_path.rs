@@ -6,9 +6,35 @@ pub trait ToBezPath {
     fn to_bez_path(&self) -> BezPath;
 }
 
+pub trait ToBezPathVec {
+    fn to_bez_path_vec(self) -> Vec<BezPath>;
+}
+
+/// # Panics
+/// Panics for non regular stroke (len = 1).
+impl<T> ToBezPathVec for T
+where
+    T: Iterator,
+    T::Item: ToBezPath,
+{
+    #[inline]
+    fn to_bez_path_vec(self) -> Vec<BezPath> {
+        self.map(|c| c.to_bez_path()).collect()
+    }
+}
+
 /// # Panics
 /// Panics for non regular stroke (len = 1).
 impl ToBezPath for [StrokePoint] {
+    #[inline]
+    fn to_bez_path(&self) -> BezPath {
+        fit_points_to_bez_path(self.iter().map(|p| p.position))
+    }
+}
+
+/// # Panics
+/// Panics for non regular stroke (len = 1).
+impl ToBezPath for &Vec<StrokePoint> {
     #[inline]
     fn to_bez_path(&self) -> BezPath {
         fit_points_to_bez_path(self.iter().map(|p| p.position))
