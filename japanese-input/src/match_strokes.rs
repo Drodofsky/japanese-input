@@ -273,7 +273,7 @@ fn score_group(
     let group_centroid_diff_score: f64 = reference_stroke_centroids
         .iter()
         .zip(user_stroke_centroids.iter())
-        .map(|(reference_centroid, user_centroid)| (*reference_centroid - *user_centroid).length())
+        .map(|(reference_centroid, user_centroid)| reference_centroid.distance(*user_centroid))
         .sum();
 
     let centroid_score = if reference_stroke_centroids.is_empty() {
