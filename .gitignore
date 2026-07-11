@@ -62,6 +62,9 @@ pyenv/
 !japanese-input-py/Cargo.toml
 !japanese-input-py/src/lib.rs
 !japanese-input-py/gen_stubs.sh
+!japanese_input_anki/__init__.py
+!japanese_input_anki/japanese_input_py.pyi
+!japanese_input_anki/widgets.py
 !data/License.txt
 !data/raw/kanjivg.xml
 !data/test/*.bin
