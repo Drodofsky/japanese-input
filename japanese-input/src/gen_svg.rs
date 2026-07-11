@@ -191,7 +191,9 @@ fn draw_hint(mut doc: Document, paths: &[BezPath], hint_color: &str) -> Document
             .set("d", svg_path)
             .set("fill", "none")
             .set("stroke", hint_color)
-            .set("stroke-width", 5.0_f64);
+            .set("stroke-width", 5.0_f64)
+            .set("stroke-linecap", "round")
+            .set("stroke-linejoin", "round");
 
         doc = doc.add(element);
     }
