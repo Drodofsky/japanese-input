@@ -31,6 +31,14 @@ impl KanjiNode {
         collect_paths(self, &mut strokes);
         strokes
     }
+    #[must_use]
+    #[inline]
+    pub fn leaf_count(&self) -> usize {
+        match self {
+            KanjiNode::Stroke { .. } => 1,
+            KanjiNode::Group { children, .. } => children.iter().map(Self::leaf_count).sum(),
+        }
+    }
 }
 
 fn collect_into(node: &KanjiNode, out: &mut Vec<Vec<StrokePoint>>) {
