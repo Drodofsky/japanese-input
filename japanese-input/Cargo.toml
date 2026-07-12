@@ -1,0 +1,33 @@
+[package]
+name = "japanese-input"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+kurbo={ version = "0.13",features = ["serde"]}
+dtw_rs = "0.10"
+ordered-float = "5"
+pathfinding = "4"
+serde = { version = "1", features = ["derive"] }
+smallvec = "1"
+svg = "0.18"
+colorous = "1.0"
+
+[dev-dependencies]
+postcard = { version = "1", features = ["alloc"] }
+
+criterion = "0.8"
+
+
+[[bench]]
+name = "hiragana_bench"
+harness = false
+[[bench]]
+name = "kanji_bench"
+harness = false
+[[bench]]
+name = "match_bench"
+harness = false
+
+[lints]
+workspace = true

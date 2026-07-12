@@ -1,0 +1,16 @@
+<svg height="109" viewBox="0 0 109 109" width="109" xmlns="http://www.w3.org/2000/svg">
+<rect fill="none" height="106" rx="8" ry="8" stroke="gray" stroke-linejoin="miter" stroke-width="3" width="106" x="1.5" y="1.5"/>
+<line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="109" y1="54.5" y2="54.5"/>
+<line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="0" y1="54.5" y2="54.5"/>
+<line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="0"/>
+<line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="109"/>
+<path d="M25,25 L84,84 M84,25 L25,84" fill="none" opacity="0.15" stroke="#D0021B" stroke-linecap="round" stroke-width="20"/>
+<path d="M22.75721226632595,75.66948693990707 L28.09389663245118,75.28404152943325 L33.18881393213605,73.34901757367153 L38.38996315857753,71.79574243401325 L43.81318284659335,72.13759286010556 L49.19705833532393,72.98398799350721 L54.61194672869538,73.53438349802418 L60.05503284029936,73.69832462690562 L65.50031317766316,73.47156032742446 L70.94500206259455,73.23807633998385 L76.34617203409695,72.51015949106429 L81.77022962114101,72.03102671367662 C96.53343330844235,72.03102671367662 72.52966439045161,71.75734233856201 87.29286807775496,71.75734233856201" fill="none" stroke="#1f77b4" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<text fill="#1f77b4" font-size="8" text-anchor="end" x="20.75721226632595" y="73.66948693990707">
+1
+</text>
+<path d="M32.05827262997627,37.94510966539383 L37.44159620749252,38.30028954315135 L42.88592300214798,38.37427200772153 L48.31791098769266,38.36079628241259 C48.31791098769498,38.36079628241259 69.91290453233738,35.37813743389277 69.91290453233968,35.37813743389277 L73.96923357248306,35.10395407676697" fill="none" stroke="#ff7f0e" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<text fill="#ff7f0e" font-size="8" text-anchor="end" x="30.058272629976273" y="35.94510966539383">
+2
+</text>
+</svg>

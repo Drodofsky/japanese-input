@@ -4,13 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-quick-xml = "0.39"
+quick-xml = "0.40"
 thiserror = "2"
-lyon_path = {version =  "1", features = ["serialization"]}
-lyon_extra = "1"
+kurbo={ version = "0.13",features = ["serde"]}
 serde = { version = "1", features = ["derive"] }
 
 
 [dev-dependencies]
 postcard = { version = "1", features = ["alloc"] }
-wana_kana= "4"
+wana_kana= "5"
