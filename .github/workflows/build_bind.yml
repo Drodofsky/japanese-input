@@ -44,17 +44,17 @@ jobs:
           mkdir -p dist
           case "${{ runner.os }}" in
             Linux)
-              cp target/release/libjapanese_input_native.so \
-                 dist/japanese_input_native.linux-x86_64.so
+              cp target/release/libjapanese_input_py.so \
+                 dist/japanese_input_py.linux-x86_64.so
               ;;
             macOS)
               arch="$(uname -m)"
-              cp target/release/libjapanese_input_native.dylib \
-                 "dist/japanese_input_native.macos-${arch}.so"
+              cp target/release/libjapanese_input_py.dylib \
+                 "dist/japanese_input_py.macos-${arch}.so"
               ;;
             Windows)
-              cp target/release/japanese_input_native.dll \
-                 dist/japanese_input_native.windows-x86_64.pyd
+              cp target/release/japanese_input_py.dll \
+                 dist/japanese_input_py.windows-x86_64.pyd
               ;;
           esac
 
@@ -82,10 +82,10 @@ jobs:
           cp -r japanese_input_anki/* addon_out/
           mkdir -p addon_out/lib
           # Native binaries — one per platform
-          cp artifacts/japanese_input-ubuntu-latest/*.so       addon_out/lib/
-          cp artifacts/japanese_input-windows-latest/*.pyd     addon_out/lib/
-          cp artifacts/japanese_input-macos-latest/*.so        addon_out/lib/
-          cp artifacts/japanese_input-macos-15-intel/*.so      addon_out/lib/
+          cp artifacts/japanese_input-ubuntu-py/*.so       addon_out/lib/
+          cp artifacts/japanese_input-windows-py/*.pyd     addon_out/lib/
+          cp artifacts/japanese_input-macos-py/*.so        addon_out/lib/
+          cp artifacts/japanese_input-macos-15-py/*.so      addon_out/lib/
 
           # Data file shipped under user_files (preserved across addon updates)
           mkdir -p addon_out/user_files/assets
