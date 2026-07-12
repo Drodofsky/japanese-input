@@ -234,6 +234,8 @@ mod tests {
             .filter(|k| k.0.is_japanese())
             .collect();
         let data = postcard::to_allocvec(&kanji_entries).expect("Failed to serialize");
+        std::fs::create_dir_all("../data/generated").unwrap();
+
         std::fs::write("../data/generated/reference_data.bin", &data).expect("Failed to write");
         assert_eq!(kanji_entries.len(), 6604);
         println!(
@@ -253,6 +255,8 @@ mod tests {
             .filter(|k| k.0.is_kanji())
             .collect();
         let data = postcard::to_allocvec(&kanji_entries).expect("Failed to serialize");
+        std::fs::create_dir_all("../data/generated").unwrap();
+
         std::fs::write("../data/generated/kanji.bin", &data).expect("Failed to write");
         assert_eq!(kanji_entries.len(), 6412);
         println!(
@@ -271,6 +275,7 @@ mod tests {
             .filter(|k| k.0.is_hiragana() & !"ぁぃぅぇぉっゃゅょゎゕゖゐゑゔー".contains(k.0))
             .collect();
         let data = postcard::to_allocvec(&kanji_entries).expect("Failed to serialize");
+        std::fs::create_dir_all("../data/generated").unwrap();
         std::fs::write("../data/generated/hiragana.bin", &data).expect("Failed to write");
         assert_eq!(kanji_entries.len(), 71);
         //println!("{:?}",kanji_entries.iter().map(|s|s.0).collect::<Vec<_>>());
@@ -290,6 +295,8 @@ mod tests {
             .filter(|k| k.0.is_katakana() & !"ァィゥェォッャュョヮヵヶ・ヷ ヸ ヹ ヺ".contains(k.0))
             .collect();
         let data = postcard::to_allocvec(&kanji_entries).expect("Failed to serialize");
+        std::fs::create_dir_all("../data/generated").unwrap();
+
         std::fs::write("../data/generated/katakana.bin", &data).expect("Failed to write");
         assert_eq!(kanji_entries.len(), 75);
         // println!("{:?}",kanji_entries.iter().map(|s|s.0).collect::<Vec<_>>());
