@@ -31,6 +31,31 @@ pub enum AnalyzeResult {
     WrongDrawn { correct: String, wrong: String },
 }
 
+impl AnalyzeResult {
+    #[must_use]
+    #[inline]
+    pub fn correct(&self) -> Option<&str> {
+        match &self {
+            AnalyzeResult::ExtraOrMissingStrokes { correct, .. }
+            | AnalyzeResult::StrokeOrder { correct, .. }
+            | AnalyzeResult::StrokePositions { correct, .. }
+            | AnalyzeResult::WrongDrawn { correct, .. } => Some(correct),
+            AnalyzeResult::NoError => None,
+        }
+    }
+    #[must_use]
+    #[inline]
+    pub fn wrong(&self) -> Option<&str> {
+        match &self {
+            AnalyzeResult::ExtraOrMissingStrokes { wrong, .. }
+            | AnalyzeResult::StrokeOrder { wrong, .. }
+            | AnalyzeResult::StrokePositions { wrong, .. }
+            | AnalyzeResult::WrongDrawn { wrong, .. } => Some(wrong),
+            AnalyzeResult::NoError => None,
+        }
+    }
+}
+
 pub struct Analyzer {
     kanji_map: KanjiMap,
 }
