@@ -20,5 +20,9 @@ jobs:
       run: cargo build --verbose
     - name: generate reference data
       run: cargo test tests::generate_reference_data
+    - name: generate hiragana reference data
+      run: cargo test tests::generate_hiragana
+    - name: generate kanji reference data
+      run: cargo test tests::generate_kanji
     - name: Run tests
       run: cargo test --verbose
