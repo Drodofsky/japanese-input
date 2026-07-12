@@ -35,9 +35,6 @@ jobs:
           export RUSTFLAGS="-C link-arg=-undefined -C link-arg=dynamic_lookup"
           cargo build --release
       
-      - name: generate reference data
-        run: cargo test tests::generate_reference_data
-
       - name: Collect built binary
         shell: bash
         run: |
@@ -70,6 +67,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Generate reference data
+        run: cargo test tests::generate_reference_data
 
       - name: Download all built binaries
         uses: actions/download-artifact@v4
