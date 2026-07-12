@@ -1,4 +1,7 @@
-use kurbo::{BezPath, Point, fit_to_bezpath, simplify::SimplifyBezPath};
+use kurbo::{
+    BezPath, Point,
+    simplify::{SimplifyOptLevel, SimplifyOptions, simplify_bezpath},
+};
 
 use crate::stroke_point::StrokePoint;
 
@@ -55,7 +58,6 @@ impl ToBezPath for [(f32, f32)] {
 
 /// # Panics
 /// Panics for non regular stroke (len = 1).
-#[inline]
 fn fit_points_to_bez_path(mut points: impl Iterator<Item = Point>) -> BezPath {
     const FIT_TOLERANCE: f64 = 0.02;
 
@@ -67,6 +69,47 @@ fn fit_points_to_bez_path(mut points: impl Iterator<Item = Point>) -> BezPath {
         }
     }
 
-    let source = SimplifyBezPath::new(polyline);
-    fit_to_bezpath(&source, FIT_TOLERANCE)
+    simplify_bezpath(
+        polyline,
+        FIT_TOLERANCE,
+        &SimplifyOptions::default().opt_level(SimplifyOptLevel::Optimize),
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use kurbo::ParamCurveArclen as _;
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::Duration;
+
+    const JITTER_ZIGZAG: [(f32, f32); 6] = [
+        (3.0 / 32.0, 1.0 / 32.0),
+        (4.0 / 32.0, 2.0 / 32.0),
+        (2.0 / 32.0, 2.0 / 32.0),
+        (4.0 / 32.0, 5.0 / 32.0),
+        (1.0 / 32.0, 0.0),
+        (0.0, 7.0 / 32.0),
+    ];
+
+    #[test]
+    fn fit_does_not_hang_on_jittery_stroke() {
+        const TIMEOUT: Duration = Duration::from_secs(5);
+
+        let (tx, rx) = mpsc::channel();
+        thread::spawn(move || {
+            let _ = tx.send(JITTER_ZIGZAG.to_bez_path());
+        });
+
+        let path = rx
+            .recv_timeout(TIMEOUT)
+            .expect("fit_points_to_bez_path hung on a jittery stroke");
+
+        let total: f64 = path.segments().map(|s| s.arclen(1e-4)).sum();
+        assert!(
+            total.is_finite() && total < 2.0,
+            "fitted path arclen {total} is not sane for a unit-square stroke"
+        );
+    }
 }

@@ -4,7 +4,7 @@ use kurbo::{
 
 use crate::to_bez_path::ToBezPath as _;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
 pub struct StrokePoint {
     pub position: Point,
@@ -149,9 +149,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn non_regular_stroke() {
-        let _stroke = vec![(0.5f32, 0.5f32)].to_stroke_points();
+        let stroke = vec![(0.5f32, 0.5f32)].to_stroke_points();
+        assert_eq!(stroke, Vec::new())
     }
 
     #[test]
