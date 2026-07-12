@@ -83,6 +83,7 @@ jobs:
         run: |
           mkdir -p addon_out
           cp -r japanese_input_anki/* addon_out/
+          cp -r media/  addon_out/
           mkdir -p addon_out/lib
           # Native binaries — one per platform
           cp artifacts/japanese_input-ubuntu-latest/*.so    addon_out/lib/
