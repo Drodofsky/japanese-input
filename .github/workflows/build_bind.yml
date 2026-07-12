@@ -82,10 +82,10 @@ jobs:
           cp -r japanese_input_anki/* addon_out/
           mkdir -p addon_out/lib
           # Native binaries — one per platform
-          cp artifacts/japanese_input-ubuntu-py/*.so       addon_out/lib/
-          cp artifacts/japanese_input-windows-py/*.pyd     addon_out/lib/
-          cp artifacts/japanese_input-macos-py/*.so        addon_out/lib/
-          cp artifacts/japanese_input-macos-15-py/*.so      addon_out/lib/
+          cp artifacts/japanese_input-ubuntu-latest/*.so    addon_out/lib/
+          cp artifacts/japanese_input-windows-latest/*.pyd  addon_out/lib/
+          cp artifacts/japanese_input-macos-latest/*.so     addon_out/lib/
+          cp artifacts/japanese_input-macos-15-intel/*.so   addon_out/lib/
 
           # Data file shipped under user_files (preserved across addon updates)
           mkdir -p addon_out/user_files/assets
