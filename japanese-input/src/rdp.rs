@@ -24,13 +24,13 @@ impl<S: AsRef<[Point]>> Rdp<S> {
         let n = pts.as_ref().len();
         Self {
             pts,
-            stack:  vec![(0, n.saturating_sub(1))],
+            stack: vec![(0, n.saturating_sub(1))],
             tol_sq: tolerance * tolerance,
             start: n > 0,
         }
     }
 }
-#[expect(clippy::missing_trait_methods,reason = "only for internal use")]
+#[expect(clippy::missing_trait_methods, reason = "only for internal use")]
 impl<S: AsRef<[Point]>> Iterator for Rdp<S> {
     type Item = Point;
     fn next(&mut self) -> Option<Point> {
@@ -48,7 +48,12 @@ impl<S: AsRef<[Point]>> Iterator for Rdp<S> {
                 .into_iter()
                 .flatten()
                 .enumerate()
-                .map(|(off, p)| (s.saturating_add(1).saturating_add(off) , chord.nearest(*p, 1e-12).distance_sq))
+                .map(|(off, p)| {
+                    (
+                        s.saturating_add(1).saturating_add(off),
+                        chord.nearest(*p, 1e-12).distance_sq,
+                    )
+                })
                 .max_by(|x, y| x.1.total_cmp(&y.1));
             match farthest {
                 Some((split, dist_sq)) if dist_sq > self.tol_sq => {
