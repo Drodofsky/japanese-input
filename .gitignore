@@ -17,6 +17,8 @@ pyenv/
 !kanji-vg/src/lib.rs
 !hands/Cargo.toml
 !hands/src/lib.rs
+!compile-data-set/Cargo.toml
+!compile-data-set/src/main.rs
 !japanese-input/Cargo.toml
 !japanese-input/src/lib.rs
 !japanese-input/src/analyze.rs

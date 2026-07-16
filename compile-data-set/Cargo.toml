@@ -1,0 +1,9 @@
+[package]
+name = "compile-data-set"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+hands = {path = "../hands/"}
+postcard = { version = "1", features = ["alloc"] }
+rayon = "1.12.0"
