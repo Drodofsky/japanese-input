@@ -1,5 +1,5 @@
 [workspace]
-members = ["japanese-input", "japanese-input-py","kanji-vg"]
+members = ["hands", "japanese-input", "japanese-input-py","kanji-vg"]
 exclude = [ "optimize-stroke-match-weights"]
 
 resolver = "3"

@@ -15,6 +15,8 @@ pyenv/
 !media/front.png
 !kanji-vg/Cargo.toml
 !kanji-vg/src/lib.rs
+!hands/Cargo.toml
+!hands/src/lib.rs
 !japanese-input/Cargo.toml
 !japanese-input/src/lib.rs
 !japanese-input/src/analyze.rs
