@@ -28,18 +28,14 @@ An Anki add-on for practicing Japanese handwriting. Draw a hiragana, katakana, o
 
 ## Recognition
 
-The add-on currently uses a recognition engine based on DTW. For performance reasons, the engine is only able to recognize a character correctly when the correct number of strokes were drawn. The following table shows the recognition results using the *HANDS-nakayosi_t-98-09* dataset, restricted to samples where the correct number of strokes were drawn.
+The add-on currently uses a recognition engine based on DTW. 
 
-|         | Hiragana | Katakana | Kanji  | Japanese |
-| ------- | -------- | -------- | ------ | -------- |
-| correct | 69.11%   | 65.44%   | 91.50% | 88.25%   |
-
-This benchmark tracks the recognition engines and models the add-on uses, or has considered using over time. The table compares the percentage of correctly recognized characters across all samples from the *HANDS-nakayosi_t-98-09* dataset for the DTW engine and Zinnia (using a model from Tegaki).
+This benchmark tracks the recognition engines and models the add-on uses, or has considered using over time. The table compares the percentage of correctly recognized characters across samples from 6 writers of the *HANDS-nakayosi_t-98-09* dataset for the DTW engine and Zinnia (using a model from Tegaki).  The selected writers are evenly split in men and women.
 
 |                         | Hiragana | Katakana | Kanji  | Japanese |
 | ----------------------- | -------- | -------- | ------ | -------- |
-| correct (DTW)           | 60.04%   | 58.24%   | 46.38% | 45.75%   |
-| correct (Zinnia+Tegaki) | 21.84%   | 1.7%     | 41.37% | 39.48%   |
+| correct (DTW)           | 59.5%    | 62.67%   | 54.23% | 53.15%   |
+| correct (Zinnia+Tegaki) | 21.53%   | 2.01%    | 47.77% | 45.13%   |
 
 
 
