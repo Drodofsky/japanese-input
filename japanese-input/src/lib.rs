@@ -1,5 +1,6 @@
 pub mod analyze;
 pub mod analyzed_kanji_node;
+pub mod arc_len;
 pub mod bbox;
 pub mod centroid;
 pub mod convert_lossy;

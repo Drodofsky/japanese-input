@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use crate::{
     analyzed_kanji_node::AnalyzedKanjiNode,
+    arc_len::ArcLen as _,
     convert_lossy::ConvertLossy as _,
     convert_stroke_index::ConvertStrokeIndex as _,
     dtw::{DTWWeights, dtw},
@@ -134,7 +135,7 @@ pub fn match_strokes(
                 &b.normalized(),
                 &weights.stroke_dtw_weights,
             )
-            + weights.length_weight * (arc_len(a) - arc_len(b)).abs()
+            + weights.length_weight * (a.arc_len() - b.arc_len()).abs()
     };
 
     let leaf_matrix = LeafMatrix::build(
@@ -168,15 +169,6 @@ pub fn match_strokes(
 
     results.sort_by(|a, b| a.score.total_cmp(&b.score));
     results
-}
-
-#[inline]
-fn arc_len(points: &[StrokePoint]) -> f64 {
-    points
-        .iter()
-        .zip(points.iter().skip(1))
-        .map(|(a, b)| a.position.distance(b.position))
-        .sum()
 }
 
 fn beam(
