@@ -1,6 +1,6 @@
 use kurbo::{
     BezPath, Point,
-    simplify::{SimplifyOptLevel, SimplifyOptions, simplify_bezpath},
+    simplify::{SimplifyOptions, simplify_bezpath},
 };
 
 use crate::{rdp::rdp, stroke_point::StrokePoint};
@@ -71,11 +71,7 @@ fn fit_points_to_bez_path(points: impl Iterator<Item = Point>) -> BezPath {
         }
     }
 
-    simplify_bezpath(
-        polyline,
-        FIT_TOLERANCE,
-        &SimplifyOptions::default().opt_level(SimplifyOptLevel::Optimize),
-    )
+    simplify_bezpath(polyline, FIT_TOLERANCE, &SimplifyOptions::default())
 }
 
 #[cfg(test)]
