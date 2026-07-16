@@ -18,6 +18,7 @@ pub mod recognize_kanji;
 pub mod stroke_geometry;
 pub mod stroke_point;
 pub mod to_bez_path;
+pub mod to_index;
 pub mod transform;
 use std::collections::HashMap;
 

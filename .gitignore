@@ -30,6 +30,7 @@ pyenv/
 !japanese-input/src/convert_lossy.rs
 !japanese-input/src/convert_stroke_index.rs
 !japanese-input/src/map_space_to.rs
+!japanese-input/src/to_index.rs
 !japanese-input/src/transform.rs
 !japanese-input/src/dtw.rs
 !japanese-input/src/leaf_matrix.rs
