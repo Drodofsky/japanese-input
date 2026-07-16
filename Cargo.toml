@@ -16,6 +16,7 @@ restriction = { level = "warn", priority = -2 }
 needless_pass_by_value = "allow"
 struct_field_names = "allow"
 unreadable_literal = "allow"
+many_single_char_names = "allow"
 
 # restriction
 blanket_clippy_restriction_lints = "allow"
