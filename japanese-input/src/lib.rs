@@ -18,6 +18,7 @@ pub mod stroke_geometry;
 pub mod stroke_point;
 pub mod to_bez_path;
 pub mod transform;
+pub mod rdp;
 use std::collections::HashMap;
 
 use crate::kanji_node::KanjiNode;

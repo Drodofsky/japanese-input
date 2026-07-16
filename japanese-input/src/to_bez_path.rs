@@ -3,7 +3,7 @@ use kurbo::{
     simplify::{SimplifyOptLevel, SimplifyOptions, simplify_bezpath},
 };
 
-use crate::stroke_point::StrokePoint;
+use crate::{rdp::rdp, stroke_point::StrokePoint};
 
 pub trait ToBezPath {
     fn to_bez_path(&self) -> BezPath;
@@ -58,8 +58,10 @@ impl ToBezPath for [(f32, f32)] {
 
 /// # Panics
 /// Panics for non regular stroke (len = 1).
-fn fit_points_to_bez_path(mut points: impl Iterator<Item = Point>) -> BezPath {
+fn fit_points_to_bez_path(points: impl Iterator<Item = Point>) -> BezPath {
     const FIT_TOLERANCE: f64 = 0.02;
+    const RDP_TOLERANCE: f64 = 0.005;
+    let mut points = rdp(points, RDP_TOLERANCE);
 
     let mut polyline = BezPath::new();
     if let Some(first) = points.next() {
