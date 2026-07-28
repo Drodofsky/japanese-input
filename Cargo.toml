@@ -1,6 +1,6 @@
 [workspace]
 members = ["compile-data-set", "hands", "japanese-input", "japanese-input-py","kanji-vg"]
-exclude = [ "optimize-stroke-match-weights", "stats"]
+exclude = ["fit-recognizer", "optimize-stroke-match-weights", "stats", "optimize-recognizer", "review-stroke-matching", "ai-stroke-mapping"]
 
 resolver = "3"
 [profile.release]
