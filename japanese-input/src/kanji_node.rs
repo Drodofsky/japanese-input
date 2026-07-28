@@ -7,7 +7,7 @@ use crate::stroke_point::{StrokePoint, ToStrokePoint as _};
 #[non_exhaustive]
 pub enum KanjiNode {
     Group {
-        element: Option<char>,
+        element: char,
         children: Vec<KanjiNode>,
     },
     Stroke {

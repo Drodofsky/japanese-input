@@ -8,7 +8,7 @@ use crate::{
 #[non_exhaustive]
 pub enum AnalyzedKanjiNode {
     Group {
-        element: Option<char>,
+        element: char,
         children: Vec<AnalyzedKanjiNode>,
     },
     Stroke {

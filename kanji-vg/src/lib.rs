@@ -7,6 +7,7 @@ use std::{
     str::Utf8Error,
 };
 use thiserror::Error;
+use wana_kana::IsJapaneseChar;
 
 use quick_xml::{
     Reader,
@@ -17,7 +18,7 @@ pub type KanjiMap = std::collections::HashMap<char, KanjiNode>;
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum KanjiNode {
     Group {
-        element: Option<char>,
+        element: char,
         children: Vec<KanjiNode>,
     },
     Stroke {
@@ -136,12 +137,11 @@ fn parse_one_kanji<R: BufRead>(
     buf: &mut Vec<u8>,
 ) -> Result<(char, KanjiNode), ParseError> {
     let mut stroke_index = 0;
-
     let element = loop {
         buf.clear();
         match reader.read_event_into(buf) {
             Ok(Event::Start(e)) if e.name().as_ref() == b"g" => {
-                break get_attr(&e, b"kvg:element")?.and_then(|s| s.chars().next());
+                break get_element(&e)?.ok_or(ParseError::MissingElement)?;
             }
             Ok(Event::End(e)) if e.name().as_ref() == b"kanji" => {
                 return Err(ParseError::MissingElement);
@@ -151,36 +151,33 @@ fn parse_one_kanji<R: BufRead>(
         }
     };
 
-    // root group ends on </kanji>, not </g>
-    let mut root = parse_group(reader, buf, &mut stroke_index, element, b"kanji")?;
-
-    let character = match &root {
-        KanjiNode::Group { element, .. } => element.ok_or(ParseError::MissingElement)?,
-        KanjiNode::Stroke { .. } => return Err(ParseError::UnexpectedXml),
-    };
+    let children = parse_children(reader, buf, &mut stroke_index, b"kanji")?;
+    let mut root = KanjiNode::Group { element, children };
     root.flatten_single_stroke_groups();
-
-    Ok((character, root))
+    Ok((element, root))
 }
 
-fn parse_group<R: BufRead>(
+fn parse_children<R: BufRead>(
     reader: &mut Reader<R>,
     buf: &mut Vec<u8>,
     stroke_index: &mut usize,
-    element: Option<char>,
     end_tag: &[u8], // ← b"g" or b"kanji"
-) -> Result<KanjiNode, ParseError> {
+) -> Result<Vec<KanjiNode>, ParseError> {
     let mut children = Vec::new();
-
     loop {
         buf.clear();
         match reader.read_event_into(buf) {
             Ok(Event::Start(e)) if e.name().as_ref() == b"g" => {
-                let child_element = get_attr(&e, b"kvg:element")?.and_then(|s| s.chars().next());
-                let child = parse_group(reader, buf, stroke_index, child_element, b"g")?;
-                children.push(child);
+                let child_element = get_element(&e)?;
+                let inner = parse_children(reader, buf, stroke_index, b"g")?;
+                match child_element {
+                    Some(element) => children.push(KanjiNode::Group {
+                        element,
+                        children: inner,
+                    }),
+                    None => children.extend(inner),
+                }
             }
-
             Ok(Event::Empty(e)) if e.name().as_ref() == b"path" => {
                 let d = get_attr(&e, b"d")?.ok_or(ParseError::MissingPath)?;
                 let path = parse_svg_path(&d)?;
@@ -190,17 +187,36 @@ fn parse_group<R: BufRead>(
                 });
                 *stroke_index += 1;
             }
-
-            Ok(Event::End(e)) if e.name().as_ref() == end_tag => {
-                break;
-            }
-
+            Ok(Event::End(e)) if e.name().as_ref() == end_tag => break,
             Ok(_) => continue,
             Err(e) => return Err(ParseError::Xml(e)),
         }
     }
+    Ok(children)
+}
 
-    Ok(KanjiNode::Group { element, children })
+fn get_element(e: &BytesStart) -> Result<Option<char>, ParseError> {
+    let mut phon = None;
+    for attr in e.attributes() {
+        let attr = attr?;
+        match attr.key.as_ref() {
+            b"kvg:element" => {
+                if let Some(c) = std::str::from_utf8(&attr.value)?.chars().next() {
+                    return Ok(Some(c));
+                }
+            }
+            b"kvg:phon" => {
+                // only accept a bare single kanji; rejects "豸+艮", "矦V", "3+6+1"
+                let mut cs = std::str::from_utf8(&attr.value)?.chars();
+                phon = match (cs.next(), cs.next()) {
+                    (Some(c), None) if c.is_kanji() => Some(c),
+                    _ => None,
+                };
+            }
+            _ => {}
+        }
+    }
+    Ok(phon)
 }
 
 fn get_attr(e: &BytesStart, name: &[u8]) -> Result<Option<String>, ParseError> {

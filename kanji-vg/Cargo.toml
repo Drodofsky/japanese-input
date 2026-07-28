@@ -8,8 +8,7 @@ quick-xml = "0.41"
 thiserror = "2"
 kurbo={ version = "0.13",features = ["serde"]}
 serde = { version = "1", features = ["derive"] }
-
+wana_kana= "5"
 
 [dev-dependencies]
 postcard = { version = "1", features = ["alloc"] }
-wana_kana= "5"
