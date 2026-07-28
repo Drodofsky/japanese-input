@@ -24,7 +24,11 @@ impl<S: AsRef<[Point]>> Rdp<S> {
         let n = pts.as_ref().len();
         Self {
             pts,
-            stack: vec![(0, n.saturating_sub(1))],
+            stack: if n > 1 {
+                vec![(0, n.saturating_sub(1))]
+            } else {
+                Vec::new()
+            },
             tol_sq: tolerance * tolerance,
             start: n > 0,
         }
