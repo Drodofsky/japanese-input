@@ -16,7 +16,6 @@ pub mod rdp;
 pub mod recognize_character;
 pub mod recognize_hiragana;
 pub mod recognize_kanji;
-pub mod resample_path;
 pub mod stroke_geometry;
 pub mod stroke_point;
 pub mod to_bez_path;
