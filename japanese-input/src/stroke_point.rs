@@ -12,6 +12,14 @@ pub struct StrokePoint {
     pub tangent: Vec2,
 }
 
+impl StrokePoint {
+    #[must_use]
+    #[inline]
+    pub fn new(position: Point, tangent: Vec2) -> Self {
+        Self { position, tangent }
+    }
+}
+
 pub trait ToStrokePoint {
     fn to_stroke_points(&self) -> Vec<StrokePoint>;
 }
@@ -39,7 +47,7 @@ impl<I: ToStrokePoint> ToStrokeVector for Vec<I> {
 impl ToStrokePoint for BezPath {
     #[inline]
     fn to_stroke_points(&self) -> Vec<StrokePoint> {
-        const SPACING: f64 = 0.05;
+        const SPACING: f64 = 0.1;
         resample_path(self, &Params::from_step(SPACING)).unwrap_or_default()
     }
 }
