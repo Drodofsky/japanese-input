@@ -1,7 +1,10 @@
 use kurbo::BezPath;
 use serde::{Deserialize, Serialize};
 
-use crate::stroke_point::{StrokePoint, ToStrokePoint as _};
+use crate::{
+    stroke_point::{StrokePoint, ToStrokePoint as _},
+    to_bez_path::ToBezPath as _,
+};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[non_exhaustive]
@@ -12,7 +15,7 @@ pub enum KanjiNode {
     },
     Stroke {
         index: u8,
-        path: BezPath,
+        path: Vec<(f32, f32)>,
     },
 }
 
@@ -56,7 +59,7 @@ fn collect_into(node: &KanjiNode, out: &mut Vec<Vec<StrokePoint>>) {
 fn collect_paths(node: &KanjiNode, out: &mut Vec<BezPath>) {
     match node {
         KanjiNode::Stroke { path, .. } => {
-            out.push(path.clone());
+            out.push(path.to_stroke_points().to_bez_path());
         }
         KanjiNode::Group { children, .. } => {
             for child in children {
