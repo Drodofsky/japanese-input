@@ -1,5 +1,5 @@
+use japanese_input::{kanji_node::KanjiNode, stroke_point::bez_to_point};
 use kurbo::{Affine, BezPath};
-use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
     io::{BufRead, BufReader},
@@ -13,38 +13,24 @@ use quick_xml::{
     Reader,
     events::{BytesStart, Event, attributes::AttrError},
 };
-pub type KanjiMap = std::collections::HashMap<char, KanjiNode>;
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub enum KanjiNode {
-    Group {
-        element: char,
-        children: Vec<KanjiNode>,
-    },
-    Stroke {
-        index: u8,
-        path: BezPath,
-    },
-}
-impl KanjiNode {
-    pub fn flatten_single_stroke_groups(&mut self) {
-        if let KanjiNode::Group { children, .. } = self {
-            // First, recurse into each child so deeper levels are flattened first.
-            for child in children.iter_mut() {
-                child.flatten_single_stroke_groups();
-            }
+pub fn flatten_single_stroke_groups(kanji_node: &mut KanjiNode) {
+    if let KanjiNode::Group { children, .. } = kanji_node {
+        // First, recurse into each child so deeper levels are flattened first.
+        for child in children.iter_mut() {
+            flatten_single_stroke_groups(child);
+        }
 
-            for child in children.iter_mut() {
-                if let KanjiNode::Group {
-                    children: inner, ..
-                } = child
-                    && inner.len() == 1
-                    && let KanjiNode::Stroke { .. } = inner[0]
-                {
-                    // Take the inner stroke out and replace the group with it.
-                    let stroke = inner.remove(0);
-                    *child = stroke;
-                }
+        for child in children.iter_mut() {
+            if let KanjiNode::Group {
+                children: inner, ..
+            } = child
+                && inner.len() == 1
+                && let KanjiNode::Stroke { .. } = inner[0]
+            {
+                // Take the inner stroke out and replace the group with it.
+                let stroke = inner.remove(0);
+                *child = stroke;
             }
         }
     }
@@ -153,7 +139,7 @@ fn parse_one_kanji<R: BufRead>(
 
     let children = parse_children(reader, buf, &mut stroke_index, b"kanji")?;
     let mut root = KanjiNode::Group { element, children };
-    root.flatten_single_stroke_groups();
+    flatten_single_stroke_groups(&mut root);
     Ok((element, root))
 }
 
@@ -183,7 +169,7 @@ fn parse_children<R: BufRead>(
                 let path = parse_svg_path(&d)?;
                 children.push(KanjiNode::Stroke {
                     index: (*stroke_index).try_into().unwrap_or(u8::MAX),
-                    path,
+                    path: bez_to_point(&path),
                 });
                 *stroke_index += 1;
             }
@@ -237,9 +223,10 @@ fn parse_svg_path(d: &str) -> Result<BezPath, ParseError> {
 }
 #[cfg(test)]
 mod tests {
+    use japanese_input::KanjiMap;
     use wana_kana::IsJapaneseChar;
 
-    use crate::{KanjiMap, parse_xml};
+    use crate::parse_xml;
     #[test]
     fn generate_reference_data() {
         let path = "../data/raw/kanjivg.xml";
