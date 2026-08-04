@@ -28,7 +28,7 @@ impl Default for DTWWeights {
 #[inline]
 fn cost(a: &StrokePoint, b: &StrokePoint, w: &DTWWeights) -> f64 {
     let position = a.position.distance(b.position);
-    let tangent = 1.0_f64 - a.tangent.dot(b.tangent);
+    let tangent = 1.0_f64 - a.displacement.dot(b.displacement);
     w.position * position + w.tangent * tangent
 }
 
@@ -85,7 +85,8 @@ mod tests {
     fn sp(x: f64, y: f64, tx: f64, ty: f64) -> StrokePoint {
         StrokePoint {
             position: Point::new(x, y),
-            tangent: Vec2::new(tx, ty),
+            displacement: Vec2::new(tx, ty),
+            curvature: Vec2::new(0.0, 0.0)
         }
     }
     fn approx(a: f64, b: f64) -> bool {
