@@ -18,7 +18,8 @@ impl Transform for StrokePoint {
     fn transform(&self, t: Affine) -> Self::Output {
         Self {
             position: t * self.position,
-            tangent: self.tangent,
+            displacement: self.displacement,
+            curvature: self.curvature,
         }
     }
 }
