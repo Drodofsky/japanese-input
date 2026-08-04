@@ -372,6 +372,7 @@ mod tests {
     use crate::{
         KanjiMap,
         gen_svg::{gen_batsu_remove_strokes, gen_kanji_grid, gen_kanji_grid_with_hint},
+        stroke_point::ToStrokePoint,
         to_bez_path::ToBezPath,
     };
 
@@ -416,7 +417,11 @@ mod tests {
         let bytes = std::fs::read(path).expect("failed to read reference_data.bin");
         let file: StrokeFile =
             postcard::from_bytes(&bytes).expect("failed to deserialize stroke file");
-        let user_strokes: Vec<BezPath> = file.strokes.iter().map(|s| s.to_bez_path()).collect();
+        let user_strokes: Vec<BezPath> = file
+            .strokes
+            .iter()
+            .map(|s| s.to_stroke_points().to_bez_path())
+            .collect();
         let drawn_strokes = [true, false, true, true];
         let markers = Vec::new();
         let svg = gen_batsu_remove_strokes(
@@ -427,6 +432,7 @@ mod tests {
             drawn_strokes.as_slice(),
             &markers,
         );
+        println!("{}", svg);
 
         assert_eq!(
             svg,
