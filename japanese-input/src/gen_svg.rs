@@ -125,6 +125,20 @@ pub fn gen_maru_stroke_order(
 
 #[must_use]
 #[inline]
+pub fn gen_stroke_order(
+    grid_color: &str,
+    corner_radius: f32,
+    user_strokes: &[BezPath],
+    reference_order: &[u8],
+) -> String {
+    let mut doc = init_doc(Document::new());
+    doc = draw_grid(doc, grid_color, corner_radius);
+    doc = draw_stroke_order(doc, user_strokes, reference_order);
+    doc.to_string()
+}
+
+#[must_use]
+#[inline]
 pub fn gen_batsu_stroke_order(
     grid_color: &str,
     corner_radius: f32,

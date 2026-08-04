@@ -3,24 +3,22 @@ use core::mem::take;
 use kurbo::{Line, ParamCurveNearest as _, Point};
 
 #[inline]
-pub fn rdp(points: impl Iterator<Item = Point>, tolerance: f64) -> impl Iterator<Item = Point> {
-    Rdp::new(points.collect::<Vec<_>>(), tolerance)
-}
-
-#[inline]
-pub fn rdp_slice(points: &[Point], tolerance: f64) -> impl Iterator<Item = Point> + '_ {
+pub fn rdp_slice<T>(points: &[T], tolerance: f64) -> impl Iterator<Item = Point> + '_
+where
+    T: Into<Point> + Copy,
+{
     Rdp::new(points, tolerance)
 }
 
-struct Rdp<S> {
-    pts: S,
+struct Rdp<'slice, T> {
+    pts: &'slice [T],
     stack: Vec<(usize, usize)>,
     tol_sq: f64,
     start: bool,
 }
 
-impl<S: AsRef<[Point]>> Rdp<S> {
-    fn new(pts: S, tolerance: f64) -> Self {
+impl<'slice, T> Rdp<'slice, T> {
+    fn new(pts: &'slice [T], tolerance: f64) -> Self {
         let n = pts.as_ref().len();
         Self {
             pts,
@@ -35,12 +33,15 @@ impl<S: AsRef<[Point]>> Rdp<S> {
     }
 }
 #[expect(clippy::missing_trait_methods, reason = "only for internal use")]
-impl<S: AsRef<[Point]>> Iterator for Rdp<S> {
+impl<T> Iterator for Rdp<'_, T>
+where
+    T: Into<Point> + Copy,
+{
     type Item = Point;
     fn next(&mut self) -> Option<Point> {
-        let pts = self.pts.as_ref();
+        let pts = self.pts;
         if take(&mut self.start) {
-            return pts.first().copied();
+            return pts.first().map(|&p| p.into());
         }
         while let Some((s, e)) = self.stack.pop() {
             let (Some(&a), Some(&b)) = (pts.get(s), pts.get(e)) else {
@@ -52,10 +53,10 @@ impl<S: AsRef<[Point]>> Iterator for Rdp<S> {
                 .into_iter()
                 .flatten()
                 .enumerate()
-                .map(|(off, p)| {
+                .map(|(off, &p)| {
                     (
                         s.saturating_add(1).saturating_add(off),
-                        chord.nearest(*p, 1e-12).distance_sq,
+                        chord.nearest(p.into(), 1e-12).distance_sq,
                     )
                 })
                 .max_by(|x, y| x.1.total_cmp(&y.1));
@@ -64,7 +65,7 @@ impl<S: AsRef<[Point]>> Iterator for Rdp<S> {
                     self.stack.push((split, e));
                     self.stack.push((s, split));
                 }
-                _ => return Some(b),
+                _ => return Some(b.into()),
             }
         }
         None
@@ -76,9 +77,10 @@ mod tests {
     use super::*;
     #[test]
     fn noisy_line_collapses_to_endpoints() {
-        let pts =
-            (0..=20).map(|i| Point::new(f64::from(i) / 20.0, 0.001 * f64::from(1 - 2 * (i % 2))));
-        let out: Vec<Point> = rdp(pts, 0.02).collect();
+        let pts: Vec<(f32, f32)> = (0_i16..=20)
+            .map(|i| (f32::from(i) / 20.0, 0.001 * f32::from(1 - 2 * (i % 2))))
+            .collect();
+        let out: Vec<Point> = rdp_slice(&pts, 0.02).collect();
         assert_eq!(out.len(), 2, "{out:?}");
         assert!(out.first().expect("first").x.abs() < 1e-12);
         assert!((out.last().expect("last").x - 1.0).abs() < 1e-12);
@@ -102,13 +104,13 @@ mod tests {
     }
     #[test]
     fn duplicates_vanish() {
-        let pts = [(0.0, 0.0), (0.0, 0.0), (0.5, 0.0), (0.5, 0.0), (1.0, 0.001)]
-            .map(|(x, y)| Point::new(x, y));
-        assert_eq!(rdp(pts.into_iter(), 0.02).count(), 2);
+        let pts: [(f32, f32); 5] = [(0.0, 0.0), (0.0, 0.0), (0.5, 0.0), (0.5, 0.0), (1.0, 0.001)];
+        assert_eq!(rdp_slice(&pts, 0.02).count(), 2);
     }
     #[test]
     fn degenerate_inputs() {
-        assert_eq!(rdp(core::iter::empty(), 0.02).count(), 0);
-        assert_eq!(rdp(core::iter::once(Point::new(1.0, 2.0)), 0.02).count(), 1);
+        let empty: &[Point; 0] = &[];
+        assert_eq!(rdp_slice(empty, 0.02).count(), 0);
+        assert_eq!(rdp_slice(&[(1.0, 2.0)], 0.02).count(), 1);
     }
 }

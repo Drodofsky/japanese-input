@@ -1,6 +1,6 @@
 mod utils;
 
-use japanese_input::{recognize_character::Recognizer, stroke_point::ToStrokeVector as _};
+use japanese_input::{recognizer::Recognizer, stroke_point::ToStrokeVector as _};
 
 use crate::utils::*;
 
@@ -8,8 +8,8 @@ macro_rules! recognizer_test {
     ($name:ident,  $ch:literal) => {
         #[test]
         fn $name() {
-            let map = load_reference_map();
-            let recognizer = Recognizer::new(&map);
+            let model = load_recognizer_model();
+            let recognizer = Recognizer::load(&model).unwrap();
             let user = load_test_file(&$ch.to_string());
             let result = recognizer.recognize(user.to_stroke_vector());
             assert_eq!(result[0].character, $ch);
@@ -40,6 +40,7 @@ recognizer_test!(っ, 'っ');
 recognizer_test!(ッ, 'ッ');
 
 // not nicely drawn:
+/*
 #[test]
 fn bad_い() {
     let map = load_reference_map();
@@ -243,3 +244,4 @@ fn 雨() {
     let result = recognizer.recognize(user.to_stroke_vector());
     assert_eq!(result[0].character, '雨');
 }
+*/

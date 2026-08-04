@@ -22,6 +22,17 @@ pub fn load_kanji_map() -> KanjiMap {
 }
 
 /// # Panics
+/// Panics if `data/generated/kanji.bin` cannot be read or deserialized.
+#[must_use]
+pub fn load_recognizer_model() -> Vec<u8> {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("data/generated/recognizer_model.bin");
+    std::fs::read(path).expect("failed to read kanji.bin")
+}
+
+/// # Panics
 /// Panics if `data/generated/reference_data.bin` cannot be read or deserialized.
 #[must_use]
 pub fn load_reference_map() -> KanjiMap {
