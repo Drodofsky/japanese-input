@@ -38,7 +38,6 @@ pyenv/
 !japanese-input/src/map_space_to.rs
 !japanese-input/src/to_index.rs
 !japanese-input/src/transform.rs
-!japanese-input/src/dtw.rs
 !japanese-input/src/assignment.rs
 !japanese-input/src/leaf_score.rs
 !japanese-input/src/leaf_matrix.rs
