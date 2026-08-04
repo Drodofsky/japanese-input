@@ -13,3 +13,13 @@ impl ConvertLossy for usize {
         self as f64
     }
 }
+impl ConvertLossy for f64 {
+    type Output = f32;
+
+    #[inline]
+    #[expect(clippy::cast_possible_truncation, reason = "convert_lossy")]
+    #[expect(clippy::as_conversions, reason = "f64 to f32")]
+    fn convert_lossy(self) -> f32 {
+        self as f32
+    }
+}
