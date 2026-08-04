@@ -16,7 +16,8 @@ fn transform_point(p: &StrokePoint, center: Point, scale: f64) -> StrokePoint {
             (p.position.x - center.x) * scale,
             (p.position.y - center.y) * scale,
         ),
-        tangent: p.tangent,
+        displacement: p.displacement,
+        curvature: p.curvature,
     }
 }
 
@@ -116,7 +117,8 @@ mod tests {
     fn sp(x: f64, y: f64) -> StrokePoint {
         StrokePoint {
             position: Point::new(x, y),
-            tangent: Vec2::new(1.0, 0.0),
+            displacement: Vec2::new(1.0, 0.0),
+            curvature: Vec2::new(0.0, 0.0),
         }
     }
     fn approx(a: f64, b: f64) -> bool {
@@ -144,7 +146,7 @@ mod tests {
         let stroke = vec![sp(0.2, 0.2), sp(0.8, 0.8)];
         let n = stroke.normalized();
         for p in &n {
-            assert!(approx(p.tangent.x, 1.0) && approx(p.tangent.y, 0.0));
+            assert!(approx(p.displacement.x, 1.0) && approx(p.displacement.y, 0.0));
         }
     }
 
