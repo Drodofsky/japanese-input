@@ -75,7 +75,8 @@ mod tests {
     fn sp(x: f64, y: f64) -> StrokePoint {
         StrokePoint {
             position: Point::new(x, y),
-            tangent: Vec2::new(1.0, 0.0),
+            displacement: Vec2::new(1.0, 0.0),
+            curvature: Vec2::new(0.0, 0.0),
         }
     }
 
