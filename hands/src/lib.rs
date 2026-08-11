@@ -128,11 +128,6 @@ impl HandParser {
         } else if line.starts_with(b"0") || line.starts_with(b"4") {
             let (x, y) = Self::parse_coord(line, line_number)?;
             self.transform_and_push_point(x, y);
-        } else {
-            return Err(ParseError {
-                line_number,
-                kind: ErrorKind::UnexpectedSymbol,
-            });
         }
         Ok(())
     }
