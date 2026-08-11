@@ -78,10 +78,10 @@ struct Candidate {
 }
 
 /// The children of one group, with where each child's strokes begin.
-struct Layout<'a> {
-    children: &'a [AnalyzedKanjiNode],
-    counts: &'a [usize],
-    offsets: &'a [usize],
+struct Layout<'array> {
+    children: &'array [AnalyzedKanjiNode],
+    counts: &'array [usize],
+    offsets: &'array [usize],
 }
 
 struct Solver {
