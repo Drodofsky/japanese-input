@@ -21,12 +21,6 @@ criterion = "0.8"
 
 
 [[bench]]
-name = "hiragana_bench"
-harness = false
-[[bench]]
-name = "kanji_bench"
-harness = false
-[[bench]]
 name = "match_bench"
 harness = false
 
