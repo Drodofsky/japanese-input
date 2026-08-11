@@ -24,5 +24,7 @@ jobs:
       run: cargo test tests::generate_hiragana
     - name: generate kanji reference data
       run: cargo test tests::generate_kanji
+    - name: download recognizer model
+      run: wget -P data/generated/ https://github.com/Drodofsky/regonizer-model/raw/refs/heads/main/recognizer2_tuned.bin
     - name: Run tests
       run: cargo test --verbose
