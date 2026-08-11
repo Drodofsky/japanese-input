@@ -25,6 +25,7 @@ pyenv/
 !japanese-input/src/bbox.rs
 !japanese-input/src/normalize.rs
 !japanese-input/src/stroke_point.rs
+!japanese-input/src/stroke_window.rs
 !japanese-input/src/to_bez_path.rs
 !japanese-input/src/stroke_geometry.rs
 !japanese-input/src/rdp.rs
