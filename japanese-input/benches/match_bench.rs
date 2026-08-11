@@ -1,7 +1,6 @@
 use criterion::{Criterion, criterion_group, criterion_main};
 use japanese_input::{
-    match_strokes::{Weights, match_strokes},
-    stroke_point::ToStrokeVector,
+    match_strokes::match_strokes, stroke_point::ToStrokeVector, weights::Weights,
 };
 
 mod utils;
@@ -19,7 +18,7 @@ fn bench_match(c: &mut Criterion) {
                 reference.clone(),
                 user.to_stroke_vector(),
                 Weights::default(),
-                100,
+                5,
             )
         });
     });
