@@ -1,116 +1,41 @@
 use core::f64;
+use core::mem::swap;
 use smallvec::{SmallVec, smallvec};
 use std::collections::HashMap;
+use std::rc::Rc;
+
+use kurbo::Vec2;
 
 use crate::{
     analyzed_kanji_node::AnalyzedKanjiNode,
-    arc_len::ArcLen as _,
-    convert_lossy::ConvertLossy as _,
-    convert_stroke_index::ConvertStrokeIndex as _,
-    dtw::{DTWWeights, dtw},
-    leaf_matrix::LeafMatrix,
-    normalize::Normalize as _,
+    group_score::GroupScore as _,
+    leaf_score::LeafScore as _,
+    shape::{Shape, ToShape as _, ToShapes as _},
     stroke_geometry::StrokeGeometry,
     stroke_point::StrokePoint,
+    weights::Weights,
 };
-const MAX_WIDTH: usize = 50000;
-const PRE_FILTER_WIDTH_MULTIPLIER: usize = 2;
-const EXTRA_PENALTY: f64 = 1.0;
 
-#[derive(Debug, Clone, Copy)]
-pub struct Weights {
-    missing_penalty: f64,
-    length_weight: f64,
-    order_weight: f64,
-    kanji_dtw_weights: DTWWeights,
-    stroke_dtw_weights: DTWWeights,
-    group_weight: f64,
-}
+/// Marks a reference stroke joined into the drawn stroke that opened the run.
+pub const FILLER: u8 = 254;
 
-impl TryFrom<&[f64]> for Weights {
-    type Error = String;
-    #[inline]
-    fn try_from(value: &[f64]) -> Result<Self, Self::Error> {
-        Ok(Weights {
-            missing_penalty: *value
-                .first()
-                .ok_or::<String>("weights could not be converted".into())?,
-            length_weight: *value
-                .get(1)
-                .ok_or::<String>("weights could not be converted".into())?,
-            order_weight: *value
-                .get(2)
-                .ok_or::<String>("weights could not be converted".into())?,
-            kanji_dtw_weights: DTWWeights {
-                position: *value
-                    .get(3)
-                    .ok_or::<String>("weights could not be converted".into())?,
-                tangent: *value
-                    .get(4)
-                    .ok_or::<String>("weights could not be converted".into())?,
-            },
-            stroke_dtw_weights: DTWWeights {
-                position: *value
-                    .get(5)
-                    .ok_or::<String>("weights could not be converted".into())?,
-                tangent: *value
-                    .get(6)
-                    .ok_or::<String>("weights could not be converted".into())?,
-            },
-            group_weight: *value
-                .get(7)
-                .ok_or::<String>("weights could not be converted".into())?,
-        })
-    }
-}
+/// Marks a reference stroke the user never drew.
+pub const MISSING: u8 = u8::MAX;
 
-impl Default for Weights {
-    #[inline]
-    fn default() -> Self {
-        Weights::v1()
-    }
-}
+/// Child counts small enough to try every ordering, which is what a block swap needs.
+const PERMUTE_UPTO: usize = 3;
 
-impl Weights {
-    #[must_use]
-    #[inline]
-    pub fn ones() -> Self {
-        Self {
-            missing_penalty: 1.0,
-            length_weight: 1.0,
-            order_weight: 1.0,
-            kanji_dtw_weights: DTWWeights {
-                position: 1.0,
-                tangent: 1.0,
-            },
-            stroke_dtw_weights: DTWWeights {
-                position: 1.0,
-                tangent: 1.0,
-            },
-            group_weight: 1.0,
-        }
-    }
-    #[must_use]
-    #[inline]
-    pub fn v1() -> Self {
-        Self {
-            missing_penalty: 2.2505911627725426,
-            length_weight: 0.7371296007755844,
-            order_weight: 1.0182675079160632,
-            kanji_dtw_weights: DTWWeights {
-                position: 2.9998551498526016,
-                tangent: 0.27604052730957745,
-            },
-            stroke_dtw_weights: DTWWeights {
-                position: 2.908390915339651,
-                tangent: 1.1446443685757839,
-            },
-            group_weight: 3.0010654971186557,
-        }
-    }
-}
+/// Longest run of consecutive children a single drawn stroke may stand for.
+const MERGE_UPTO: usize = 3;
+
+/// How many drawn strokes beyond its own count a child may absorb.
+///
+/// A part of the kanji with three strokes will not have been drawn with ten, so letting a
+/// child's slice grow without limit only costs time and offers readings nobody would make.
+const SLACK: usize = 2;
 
 pub type StrokeVec = SmallVec<[u8; 32]>;
+
 #[non_exhaustive]
 #[derive(Debug, Clone)]
 pub struct MatchInfo {
@@ -120,6 +45,13 @@ pub struct MatchInfo {
     pub beam_width: usize,
 }
 
+/// Matches drawn strokes against a kanji tree by cutting the drawing into one consecutive
+/// slice per group.
+///
+/// Because a group's slice is cut into one piece per child, two children can never claim
+/// the same drawn stroke, so no candidate is ever thrown away for colliding with another.
+/// A forgotten stroke is an empty slice, a spare stroke is a slice with one too many, and
+/// a joined stroke is one slice standing for a run of children.
 #[inline]
 #[must_use]
 pub fn match_strokes(
@@ -128,228 +60,660 @@ pub fn match_strokes(
     weights: Weights,
     beam_with: usize,
 ) -> Vec<MatchInfo> {
-    let leaf_score = |a: &[StrokePoint], b: &[StrokePoint]| -> f64 {
-        dtw(a, b, &weights.kanji_dtw_weights)
-            + dtw(
-                &a.normalized(),
-                &b.normalized(),
-                &weights.stroke_dtw_weights,
-            )
-            + weights.length_weight * (a.arc_len() - b.arc_len()).abs()
-    };
-
-    let leaf_matrix = LeafMatrix::build(
-        &user_strokes,
-        &kanji_tree.collect_strokes(),
-        weights.missing_penalty,
-        leaf_score,
-    );
-    let user_stroke_geometries: Vec<StrokeGeometry> = user_strokes
-        .iter()
-        .map(|s| StrokeGeometry::from_stroke(s))
-        .collect();
-    let mut results = beam(
-        &kanji_tree,
-        &user_stroke_geometries,
-        &leaf_matrix,
-        beam_with,
-        weights,
-    );
-    let user_count = user_strokes.len();
-    for r in &mut results {
-        let used = r
-            .user_stroke_order
-            .iter()
-            .copied()
-            .filter(|&i| i != u8::MAX)
-            .count();
-        let extras = user_count.saturating_sub(used);
-        r.score += EXTRA_PENALTY * f64::from(extras.try_into().unwrap_or(u16::MAX));
+    let span = user_strokes.len();
+    let mut solver = Solver::new(&kanji_tree, &user_strokes, weights, beam_with.max(1));
+    let mut results = solver.solve(&kanji_tree, 0, 0, span, true);
+    for result in &mut results {
+        result.beam_width = beam_with;
     }
-
     results.sort_by(|a, b| a.score.total_cmp(&b.score));
     results
 }
 
-fn beam(
-    group_tree: &AnalyzedKanjiNode,
-    user_stroke_geometries: &[StrokeGeometry],
-    leaf_matrix: &LeafMatrix,
-    width: usize,
+/// One assignment under construction.
+#[derive(Clone)]
+struct Candidate {
+    score: f64,
+    order: StrokeVec,
+}
+
+/// The children of one group, with where each child's strokes begin.
+struct Layout<'a> {
+    children: &'a [AnalyzedKanjiNode],
+    counts: &'a [usize],
+    offsets: &'a [usize],
+}
+
+struct Solver {
+    reference: Vec<Shape>,
+    user: Vec<Shape>,
+    geometry: Vec<StrokeGeometry>,
     weights: Weights,
-) -> Vec<MatchInfo> {
-    match group_tree {
-        AnalyzedKanjiNode::Stroke { index, .. } => {
-            let mut candidates: Vec<MatchInfo> = (0..leaf_matrix.user_stroke_count())
-                .map(|user_stroke_index| MatchInfo {
-                    user_stroke_order: smallvec![user_stroke_index.convert_stroke_index()],
-                    score: leaf_matrix.cost((*index).into(), user_stroke_index),
-                    used_mask: 1_u32 << user_stroke_index.convert_stroke_index(),
-                    beam_width: width,
+    beam: usize,
+    memo: HashMap<(usize, usize, usize, usize), Rc<[Candidate]>>,
+    joined: HashMap<(usize, usize), Option<Shape>>,
+    points: Vec<Vec<StrokePoint>>,
+}
+
+impl Solver {
+    fn new(
+        tree: &AnalyzedKanjiNode,
+        user_strokes: &[Vec<StrokePoint>],
+        weights: Weights,
+        beam: usize,
+    ) -> Self {
+        let points = tree.collect_strokes();
+        Self {
+            reference: points.to_shapes(),
+            user: user_strokes.to_shapes(),
+            geometry: user_strokes
+                .iter()
+                .map(|stroke| StrokeGeometry::from_stroke(stroke))
+                .collect(),
+            weights,
+            beam,
+            memo: HashMap::new(),
+            joined: HashMap::new(),
+            points,
+        }
+    }
+
+    fn solve(
+        &mut self,
+        node: &AnalyzedKanjiNode,
+        reference_offset: usize,
+        start: usize,
+        end: usize,
+        root: bool,
+    ) -> Vec<MatchInfo> {
+        self.candidates(node, reference_offset, start, end, root)
+            .iter()
+            .map(|candidate| MatchInfo {
+                used_mask: mask_of(&candidate.order),
+                user_stroke_order: candidate.order.clone(),
+                score: candidate.score,
+                beam_width: self.beam,
+            })
+            .collect()
+    }
+
+    /// Best few assignments for one node over one slice, computed once and remembered.
+    ///
+    /// A node is identified by where its strokes begin together with how many it has,
+    /// because a group and its first child share a starting offset.
+    fn candidates(
+        &mut self,
+        node: &AnalyzedKanjiNode,
+        reference_offset: usize,
+        start: usize,
+        end: usize,
+        root: bool,
+    ) -> Rc<[Candidate]> {
+        let key = (reference_offset, node.leaf_count(), start, end);
+        let cached = if root { None } else { self.memo.get(&key) };
+        if let Some(hit) = cached {
+            return Rc::clone(hit);
+        }
+        let out: Rc<[Candidate]> = Rc::from(match node {
+            AnalyzedKanjiNode::Stroke { .. } => self.leaf(reference_offset, start, end),
+            AnalyzedKanjiNode::Group { children, .. } => {
+                self.group(node, children, reference_offset, start, end, root)
+            }
+        });
+        if !root {
+            self.memo.insert(key, Rc::clone(&out));
+        }
+        out
+    }
+
+    /// A stroke takes one drawn stroke from its slice; any others in it are spare.
+    fn leaf(&self, reference_offset: usize, start: usize, end: usize) -> Vec<Candidate> {
+        let span = end.saturating_sub(start);
+        if span == 0 {
+            return vec![Candidate {
+                score: self.weights.missing_penalty,
+                order: smallvec![MISSING],
+            }];
+        }
+        let Some(reference) = self.reference.get(reference_offset) else {
+            return Vec::new();
+        };
+        let spare = self.weights.extra_penalty * convert(span.saturating_sub(1));
+        let mut out: Vec<Candidate> = (start..end)
+            .filter_map(|chosen| {
+                let drawn = self.user.get(chosen)?;
+                let cost = reference.leaf_cost(drawn, &self.weights)?;
+                Some(Candidate {
+                    score: cost + spare,
+                    order: smallvec![index_of(chosen)],
                 })
-                .collect();
-            // insert ghost stroke
-            candidates.push(MatchInfo {
-                user_stroke_order: smallvec![u8::MAX],
-                score: leaf_matrix.cost((*index).into(), leaf_matrix.user_stroke_count()),
-                used_mask: 0,
-                beam_width: width,
-            });
-            candidates.sort_by(|a, b| a.score.total_cmp(&b.score));
-            candidates.truncate(width);
-            candidates
+            })
+            .collect();
+        out.sort_by(|a, b| a.score.total_cmp(&b.score));
+        out.truncate(self.beam);
+        out
+    }
+
+    /// Cuts the slice into one consecutive piece per child, in some order.
+    fn group(
+        &mut self,
+        node: &AnalyzedKanjiNode,
+        children: &[AnalyzedKanjiNode],
+        reference_offset: usize,
+        start: usize,
+        end: usize,
+        root: bool,
+    ) -> Vec<Candidate> {
+        let counts: Vec<usize> = children.iter().map(AnalyzedKanjiNode::leaf_count).collect();
+        let mut offsets = Vec::with_capacity(counts.len());
+        let mut run = reference_offset;
+        for count in &counts {
+            offsets.push(run);
+            run = run.saturating_add(*count);
         }
-        AnalyzedKanjiNode::Group { children, .. } => {
-            let mut current_width = width;
-            let mut results = loop {
-                let child_candidates = children.iter().map(|child| {
-                    beam(
-                        child,
-                        user_stroke_geometries,
-                        leaf_matrix,
-                        current_width,
-                        weights,
-                    )
+        let layout = Layout {
+            children,
+            counts: &counts,
+            offsets: &offsets,
+        };
+        let mut out: Vec<Candidate> = Vec::new();
+        for order in orderings(children.len()) {
+            for (score, taken) in self.splits(&layout, &order, start, end) {
+                let flat = reorder(&counts, &order, &taken);
+                let group =
+                    node.group_score(&scoring_order(&flat), &self.geometry, &self.weights, root);
+                out.push(Candidate {
+                    score: score + group,
+                    order: flat,
                 });
-                let combined = combine_children(
-                    child_candidates,
-                    current_width.saturating_mul(PRE_FILTER_WIDTH_MULTIPLIER),
-                );
-                if !combined.is_empty() || current_width >= MAX_WIDTH {
-                    break combined;
-                }
-                current_width = current_width.saturating_mul(2);
+            }
+        }
+        out.sort_by(|a, b| a.score.total_cmp(&b.score));
+        out.truncate(self.beam);
+        out
+    }
+
+    /// Sweeps left to right, keeping the best few partial cuts at each stopping point.
+    ///
+    /// The partial assignment is carried as the flat list it will become, so growing it is
+    /// a copy of a small inline buffer rather than of a list of per child records.
+    fn splits(
+        &mut self,
+        layout: &Layout<'_>,
+        order: &[usize],
+        start: usize,
+        end: usize,
+    ) -> Vec<(f64, StrokeVec)> {
+        let width = end.saturating_sub(start).saturating_add(1);
+        let depth = order.len().saturating_add(1);
+        let cells = width.saturating_mul(depth);
+        let mut frontier: Vec<Vec<(f64, StrokeVec)>> = vec![Vec::new(); cells];
+        let mut next: Vec<Vec<(f64, StrokeVec)>> = vec![Vec::new(); cells];
+        let last = width
+            .saturating_sub(1)
+            .saturating_mul(depth)
+            .saturating_add(order.len());
+        if let Some(slot) = frontier.first_mut() {
+            slot.push((0.0_f64, StrokeVec::new()));
+        }
+        let mut done: Vec<(f64, StrokeVec)> = Vec::new();
+        for taken in 0..order.len() {
+            for bucket in &mut next {
+                bucket.clear();
+            }
+            let Some(index) = order.get(taken).copied() else {
+                break;
             };
-            for result in &mut results {
-                let group_score = score_group(
-                    group_tree,
-                    &result.user_stroke_order,
-                    user_stroke_geometries,
-                    weights,
-                );
-                result.score += group_score;
-            }
-            results.sort_by(|a, b| a.score.total_cmp(&b.score));
-            truncate_with_permutation_cap(results, current_width) // TODO: try to change to width later
-        }
-    }
-}
-fn score_group(
-    group: &AnalyzedKanjiNode,
-    user_stroke_order: &[u8],
-    user_stroke_geometries: &[StrokeGeometry],
-    weights: Weights,
-) -> f64 {
-    let (reference_stroke_geometries, user_stroke_geometries): (
-        Vec<StrokeGeometry>,
-        Vec<StrokeGeometry>,
-    ) = group
-        .collect_geometry()
-        .into_iter()
-        .enumerate()
-        .filter_map(|(local_index, reference_geometries)| {
-            if let Some(user_index) = user_stroke_order.get(local_index)
-                && *user_index != u8::MAX
-            {
-                Some((
-                    reference_geometries,
-                    user_stroke_geometries.get(usize::from(*user_index))?,
-                ))
-            } else {
-                None
-            }
-        })
-        .unzip();
-    let reference_stroke_centroids = reference_stroke_geometries.normalized();
-    let user_stroke_centroids = user_stroke_geometries.normalized();
-    let group_centroid_diff_score: f64 = reference_stroke_centroids
-        .iter()
-        .zip(user_stroke_centroids.iter())
-        .map(|(reference_centroid, user_centroid)| reference_centroid.distance(*user_centroid))
-        .sum();
-
-    let centroid_score = if reference_stroke_centroids.is_empty() {
-        0.0_f64
-    } else {
-        group_centroid_diff_score / reference_stroke_centroids.len().convert_lossy()
-    };
-    let filtered_user_stroke_order: Vec<u8> = user_stroke_order
-        .iter()
-        .filter(|i| **i != u8::MAX)
-        .copied()
-        .collect();
-    let order_score = kendall_tau(&filtered_user_stroke_order);
-
-    weights.group_weight * centroid_score + weights.order_weight * order_score
-}
-
-fn combine_children(
-    mut child_candidates: impl Iterator<Item = Vec<MatchInfo>>,
-    width: usize,
-) -> Vec<MatchInfo> {
-    let mut combined: Vec<MatchInfo> =
-        truncate_with_permutation_cap(child_candidates.next().unwrap_or_default(), width);
-
-    for candidates in child_candidates {
-        let mut accumulator: Vec<MatchInfo> =
-            Vec::with_capacity(combined.len().saturating_mul(candidates.len()));
-        for partial in &combined {
-            for candidate in &candidates {
-                if let Some(merged) = merge_matches(partial, candidate, width) {
-                    accumulator.push(merged);
+            let Some(child) = layout.children.get(index) else {
+                break;
+            };
+            let child_offset = layout.offsets.get(index).copied().unwrap_or(0);
+            let widest = layout
+                .counts
+                .get(index)
+                .copied()
+                .unwrap_or(1)
+                .saturating_add(SLACK);
+            for step in 0..width {
+                let Some(partials) = frontier.get(step.saturating_mul(depth).saturating_add(taken))
+                else {
+                    continue;
+                };
+                if partials.is_empty() {
+                    continue;
+                }
+                let partials = partials.clone();
+                let position = start.saturating_add(step);
+                let ceiling = end.min(position.saturating_add(widest));
+                for stop in position..=ceiling {
+                    let pieces = self.candidates(child, child_offset, position, stop, false);
+                    if pieces.is_empty() {
+                        continue;
+                    }
+                    let key = stop
+                        .saturating_sub(start)
+                        .saturating_mul(depth)
+                        .saturating_add(taken.saturating_add(1));
+                    let Some(slot) = next.get_mut(key) else {
+                        continue;
+                    };
+                    for (base, history) in &partials {
+                        for piece in pieces.iter() {
+                            let mut grown = history.clone();
+                            grown.extend(piece.order.iter().copied());
+                            slot.push((base + piece.score, grown));
+                        }
+                    }
+                }
+                for (length, cost, joined) in self.merges(layout, order, taken, position, end) {
+                    let key = position
+                        .saturating_add(1)
+                        .saturating_sub(start)
+                        .saturating_mul(depth)
+                        .saturating_add(taken.saturating_add(length));
+                    let Some(slot) = next.get_mut(key) else {
+                        continue;
+                    };
+                    for (base, history) in &partials {
+                        let mut grown = history.clone();
+                        grown.extend(joined.iter().copied());
+                        slot.push((base + cost, grown));
+                    }
                 }
             }
+            for bucket in &mut next {
+                bucket.sort_by(|a, b| a.0.total_cmp(&b.0));
+                bucket.truncate(self.beam);
+            }
+            swap(&mut frontier, &mut next);
+            if let Some(bucket) = frontier.get(last) {
+                done.extend(bucket.iter().cloned());
+            }
         }
-        accumulator.sort_by(|a, b| a.score.total_cmp(&b.score));
-        combined = truncate_with_permutation_cap(accumulator, width);
+        if order.is_empty() && start == end {
+            done.push((0.0_f64, StrokeVec::new()));
+        }
+        done.sort_by(|a, b| a.0.total_cmp(&b.0));
+        done.truncate(self.beam);
+        done
     }
 
-    combined
+    /// One drawn stroke standing for a run of consecutive children.
+    fn merges(
+        &mut self,
+        layout: &Layout<'_>,
+        order: &[usize],
+        taken: usize,
+        position: usize,
+        end: usize,
+    ) -> Vec<(usize, f64, StrokeVec)> {
+        if position >= end || self.user.get(position).is_none() {
+            return Vec::new();
+        }
+        let mut out = Vec::new();
+        for length in 2..=MERGE_UPTO {
+            let Some(run) = order.get(taken..taken.saturating_add(length)) else {
+                break;
+            };
+            let Some(first) = run.first().copied() else {
+                break;
+            };
+            let consecutive = run
+                .iter()
+                .enumerate()
+                .all(|(step, value)| *value == first.saturating_add(step));
+            if !consecutive || layout.children.len() < first.saturating_add(length) {
+                continue;
+            }
+            let strokes: usize = run
+                .iter()
+                .filter_map(|value| layout.counts.get(*value).copied())
+                .sum();
+            if strokes != length {
+                continue;
+            }
+            let Some(offset) = layout.offsets.get(first).copied() else {
+                continue;
+            };
+            let Some(joined) = self.joined_reference(offset, length) else {
+                continue;
+            };
+            let Some(drawn) = self.user.get(position) else {
+                continue;
+            };
+            let Some(cost) = joined.leaf_cost(drawn, &self.weights) else {
+                continue;
+            };
+            let mut assign = StrokeVec::new();
+            assign.push(index_of(position));
+            for _ in 1..length {
+                assign.push(FILLER);
+            }
+            out.push((length, cost + self.weights.merge_penalty, assign));
+        }
+        out
+    }
+
+    /// Shape of consecutive reference strokes drawn as one motion.
+    ///
+    /// Concatenating the point lists inserts the travel the hand makes when joining them,
+    /// so a joined form needs no separately authored path.
+    fn joined_reference(&mut self, offset: usize, length: usize) -> Option<Shape> {
+        if let Some(cached) = self.joined.get(&(offset, length)) {
+            return *cached;
+        }
+        let mut points: Vec<StrokePoint> = Vec::new();
+        for step in 0..length {
+            let Some(stroke) = self.points.get(offset.saturating_add(step)) else {
+                self.joined.insert((offset, length), None);
+                return None;
+            };
+            for (index, point) in stroke.iter().enumerate() {
+                let mut copy = *point;
+                if index == 0 {
+                    copy.displacement = match points.last() {
+                        Some(previous) => Vec2::new(
+                            point.position.x - previous.position.x,
+                            point.position.y - previous.position.y,
+                        ),
+                        None => Vec2::ZERO,
+                    };
+                }
+                points.push(copy);
+            }
+        }
+        let shape = points.to_shape();
+        let out = shape.is_usable().then_some(shape);
+        self.joined.insert((offset, length), out);
+        out
+    }
 }
 
-fn truncate_with_permutation_cap(entries: Vec<MatchInfo>, width: usize) -> Vec<MatchInfo> {
-    let mut permutation_count: HashMap<u32, usize> = HashMap::new();
-    let mut kept: Vec<MatchInfo> = Vec::with_capacity(width);
-
-    for entry in entries {
-        if kept.len() >= width {
-            break;
+/// Puts the flat list back in reference order, since children were taken in drawing order.
+fn reorder(counts: &[usize], order: &[usize], taken: &[u8]) -> StrokeVec {
+    let mut slices: Vec<Option<&[u8]>> = vec![None; counts.len()];
+    let mut cursor = 0_usize;
+    for index in order {
+        let width = counts.get(*index).copied().unwrap_or(1);
+        let piece = taken.get(cursor..cursor.saturating_add(width));
+        if let (Some(slot), Some(piece)) = (slices.get_mut(*index), piece) {
+            *slot = Some(piece);
         }
-        let maximum = entry.user_stroke_order.len().max(1);
-        let count = permutation_count.entry(entry.used_mask).or_default();
-        if *count < maximum {
-            *count = count.saturating_add(1);
-            kept.push(entry);
+        cursor = cursor.saturating_add(width);
+    }
+    let mut flat = StrokeVec::new();
+    for (position, slice) in slices.iter().enumerate() {
+        let width = counts.get(position).copied().unwrap_or(1);
+        match slice {
+            Some(values) if values.len() == width => flat.extend(values.iter().copied()),
+            _ => flat.resize(flat.len().saturating_add(width), MISSING),
         }
     }
-
-    kept
-}
-#[inline]
-fn merge_matches(left: &MatchInfo, right: &MatchInfo, width: usize) -> Option<MatchInfo> {
-    if left.used_mask & right.used_mask != 0 {
-        return None;
-    }
-    let mut user_strokes = left.user_stroke_order.clone();
-    user_strokes.extend(right.user_stroke_order.iter().copied());
-    Some(MatchInfo {
-        user_stroke_order: user_strokes,
-        score: left.score + right.score,
-        used_mask: left.used_mask | right.used_mask,
-        beam_width: width,
-    })
+    flat
 }
 
-fn kendall_tau(seq: &[u8]) -> f64 {
-    if seq.len() < 2 {
-        return 0.0;
+/// Every ordering worth trying for a group, least disorder first.
+fn orderings(count: usize) -> Vec<Vec<usize>> {
+    let identity: Vec<usize> = (0..count).collect();
+    if !(2..=PERMUTE_UPTO).contains(&count) {
+        return vec![identity];
     }
-    let inversions = seq
+    let mut out = Vec::new();
+    permute(&identity, &mut Vec::new(), &mut out);
+    out.sort_by_key(|order| inversions(order));
+    out
+}
+
+fn permute(rest: &[usize], acc: &mut Vec<usize>, out: &mut Vec<Vec<usize>>) {
+    if rest.is_empty() {
+        out.push(acc.clone());
+        return;
+    }
+    for (index, value) in rest.iter().enumerate() {
+        let mut remaining = rest.to_vec();
+        remaining.remove(index);
+        acc.push(*value);
+        permute(&remaining, acc, out);
+        acc.pop();
+    }
+}
+
+fn inversions(order: &[usize]) -> usize {
+    order
         .iter()
         .enumerate()
-        .flat_map(|(i, a)| seq.iter().skip(i.saturating_add(1)).filter(move |b| a > b))
-        .count();
-    let n = seq.len();
-    let max = n.saturating_mul(n.saturating_sub(1)).saturating_div(2);
-    inversions.convert_lossy() / max.convert_lossy()
+        .flat_map(|(index, left)| {
+            order
+                .iter()
+                .skip(index.saturating_add(1))
+                .filter(move |right| left > right)
+        })
+        .count()
+}
+
+/// Filler entries are not drawn strokes, so scoring must see them as undrawn.
+fn scoring_order(order: &[u8]) -> StrokeVec {
+    order
+        .iter()
+        .map(|value| if *value == FILLER { MISSING } else { *value })
+        .collect()
+}
+
+fn mask_of(order: &[u8]) -> u32 {
+    let mut mask = 0_u32;
+    for value in order {
+        if *value != MISSING && *value != FILLER {
+            mask |= 1_u32.checked_shl(u32::from(*value)).unwrap_or(0);
+        }
+    }
+    mask
+}
+
+fn index_of(value: usize) -> u8 {
+    u8::try_from(value).unwrap_or(MISSING)
+}
+
+fn convert(value: usize) -> f64 {
+    f64::from(u32::try_from(value).unwrap_or(u32::MAX))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::stroke_point::to_stroke_points;
+    use kurbo::Point;
+
+    fn path(points: &[(f64, f64)]) -> Vec<StrokePoint> {
+        to_stroke_points(points.iter().map(|&(x, y)| Point::new(x, y)))
+    }
+
+    fn stroke(index: u8, points: &[(f64, f64)]) -> AnalyzedKanjiNode {
+        let path = path(points);
+        let geometry = StrokeGeometry::from_stroke(&path);
+        AnalyzedKanjiNode::Stroke {
+            index,
+            path,
+            geometry,
+        }
+    }
+
+    fn horizontal(y: f64) -> Vec<(f64, f64)> {
+        vec![(0.2, y), (0.8, y)]
+    }
+
+    fn three() -> AnalyzedKanjiNode {
+        AnalyzedKanjiNode::Group {
+            element: '三',
+            children: vec![
+                stroke(0, &horizontal(0.2)),
+                stroke(1, &horizontal(0.5)),
+                stroke(2, &horizontal(0.8)),
+            ],
+        }
+    }
+
+    fn nested() -> AnalyzedKanjiNode {
+        let mut left = Vec::new();
+        let mut right = Vec::new();
+        for step in 0..4_u8 {
+            let y = 0.1 + f64::from(step) * 0.2;
+            left.push(stroke(step, &[(0.08, y), (0.38, y)]));
+            right.push(stroke(step.saturating_add(4), &[(0.60, y), (0.92, y)]));
+        }
+        AnalyzedKanjiNode::Group {
+            element: '語',
+            children: vec![
+                AnalyzedKanjiNode::Group {
+                    element: '言',
+                    children: left,
+                },
+                AnalyzedKanjiNode::Group {
+                    element: '吾',
+                    children: right,
+                },
+            ],
+        }
+    }
+
+    fn best(tree: AnalyzedKanjiNode, user: Vec<Vec<StrokePoint>>, width: usize) -> StrokeVec {
+        match_strokes(tree, user, Weights::v1(), width)
+            .first()
+            .map(|result| result.user_stroke_order.clone())
+            .unwrap_or_default()
+    }
+
+    #[test]
+    fn a_clean_drawing_matches_in_order() {
+        let tree = three();
+        let ink = tree.collect_strokes();
+        assert_eq!(best(tree, ink, 3).as_slice(), &[0, 1, 2]);
+    }
+
+    #[test]
+    fn a_nested_tree_matches_in_order() {
+        let tree = nested();
+        let ink = tree.collect_strokes();
+        assert_eq!(best(tree, ink, 3).as_slice(), &[0, 1, 2, 3, 4, 5, 6, 7]);
+    }
+
+    #[test]
+    fn a_forgotten_stroke_becomes_an_empty_slice() {
+        let user = vec![path(&horizontal(0.2)), path(&horizontal(0.8))];
+        let order = best(three(), user, 3);
+        assert_eq!(order.len(), 3);
+        assert_eq!(order.iter().filter(|v| **v == MISSING).count(), 1);
+    }
+
+    #[test]
+    fn a_spare_stroke_is_absorbed_by_a_slice() {
+        let tree = three();
+        let mut user = tree.collect_strokes();
+        user.push(path(&[(0.5, 0.1), (0.5, 0.9)]));
+        let order = best(tree, user, 3);
+        assert_eq!(order.len(), 3);
+        assert!(order.iter().all(|value| *value != MISSING));
+    }
+
+    #[test]
+    fn a_reordered_drawing_is_recovered() {
+        let user = vec![
+            path(&horizontal(0.8)),
+            path(&horizontal(0.5)),
+            path(&horizontal(0.2)),
+        ];
+        assert_eq!(best(three(), user, 3).as_slice(), &[2, 1, 0]);
+    }
+
+    #[test]
+    fn every_result_covers_every_reference_stroke() {
+        let tree = nested();
+        let ink = tree.collect_strokes();
+        let leaves = tree.leaf_count();
+        for result in match_strokes(tree, ink, Weights::v1(), 3) {
+            assert_eq!(result.user_stroke_order.len(), leaves);
+        }
+    }
+
+    #[test]
+    fn no_drawn_stroke_is_claimed_twice() {
+        let tree = nested();
+        let ink = tree.collect_strokes();
+        for result in match_strokes(tree, ink, Weights::v1(), 3) {
+            let mut used: Vec<u8> = result
+                .user_stroke_order
+                .iter()
+                .copied()
+                .filter(|value| *value != MISSING && *value != FILLER)
+                .collect();
+            used.sort_unstable();
+            let before = used.len();
+            used.dedup();
+            assert_eq!(before, used.len(), "{:?}", result.user_stroke_order);
+        }
+    }
+
+    #[test]
+    fn a_joined_stroke_is_told_apart_from_a_forgotten_one() {
+        let user = vec![path(&[(0.2, 0.2), (0.8, 0.2), (0.2, 0.5), (0.8, 0.5)])];
+        let results = match_strokes(three(), user, Weights::v1(), 16);
+        assert!(
+            results
+                .iter()
+                .any(|result| result.user_stroke_order.contains(&FILLER)),
+            "no joined reading was offered"
+        );
+    }
+
+    #[test]
+    fn a_joined_reading_never_reuses_the_drawn_stroke() {
+        let user = vec![path(&[(0.2, 0.2), (0.8, 0.2), (0.2, 0.5), (0.8, 0.5)])];
+        for result in match_strokes(three(), user, Weights::v1(), 16) {
+            let drawn = result
+                .user_stroke_order
+                .iter()
+                .filter(|value| **value != MISSING && **value != FILLER)
+                .count();
+            assert!(drawn <= 1, "{:?}", result.user_stroke_order);
+        }
+    }
+
+    #[test]
+    fn a_drawing_with_nothing_in_it_still_answers() {
+        let order = best(three(), Vec::new(), 3);
+        assert_eq!(order.as_slice(), &[MISSING, MISSING, MISSING]);
+    }
+
+    #[test]
+    fn a_wider_beam_never_makes_the_best_score_worse() {
+        let tree = nested();
+        let ink = tree.collect_strokes();
+        let narrow = match_strokes(tree.clone(), ink.clone(), Weights::v1(), 2)
+            .first()
+            .map_or(f64::INFINITY, |result| result.score);
+        let wide = match_strokes(tree, ink, Weights::v1(), 12)
+            .first()
+            .map_or(f64::INFINITY, |result| result.score);
+        assert!(wide <= narrow + 1e-9, "{wide} vs {narrow}");
+    }
+
+    #[test]
+    fn the_reported_width_is_the_width_asked_for() {
+        let tree = nested();
+        let ink = tree.collect_strokes();
+        for result in match_strokes(tree, ink, Weights::v1(), 7) {
+            assert_eq!(result.beam_width, 7);
+        }
+    }
+
+    #[test]
+    fn every_order_is_as_long_as_the_tree_has_strokes() {
+        for tree in [three(), nested()] {
+            let leaves = tree.leaf_count();
+            let mut ink = tree.collect_strokes();
+            ink.truncate(leaves.saturating_sub(1));
+            for result in match_strokes(tree.clone(), ink, Weights::v1(), 4) {
+                assert_eq!(result.user_stroke_order.len(), leaves);
+            }
+        }
+    }
 }
