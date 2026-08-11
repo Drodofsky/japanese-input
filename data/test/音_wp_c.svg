@@ -5,13 +5,13 @@
 <line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="0"/>
 <line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="109"/>
 <circle cx="54.5" cy="54.5" fill="none" opacity="0.15" r="29.5" stroke="#D0021B" stroke-width="20"/>
-<path d="M58.19332610677764,21.0327855348587 C58.40874294550305,23.21069903175036 58.447770949184104,28.068078570310977 58.663187787909514,30.245992067202636" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<path d="M42.90203493503103,32.0387087372966 C57.61575183935333,31.466731936536966 60.281499795277675,29.837966296774084 74.99521669959998,29.265989496014452" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<path d="M47.90718393832356,37.488537580221575 C49.11190851837308,43.320704232106294 50.31663309842259,38.798223170026034 51.52135767847211,44.63038982191075" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<path d="M67.07898321449419,31.821084727021805 C66.29485643605054,37.61252010779853 65.51072965760689,37.63066555775411 64.72660287916322,43.42210093853084" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<path d="M32.57644963264466,48.22060548605029 C50.331492890914284,47.11128256064161 68.20284701387088,46.05486383106269 85.95789027214052,44.94554090565401" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<path d="M46.46238130778475,54.55562243862293 C46.6270475630999,60.998100886775475 46.78401722226922,73.83245095610619 46.94868347758436,80.27492940425873" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<path d="M47.30475816307978,61.38262125505151 C54.64528122721629,59.42164920422576 68.8639684401508,53.783631624027755 70.21384798393314,55.002533887967736 C71.56372752771547,56.22143615190772 67.61531361684942,72.20336297434925 66.39011403665685,79.83619051458795" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<path d="M47.676908311561256,65.41731668348689 C53.46115703117401,65.02002545034466 63.80535414423191,64.53864598745923 69.58960286384466,64.14135475431702" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<path d="M47.941827992208,76.16160279639794 C55.640000332998426,76.1433064254943 61.65173816589327,76.12113755675612 69.3499105066837,76.10284118585248" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M58.193,21.033 C58.409,23.211 58.448,28.068 58.663,30.246" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M42.902,32.039 C57.616,31.467 60.281,29.838 74.995,29.266" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M47.907,37.489 C49.112,43.321 50.317,38.798 51.521,44.63" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M67.079,31.821 C66.295,37.613 65.511,37.631 64.727,43.422" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M32.576,48.221 C50.331,47.111 68.203,46.055 85.958,44.946" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M46.462,54.556 C46.627,60.998 46.784,73.832 46.949,80.275" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M47.305,61.383 C54.645,59.422 68.864,53.784 70.214,55.003 C71.564,56.221 67.615,72.203 66.39,79.836" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M47.677,65.417 C53.461,65.02 63.805,64.539 69.59,64.141" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M47.942,76.162 C55.64,76.143 61.652,76.121 69.35,76.103" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
 </svg>

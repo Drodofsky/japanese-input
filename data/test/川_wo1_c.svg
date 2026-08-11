@@ -5,16 +5,16 @@
 <line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="0"/>
 <line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="109"/>
 <circle cx="54.5" cy="54.5" fill="none" opacity="0.15" r="29.5" stroke="#D0021B" stroke-width="20"/>
-<path d="M37.544520169496536,25.827526733279228 C37.76196837425232,34.239457319180175 39.52646109527316,43.44576962871148 38.196864783763885,51.063318490982056 C36.86726847225461,58.68086735325263 29.498082250356674,73.39465367794037 25.14869098365307,84.56032127141953" fill="none" stroke="#1f77b4" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<text fill="#1f77b4" font-size="8" text-anchor="end" x="35.544520169496536" y="23.827526733279228">
+<path d="M37.545,25.828 C37.762,34.239 39.526,43.446 38.197,51.063 C36.867,58.681 29.498,73.395 25.149,84.56" fill="none" stroke="#1f77b4" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<text fill="#1f77b4" font-size="8" text-anchor="end" x="35.545" y="23.828">
 1
 </text>
-<path d="M59.652865290641785,26.506978064775467 C60.59514409303665,31.410772542158764 62.42641258904819,35.30210794814161 62.479701697826385,41.218361496925354 C62.55612442934515,49.702951817952965 58.565207382043205,63.77556812763214 56.60796022415161,75.05417144298553" fill="none" stroke="#ff7f0e" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<text fill="#ff7f0e" font-size="8" text-anchor="end" x="57.652865290641785" y="24.506978064775467">
+<path d="M59.653,26.507 C60.595,31.411 62.426,35.302 62.48,41.218 C62.556,49.703 58.565,63.776 56.608,75.054" fill="none" stroke="#ff7f0e" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<text fill="#ff7f0e" font-size="8" text-anchor="end" x="57.653" y="24.507">
 2
 </text>
-<path d="M82.63099998235703,20.961719125509262 C81.83368881543478,42.91565227508545 81.03637764851251,64.86958542466164 80.23906648159027,86.82351857423782" fill="none" stroke="#2ca02c" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<text fill="#2ca02c" font-size="8" text-anchor="end" x="80.63099998235703" y="18.961719125509262">
+<path d="M82.631,20.962 C81.834,42.916 81.036,64.87 80.239,86.824" fill="none" stroke="#2ca02c" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<text fill="#2ca02c" font-size="8" text-anchor="end" x="80.631" y="18.962">
 3
 </text>
 </svg>

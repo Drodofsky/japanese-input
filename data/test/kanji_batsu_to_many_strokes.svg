@@ -5,8 +5,8 @@
 <line stroke="#808080ff" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="0"/>
 <line stroke="#808080ff" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="109"/>
 <path d="M25,25 L84,84 M84,25 L25,84" fill="none" opacity="0.15" stroke="#D0021B" stroke-linecap="round" stroke-width="20"/>
-<path d="M30.005873948335648,32.957145601511 C46.242891232172646,31.712408741315205 62.47990851600965,30.46767188111941 78.71692579984665,29.222935020923615" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<path d="M51.24442300200462,18.471833392977715 C50.664558957020446,46.19709778825442 50.084694912036255,73.92236218353113 49.50483086705208,101.64762657880783" fill="none" stroke="#DC4A38" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<path d="M23.699236065149307,79.0150688290596 C42.860006272792816,78.44916663567224 62.020776480436325,77.88326444228491 81.18154668807983,77.31736224889755" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<path d="M37.90672919154167,53.7792754471302 C47.20919559399287,53.590778539578125 56.51166199644407,53.40228163202603 65.81412839889526,53.21378472447395" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M30.006,32.957 C46.243,31.712 62.48,30.468 78.717,29.223" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M51.244,18.472 C50.665,46.197 50.085,73.922 49.505,101.648" fill="none" stroke="#DC4A38" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M23.699,79.015 C42.86,78.449 62.021,77.883 81.182,77.317" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M37.907,53.779 C47.209,53.591 56.512,53.402 65.814,53.214" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
 </svg>

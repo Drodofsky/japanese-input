@@ -1,11 +1,40 @@
 use colorous::{CATEGORY10, Color};
-use kurbo::{Affine, BezPath, Rect};
+use kurbo::{Affine, BezPath, PathEl, Point, Rect};
 use svg::{
     Document,
     node::element::{Circle, Line, Path, Rectangle, Text},
 };
 
 use crate::convert_stroke_index::ConvertStrokeIndex;
+
+const STEPS_PER_UNIT: f64 = 1000.0;
+
+#[inline]
+fn round(value: f64) -> f64 {
+    (value * STEPS_PER_UNIT).round() / STEPS_PER_UNIT
+}
+
+#[inline]
+fn round_point(p: Point) -> Point {
+    Point::new(round(p.x), round(p.y))
+}
+
+fn round_path(path: BezPath) -> BezPath {
+    BezPath::from_vec(
+        path.elements()
+            .iter()
+            .map(|el| match *el {
+                PathEl::MoveTo(p) => PathEl::MoveTo(round_point(p)),
+                PathEl::LineTo(p) => PathEl::LineTo(round_point(p)),
+                PathEl::QuadTo(a, b) => PathEl::QuadTo(round_point(a), round_point(b)),
+                PathEl::CurveTo(a, b, c) => {
+                    PathEl::CurveTo(round_point(a), round_point(b), round_point(c))
+                }
+                PathEl::ClosePath => PathEl::ClosePath,
+            })
+            .collect(),
+    )
+}
 
 #[must_use]
 #[inline]
@@ -30,6 +59,7 @@ pub fn gen_kanji_grid_with_hint(
     doc = draw_hint(doc, hint, hint_color);
     doc.to_string()
 }
+
 #[must_use]
 #[inline]
 pub fn gen_batsu_remove_strokes(
@@ -52,7 +82,6 @@ pub fn gen_batsu_remove_strokes(
             .map(|d| if *d { stroke_color } else { "#DC4A38" }),
     ) {
         let svg_path = scale_path(scale, path).to_svg();
-
         let element = Path::new()
             .set("d", svg_path)
             .set("fill", "none")
@@ -60,10 +89,8 @@ pub fn gen_batsu_remove_strokes(
             .set("stroke-width", 3.0_f64)
             .set("stroke-linecap", "round")
             .set("stroke-linejoin", "round");
-
         doc = doc.add(element);
     }
-
     doc.to_string()
 }
 
@@ -93,7 +120,6 @@ pub fn gen_maru_add_strokes(
         .filter_map(|(data, drawn)| drawn.then_some(data))
     {
         let svg_path = scale_path(scale, path).to_svg();
-
         let element = Path::new()
             .set("d", svg_path)
             .set("fill", "none")
@@ -101,10 +127,8 @@ pub fn gen_maru_add_strokes(
             .set("stroke-width", 3.0_f64)
             .set("stroke-linecap", "round")
             .set("stroke-linejoin", "round");
-
         doc = doc.add(element);
     }
-
     doc.to_string()
 }
 
@@ -158,21 +182,17 @@ fn draw_maru(mut doc: Document) -> Document {
     let side = 109.0_f64;
     let stroke_width = 20.0_f64;
     let margin = 25.0_f64;
-
     let center = side / 2.0_f64;
     let radius = center - margin;
-
     let circle = Circle::new()
-        .set("cx", center)
-        .set("cy", center)
-        .set("r", radius)
+        .set("cx", round(center))
+        .set("cy", round(center))
+        .set("r", round(radius))
         .set("fill", "none")
         .set("stroke", "#D0021B")
         .set("stroke-width", stroke_width)
         .set("opacity", 0.15_f64);
-
     doc = doc.add(circle);
-
     doc
 }
 
@@ -180,11 +200,9 @@ fn draw_batsu(doc: Document) -> Document {
     let side = 109.0_f64;
     let stroke_width = 20.0_f64;
     let margin = 25.0_f64;
-
-    let lo = margin;
-    let hi = side - margin;
+    let lo = round(margin);
+    let hi = round(side - margin);
     let d = format!("M{lo},{lo} L{hi},{hi} M{hi},{lo} L{lo},{hi}");
-
     let cross = Path::new()
         .set("d", d)
         .set("fill", "none")
@@ -192,7 +210,6 @@ fn draw_batsu(doc: Document) -> Document {
         .set("stroke-width", stroke_width)
         .set("stroke-linecap", "round")
         .set("opacity", 0.15_f64);
-
     doc.add(cross)
 }
 
@@ -200,7 +217,6 @@ fn draw_hint(mut doc: Document, paths: &[BezPath], hint_color: &str) -> Document
     let scale = Affine::scale(109.0);
     for path in paths {
         let svg_path = scale_path(scale, path).to_svg();
-
         let element = Path::new()
             .set("d", svg_path)
             .set("fill", "none")
@@ -208,10 +224,8 @@ fn draw_hint(mut doc: Document, paths: &[BezPath], hint_color: &str) -> Document
             .set("stroke-width", 5.0_f64)
             .set("stroke-linecap", "round")
             .set("stroke-linejoin", "round");
-
         doc = doc.add(element);
     }
-
     doc
 }
 
@@ -219,39 +233,32 @@ fn draw_grid(mut doc: Document, grid_color: &str, corner_radius: f32) -> Documen
     let side = 109.0_f64;
     let stroke_width = 3.0_f64;
     let half = stroke_width / 2.0_f64;
-
     let origin_x = 0.0_f64;
     let origin_y = 0.0_f64;
-
     let border = Rectangle::new()
-        .set("x", origin_x + half)
-        .set("y", origin_y + half)
-        .set("width", side - stroke_width)
-        .set("height", side - stroke_width)
+        .set("x", round(origin_x + half))
+        .set("y", round(origin_y + half))
+        .set("width", round(side - stroke_width))
+        .set("height", round(side - stroke_width))
         .set("fill", "none")
         .set("stroke", grid_color)
         .set("stroke-width", stroke_width)
         .set("stroke-linejoin", "miter")
         .set("rx", corner_radius)
         .set("ry", corner_radius);
-
     doc = doc.add(border);
-
-    let mid_x = origin_x + side / 2.0_f64;
-    let mid_y = origin_y + side / 2.0_f64;
-
+    let mid_x = round(origin_x + side / 2.0_f64);
+    let mid_y = round(origin_y + side / 2.0_f64);
     let dot_size = 1.0_f64;
     let segment = dot_size * 2.0_f64;
     let dasharray = format!("{segment},{segment}");
-
     let center = (mid_x, mid_y);
     let endpoints = [
-        (center, (origin_x + side, mid_y)), // center -> right
-        (center, (origin_x, mid_y)),        // center -> left
-        (center, (mid_x, origin_y)),        // center -> top
-        (center, (mid_x, origin_y + side)), // center -> bottom
+        (center, (round(origin_x + side), mid_y)),
+        (center, (round(origin_x), mid_y)),
+        (center, (mid_x, round(origin_y))),
+        (center, (mid_x, round(origin_y + side))),
     ];
-
     for (a, b) in endpoints {
         let line = Line::new()
             .set("x1", a.0)
@@ -262,10 +269,8 @@ fn draw_grid(mut doc: Document, grid_color: &str, corner_radius: f32) -> Documen
             .set("stroke-width", dot_size)
             .set("stroke-dasharray", dasharray.clone())
             .set("stroke-linecap", "round");
-
         doc = doc.add(line);
     }
-
     doc
 }
 
@@ -284,7 +289,6 @@ fn draw_stroke_order(mut doc: Document, user_strokes: &[BezPath], order: &[u8]) 
         };
         let c = get_color(seq);
         let color = format!("#{:02x}{:02x}{:02x}", c.r, c.g, c.b);
-
         let scaled = scale_path(scale, path);
         let element = Path::new()
             .set("d", scaled.to_svg())
@@ -294,17 +298,16 @@ fn draw_stroke_order(mut doc: Document, user_strokes: &[BezPath], order: &[u8]) 
             .set("stroke-linecap", "round")
             .set("stroke-linejoin", "round");
         doc = doc.add(element);
-
         if let Some(start) = scaled.elements().first().and_then(|el| {
-            if let kurbo::PathEl::MoveTo(p) = el {
+            if let PathEl::MoveTo(p) = el {
                 Some(*p)
             } else {
                 None
             }
         }) {
             let label = Text::new((seq.saturating_add(1)).to_string())
-                .set("x", start.x - 2.0_f64)
-                .set("y", start.y - 2.0_f64)
+                .set("x", round(start.x - 2.0_f64))
+                .set("y", round(start.y - 2.0_f64))
                 .set("fill", color)
                 .set("font-size", 8.0_f64)
                 .set("text-anchor", "end");
@@ -321,10 +324,10 @@ fn draw_moved_markers(mut doc: Document, rects: &[Rect]) -> Document {
         let w = f64::min((r.x1 - r.x0) * 109.0 + 4.0, 109.0);
         let h = f64::min((r.y1 - r.y0) * 109.0 + 4.0, 109.0);
         let marker = Rectangle::new()
-            .set("x", x)
-            .set("y", y)
-            .set("width", w)
-            .set("height", h)
+            .set("x", round(x))
+            .set("y", round(y))
+            .set("width", round(w))
+            .set("height", round(h))
             .set("fill", "#D98A00")
             .set("opacity", 0.3_f64)
             .set("rx", 4.0_f64)
@@ -339,7 +342,7 @@ fn draw_moved_markers(mut doc: Document, rects: &[Rect]) -> Document {
     reason = "The Affine transform is applied to the path, not fallible integer arithmetic"
 )]
 fn scale_path(scale: Affine, path: &BezPath) -> BezPath {
-    scale * path
+    round_path(scale * path)
 }
 
 #[expect(
@@ -365,7 +368,6 @@ mod tests {
         pub character: char,
         pub strokes: Vec<Vec<(f32, f32)>>,
     }
-
     use kurbo::BezPath;
     use serde::{Deserialize, Serialize};
 
@@ -438,5 +440,26 @@ mod tests {
             svg,
             include_str!("../../data/test/kanji_batsu_to_many_strokes.svg")
         );
+    }
+
+    #[test]
+    fn coordinates_are_short_enough_to_compare() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .join("data/generated/reference_data.bin");
+        let bytes = std::fs::read(path).expect("failed to read reference_data.bin");
+        let map: KanjiMap = postcard::from_bytes(&bytes).expect("failed to deserialize kanji map");
+        let hint_path = map.get(&'食').unwrap().collect_paths();
+        let grid = gen_kanji_grid_with_hint("#808080ff", 8.0, &hint_path, "darkgrey");
+        for token in grid.split(|c: char| !c.is_ascii_digit() && c != '.') {
+            let Some((_, fraction)) = token.split_once('.') else {
+                continue;
+            };
+            assert!(
+                fraction.len() <= 3,
+                "{token} carries more precision than the grid has"
+            );
+        }
     }
 }

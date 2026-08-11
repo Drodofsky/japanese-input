@@ -5,12 +5,12 @@
 <line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="0"/>
 <line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="109"/>
 <path d="M25,25 L84,84 M84,25 L25,84" fill="none" opacity="0.15" stroke="#D0021B" stroke-linecap="round" stroke-width="20"/>
-<path d="M53.56367561221123,20.848374098539352 C52.93555796146393,42.87766486406326 52.30744031071663,64.90695562958717 51.67932265996933,86.93624639511108" fill="none" stroke="#1f77b4" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<text fill="#1f77b4" font-size="8" text-anchor="end" x="51.56367561221123" y="18.848374098539352">
+<path d="M53.564,20.848 C52.936,42.878 52.307,64.907 51.679,86.936" fill="none" stroke="#1f77b4" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<text fill="#1f77b4" font-size="8" text-anchor="end" x="51.564" y="18.848">
 1
 </text>
-<path d="M22.684679180383682,51.402736365795135 C43.70577786366145,49.8939403295517 64.72687654693921,48.38514429330826 85.74797523021698,46.87634825706482" fill="none" stroke="#ff7f0e" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<text fill="#ff7f0e" font-size="8" text-anchor="end" x="20.684679180383682" y="49.402736365795135">
+<path d="M22.685,51.403 C43.706,49.894 64.727,48.385 85.748,46.876" fill="none" stroke="#ff7f0e" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<text fill="#ff7f0e" font-size="8" text-anchor="end" x="20.685" y="49.403">
 2
 </text>
 </svg>

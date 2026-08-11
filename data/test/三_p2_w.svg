@@ -5,8 +5,8 @@
 <line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="0"/>
 <line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="109"/>
 <path d="M25,25 L84,84 M84,25 L25,84" fill="none" opacity="0.15" stroke="#D0021B" stroke-linecap="round" stroke-width="20"/>
-<path d="M28.628490835428238,32.84380057454109 C44.21316025654475,31.14630189538002 59.79782967766126,29.44880321621895 75.38249909877777,27.751304537057877" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<path d="M39.86376953125,42.123270094394684 C50.73683812220891,40.99167252580325 61.609906713167824,39.86007495721181 72.48297530412674,38.72847738862038" fill="none" stroke="#DC4A38" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<path d="M36.8915551006794,53.7792754471302 C48.51368341843287,52.98709575335185 60.13581173618635,52.19491605957349 71.75794005393982,51.402736365795135" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<path d="M21.81426753103733,79.24114167690277 C43.87456424037615,77.77012731631598 65.93486094971499,76.29911295572916 87.9951576590538,74.82809859514236" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M28.628,32.844 C44.213,31.146 59.798,29.449 75.382,27.751" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M39.864,42.123 C50.737,40.992 61.61,39.86 72.483,38.728" fill="none" stroke="#DC4A38" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M36.892,53.779 C48.514,52.987 60.136,52.195 71.758,51.403" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M21.814,79.241 C43.875,77.77 65.935,76.299 87.995,74.828" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
 </svg>

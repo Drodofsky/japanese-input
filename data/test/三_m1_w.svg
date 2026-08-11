@@ -5,6 +5,6 @@
 <line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="0"/>
 <line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="109"/>
 <path d="M25,25 L84,84 M84,25 L25,84" fill="none" opacity="0.15" stroke="#D0021B" stroke-linecap="round" stroke-width="20"/>
-<path d="M30.80298262834549,33.18321844935417 C45.324430088202156,31.4857197701931 59.84587754805883,29.788221091032028 74.3673250079155,28.090722411870956" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<path d="M21.959643930196762,77.54405230283737 C43.633090476195015,76.78965536753336 65.30653702219328,76.03525843222937 86.97998356819153,75.28086149692535" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M30.803,33.183 C45.324,31.486 59.846,29.788 74.367,28.091" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M21.96,77.544 C43.633,76.79 65.307,76.035 86.98,75.281" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
 </svg>

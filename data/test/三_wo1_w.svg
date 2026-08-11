@@ -5,16 +5,16 @@
 <line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="0"/>
 <line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="109"/>
 <path d="M25,25 L84,84 M84,25 L25,84" fill="none" opacity="0.15" stroke="#D0021B" stroke-linecap="round" stroke-width="20"/>
-<path d="M35.07988953590393,54.11869332194328 C47.13670961062114,52.91173813740413 59.19352968533834,51.70478295286496 71.25034976005554,50.497827768325806" fill="none" stroke="#1f77b4" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<text fill="#1f77b4" font-size="8" text-anchor="end" x="33.07988953590393" y="52.11869332194328">
+<path d="M35.08,54.119 C47.137,52.912 59.194,51.705 71.25,50.498" fill="none" stroke="#1f77b4" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<text fill="#1f77b4" font-size="8" text-anchor="end" x="33.08" y="52.119">
 1
 </text>
-<path d="M20.872398033738136,79.0150688290596 C42.49759043256442,77.95882995923361 64.1227828313907,76.9025910894076 85.74797523021698,75.8463522195816" fill="none" stroke="#ff7f0e" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<text fill="#ff7f0e" font-size="8" text-anchor="end" x="18.872398033738136" y="77.0150688290596">
+<path d="M20.872,79.015 C42.498,77.959 64.123,76.903 85.748,75.846" fill="none" stroke="#ff7f0e" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<text fill="#ff7f0e" font-size="8" text-anchor="end" x="18.872" y="77.015">
 2
 </text>
-<path d="M31.020430833101273,33.18321844935417 C46.99174414078395,31.976263264815014 62.963057448466614,30.769308080275852 78.93437075614929,29.562352895736694" fill="none" stroke="#2ca02c" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<text fill="#2ca02c" font-size="8" text-anchor="end" x="29.020430833101273" y="31.18321844935417">
+<path d="M31.02,33.183 C46.992,31.976 62.963,30.769 78.934,29.562" fill="none" stroke="#2ca02c" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<text fill="#2ca02c" font-size="8" text-anchor="end" x="29.02" y="31.183">
 3
 </text>
 </svg>
