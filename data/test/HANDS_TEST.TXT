@@ -1,0 +1,28 @@
+NKYF165.IPD
+"ad. affiliation" char 41 : ''
+"administrator" char 31 : ''
+"native language" char 15 : 'ドイツ'
+"writing hand" char 1 : 'l'
+"dominant hand" char 1 : 'l'
+"motivation" char 15 : ''
+"birth day" word 3 : 2002 7 12
+"comment" char 201 : ''
+"first date" word 3 : 2025 12 11
+"first time" byte 3 : 11 58 5
+"last date" word 3 : 2026 1 14
+"last time" byte 3 : 14 8 30
+"frame start" word 2 : 19 39
+"frame step" word 2 : 65 103
+"frame count" word 2 : 9 4
+"frame size" word 2 : 60 60
+"tablet name" char 21 : 'PL-100V'
+"display resolution" word 2 : 640 480
+"input resolution" word 2 : 8300 6240
+"tablet size" word 2 : 4155 3104
+"sampling rate" word 1 : 66
+"current page" word 1 : 284
+"over point" byte 1 : 1
+"tag code size" word 1 : 0
+"tag code count" word 1 : 0
+"sex" char 1 : 'm'
+"occupation" char 15 : '学生'

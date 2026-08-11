@@ -79,4 +79,5 @@ pyenv/
 !data/raw/kanjivg.xml
 !data/test/*.bin
 !data/test/*.svg
+!data/test/HANDS_TEST.TXT
 !Cargo.toml
