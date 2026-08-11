@@ -6,7 +6,7 @@ pub mod japanese_input_py {
     use japanese_input::{
         KanjiMap,
         gen_svg::{gen_kanji_grid, gen_kanji_grid_with_hint},
-        recognize_character::Recognizer as NativeRecognizer,
+        recognizer::Recognizer as NativeRecognizer,
         stroke_point::ToStrokeVector as _,
     };
     use pyo3::exceptions::PyRuntimeError;
@@ -23,13 +23,14 @@ pub mod japanese_input_py {
     impl Recognizer {
         #[new]
         fn new(map_path: &str) -> PyResult<Self> {
-            let bytes = read(map_path)
+            let model = read(map_path)
                 .map_err(|e| PyRuntimeError::new_err(format!("failed to read {map_path}: {e}")))?;
-            let map: KanjiMap = postcard::from_bytes(&bytes)
-                .map_err(|e| PyRuntimeError::new_err(format!("failed to deserialize: {e}")))?;
-            Ok(Self {
-                recognizer: NativeRecognizer::new(&map),
-            })
+            let mut recognizer = NativeRecognizer::load(&model)
+                .map_err(|e| PyRuntimeError::new_err(format!("failed to load model: {e}")))?;
+            recognizer.select_preset(22);
+            recognizer.set_small_threshold(0.5);
+
+            Ok(Self { recognizer })
         }
 
         fn recognize(&self, committed: Vec<Vec<Vec<(f32, f32)>>>) -> String {
@@ -37,7 +38,7 @@ pub mod japanese_input_py {
                 .par_iter()
                 .map(|strokes| {
                     self.recognizer
-                        .recognize(strokes.to_stroke_vector())
+                        .recognize(strokes)
                         .first()
                         .map_or('-', |r| r.character)
                 })
