@@ -12,11 +12,12 @@ use crate::{
         gen_maru_stroke_order,
     },
     map_space_to::MapSpaceTo as _,
-    match_strokes::{Weights, match_strokes},
+    match_strokes::match_strokes,
     stroke_geometry::StrokeGeometry,
     stroke_point::StrokePoint,
     to_bez_path::ToBezPathVec as _,
     transform::Transform as _,
+    weights::Weights,
 };
 
 const MOVE_THRESHOLD: f64 = 0.3;
