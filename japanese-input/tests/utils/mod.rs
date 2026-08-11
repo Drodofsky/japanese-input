@@ -4,8 +4,8 @@ use japanese_input::{
     KanjiMap,
     analyze::{AnalyzeResult, Analyzer},
     analyzed_kanji_node::{self, AnalyzedKanjiNode},
-    match_strokes::Weights,
     stroke_point::ToStrokeVector,
+    weights::Weights,
 };
 use serde::{Deserialize, Serialize};
 
@@ -28,7 +28,7 @@ pub fn load_recognizer_model() -> Vec<u8> {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap()
-        .join("data/generated/recognizer_model.bin");
+        .join("data/generated/recognizer2_tuned.bin");
     std::fs::read(path).expect("failed to read kanji.bin")
 }
 
@@ -87,7 +87,7 @@ pub fn match_strokes(
         reference,
         user.to_stroke_vector(),
         Weights::default(),
-        100,
+        5,
     )
     .clone()
 }
