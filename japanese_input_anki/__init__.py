@@ -59,6 +59,10 @@ def _load_native_module() -> object | None:
 def _reference_map_path() -> Path:
     return Path(os.path.dirname(os.path.normpath(__file__))) / "user_files" / "assets" / "reference_data.bin"
 
+def _model_path() -> Path:
+    return Path(os.path.dirname(os.path.normpath(__file__))) / "user_files" / "assets" / "recognizer2_tuned.bin"
+
+
 if TYPE_CHECKING:
     from . import japanese_input_py  # pyright: ignore[reportMissingModuleSource]
 else:
@@ -68,10 +72,14 @@ else:
 
 
 reference_map_path = _reference_map_path()
+model_path = _model_path()
+
 if not reference_map_path.exists():
     showCritical(f"Japanese Input: reference map not found at {reference_map_path}")
+if not model_path.exists():
+    showCritical(f"Japanese Input: model not found at {model_path}")
 try:
-    recognizer : japanese_input_py.Recognizer = japanese_input_py.Recognizer(str(reference_map_path))
+    recognizer : japanese_input_py.Recognizer = japanese_input_py.Recognizer(str(model_path))
 except Exception as e:
     showCritical(f"Japanese Input: failed to construct recognizer\n\n{e}")
 try:
