@@ -95,6 +95,8 @@ jobs:
           mkdir -p addon_out/user_files/assets
           cp data/generated/reference_data.bin addon_out/user_files/assets/reference_data.bin
 
+          wget -P  addon_out/user_files/assets/ https://github.com/Drodofsky/regonizer-model/raw/refs/heads/main/recognizer2_tuned.bin
+          
           # KanjiVG license attribution
           cp data/License.txt addon_out/user_files/assets/LICENSE.txt
 
