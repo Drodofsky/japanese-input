@@ -1054,6 +1054,17 @@ impl Recognizer {
     #[inline]
     #[must_use]
     pub fn fit_with(data: &Dataset, weights: Weights) -> Self {
+        let corpus_drawings = data.values().map(Vec::len).sum();
+        Self::fit_scoped(data, weights, corpus_drawings)
+    }
+
+    /// Like [`Self::fit_with`], but every reading's prior is judged against `corpus_drawings`
+    /// rather than `data`'s own total — for training a handful of characters in isolation, whose
+    /// true rarity has to be judged against the full corpus they will be spliced back into, not
+    /// against a pool containing only themselves.
+    #[inline]
+    #[must_use]
+    pub fn fit_scoped(data: &Dataset, weights: Weights, corpus_drawings: usize) -> Self {
         let mut shape: HashMap<char, Vec<&RawStrokes>> = HashMap::new();
         let mut extent: HashMap<char, Vec<Placement>> = HashMap::new();
         // Shape trains on the base character (a small kana is its base drawn smaller);
@@ -1066,10 +1077,9 @@ impl Recognizer {
                 .or_default()
                 .extend(raws.iter().map(|s| placement(s)));
         }
-        let drawings: usize = extent.values().map(Vec::len).sum();
         let models: Vec<(char, CharModel)> = shape
             .par_iter()
-            .flat_map_iter(|(&c, raws)| train_char(c, raws, &extent, drawings, &weights))
+            .flat_map_iter(|(&c, raws)| train_char(c, raws, &extent, corpus_drawings, &weights))
             .collect();
         log_fit_diagnostics(&models, &extent);
         let mut rec = Self {
@@ -1840,6 +1850,26 @@ mod tests {
         assert_eq!(rec.model_count(), 3, "あ's two fresh prototypes replace its one, い is untouched");
         assert_eq!(rec.models.iter().filter(|(c, _)| *c == 'い').count(), 1);
         assert_eq!(rec.models.iter().filter(|(c, _)| *c == 'あ').count(), 2);
+    }
+
+    #[test]
+    fn fit_scoped_judges_prior_against_the_given_corpus_not_the_datasets_own_total() {
+        let strokes = box_stroke();
+        let mut dataset: Dataset = HashMap::new();
+        dataset.insert('あ', vec![strokes; 10]);
+        let natural = Recognizer::fit_with(&dataset, Weights::default());
+        let scoped = Recognizer::fit_scoped(&dataset, Weights::default(), 1_000_000);
+        let prior_of = |rec: &Recognizer| {
+            rec.models
+                .iter()
+                .find(|(c, _)| *c == 'あ')
+                .map(|(_, m)| m.log_prior[0])
+                .expect("あ")
+        };
+        assert!(
+            prior_of(&scoped) < prior_of(&natural),
+            "judged against a corpus a hundred thousand times bigger, あ's own ten drawings should look far rarer"
+        );
     }
 
     #[test]
