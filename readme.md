@@ -34,8 +34,8 @@ This benchmark tracks the recognition engines and models the add-on uses, or has
 
 |                         | Hiragana | Katakana | Kanji  | Japanese |
 | ----------------------- | -------- | -------- | ------ | -------- |
-| correct (MRF15)         |          |          |        |          |
-| correct (MRF10)         | 80.63%   | 73.52%   | 90.48% | 89.60%   |
+| correct (MRF50)         | 92.17%   | 81.77%   | 96.63% | 93.77%   |
+| correct (MRF22)         | 85.65%   | 78.25%   | 83.44% | 81.24%   |
 | correct (DTW)           | 59.5%    | 62.67%   | 54.23% | 53.15%   |
 | correct (Zinnia+Tegaki) | 21.53%   | 2.01%    | 47.77% | 45.13%   |
 

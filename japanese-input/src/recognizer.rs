@@ -74,6 +74,9 @@ const MAX_STROKE_GAP: f64 = 4.0;
 /// Smallest share a reading may be assigned, for labels absent from training.
 const PRIOR_FLOOR: f64 = 1e-7;
 
+/// A small kana's prior penalty against its base is capped in energy, immune to how large `prior` is tuned.
+const MAX_SMALL_PRIOR_GAP: f64 = 0.3;
+
 /// One sampled point as the recognizer sees it: position, displacement, curvature.
 pub type Terms = [Vec2; N_TERMS];
 
@@ -1061,9 +1064,11 @@ impl Recognizer {
             w.size.mul_add(p.nll(d.place), base) - w.prior * (prior + share)
         };
         let full = (c, score(m.place_full, lp[0]));
+        // Refunds whatever the small reading's prior term charges beyond MAX_SMALL_PRIOR_GAP.
+        let excess = (w.prior * (lp[0] - lp[1]) - MAX_SMALL_PRIOR_GAP).max(0.0);
         let small = m
             .place_small
-            .map(|p| (to_small(c).unwrap_or(c), score(p, lp[1])));
+            .map(|p| (to_small(c).unwrap_or(c), score(p, lp[1]) - excess));
         iter::once(full).chain(small)
     }
 
@@ -1759,6 +1764,27 @@ mod tests {
         assert!(rare < common);
         assert!((common - rare - (1044.0_f64 / 6.0).ln()).abs() < 1e-9);
         assert!(ln_share(0, 20_292).is_finite(), "an unseen label is not impossible");
+    }
+
+    #[test]
+    fn a_small_kanas_prior_penalty_stays_capped_however_large_prior_is_tuned() {
+        let feats = features(&box_stroke());
+        let mut m = CharModel::from_template(&feats, 2);
+        m.place_full = PlaceModel::default();
+        m.place_small = Some(PlaceModel::default());
+        m.log_prior = [0.0, -100.0];
+        let d = Drawing::new(&box_stroke());
+        let w = Weights {
+            prior: 50.0,
+            ..Weights::default()
+        };
+        let readings: Vec<(char, f64)> = Recognizer::emit('あ', &m, &d, &w).collect();
+        let full = readings.iter().find(|&&(c, _)| c == 'あ').expect("full").1;
+        let small = readings.iter().find(|&&(c, _)| c == 'ぁ').expect("small").1;
+        assert!(
+            small <= full + MAX_SMALL_PRIOR_GAP + 1e-9,
+            "small={small} should never clear full={full} by more than the cap"
+        );
     }
 
     #[test]
