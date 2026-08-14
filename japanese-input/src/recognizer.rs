@@ -1046,7 +1046,14 @@ impl Recognizer {
     #[inline]
     #[must_use]
     pub fn fit(data: &Dataset) -> Self {
-        let weights = Weights::default();
+        Self::fit_with(data, Weights::default())
+    }
+
+    /// Trains with the given weights instead of the default, so a targeted re-fit (see
+    /// [`Self::splice`]) can align against the same weights its patch will be scored under.
+    #[inline]
+    #[must_use]
+    pub fn fit_with(data: &Dataset, weights: Weights) -> Self {
         let mut shape: HashMap<char, Vec<&RawStrokes>> = HashMap::new();
         let mut extent: HashMap<char, Vec<Placement>> = HashMap::new();
         // Shape trains on the base character (a small kana is its base drawn smaller);
