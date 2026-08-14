@@ -47,7 +47,7 @@ fn distortion(desc: &[Descriptor], groups: &[Vec<usize>]) -> f64 {
     let mut total = 0.0_f64;
     let mut n = 0.0_f64;
     for g in groups {
-        let mut centre = [0.0_f64; DESC_POINTS * 2];
+        let mut centre = [0.0_f64; DESC_POINTS * 4];
         let count: f64 = g.len().convert_lossy();
         if count <= 0.0_f64 {
             continue;
@@ -630,21 +630,20 @@ fn ln_share(n: usize, total: usize) -> f64 {
     (share / total.max(1.0)).max(PRIOR_FLOOR).ln()
 }
 
-/// Points a shape descriptor is resampled to before clustering.
+/// Points a resampled half-descriptor (shape or order) is built from before clustering.
 const DESC_POINTS: usize = 12;
 
 /// Lloyd iterations for k-means clustering.
 const KMEANS_ITERS: usize = 8;
 
-/// A fixed-length stand-in for a drawing's shape, comparable without an alignment step.
-type Descriptor = [f64; DESC_POINTS * 2];
+/// A drawing's style-and-order fingerprint: shape resampled by point, then stroke centroids resampled by stroke.
+type Descriptor = [f64; DESC_POINTS * 4];
 
-/// The path resampled to a fixed number of points, in unit-box coordinates.
-fn descriptor(feats: &[Terms]) -> Descriptor {
-    let mut out = [0.0_f64; DESC_POINTS * 2];
-    let last = feats.len().saturating_sub(1);
-    if feats.is_empty() {
-        return out;
+/// Resamples a sequence of unit-box points to `DESC_POINTS` steps along it.
+fn resample(points: &[Vec2], out: &mut [f64]) {
+    let last = points.len().saturating_sub(1);
+    if points.is_empty() {
+        return;
     }
     let span: f64 = last.convert_lossy();
     let steps: f64 = DESC_POINTS.saturating_sub(1).max(1).convert_lossy();
@@ -652,15 +651,40 @@ fn descriptor(feats: &[Terms]) -> Descriptor {
         let at = span * index.convert_lossy() / steps;
         let floor = at.floor();
         let frac = at - floor;
-        let before = feats.get(floor.to_index()).map_or(Vec2::ZERO, |f| f[0]);
-        let after = feats
+        let before = points.get(floor.to_index()).copied().unwrap_or(Vec2::ZERO);
+        let after = points
             .get(floor.to_index().saturating_add(1))
-            .map_or(before, |f| f[0]);
+            .copied()
+            .unwrap_or(before);
         let point = before.lerp(after, frac);
         if let [px, py] = slot {
             *px = point.x;
             *py = point.y;
         }
+    }
+}
+
+/// A stroke's centroid, normalized into the drawing's own unit box.
+fn stroke_centroid(stroke: &[(f32, f32)], frame: Rect, span: f64) -> Vec2 {
+    let n = stroke.len().convert_lossy().max(1.0_f64);
+    let sum = stroke.iter().fold(Vec2::ZERO, |acc, &(x, y)| {
+        Vec2::new(
+            acc.x + (f64::from(x) - frame.x0) / span,
+            acc.y + (f64::from(y) - frame.y0) / span,
+        )
+    });
+    Vec2::new(sum.x / n, sum.y / n)
+}
+
+/// A single prototype's Viterbi alignment is strictly forward over one state sequence, so a stroke-order difference has to be told apart here or it never can be.
+fn descriptor(feats: &[Terms], raw: &RawStrokes) -> Descriptor {
+    let mut out = [0.0_f64; DESC_POINTS * 4];
+    let (shape, order) = out.split_at_mut(DESC_POINTS * 2);
+    resample(&feats.iter().map(|f| f[0]).collect::<Vec<Vec2>>(), shape);
+    if let Some(frame) = frame_rect(raw) {
+        let span = frame.width().max(frame.height()).max(EPS);
+        let centroids: Vec<Vec2> = raw.iter().map(|s| stroke_centroid(s, frame, span)).collect();
+        resample(&centroids, order);
     }
     out
 }
@@ -672,7 +696,7 @@ fn dist2(a: &Descriptor, b: &Descriptor) -> f64 {
         .sum()
 }
 
-/// K-means over resampled shape into writing styles, largest group first, thin ones folded into it.
+/// K-means over the style-and-order fingerprint into writing styles, largest group first, thin ones folded into it.
 fn clusters(desc: &[Descriptor], k: usize, floor: usize) -> Vec<Vec<usize>> {
     let n = desc.len();
     if n == 0 {
@@ -869,7 +893,11 @@ fn train_char(
             .map_or_else(|| full.shifted(SMALL_LN_OFFSET), |v| PlaceModel::fit(v))
     });
     let all: Vec<Vec<Terms>> = raws.iter().map(|s| features(s)).collect();
-    let desc: Vec<Descriptor> = all.iter().map(|f| descriptor(f)).collect();
+    let desc: Vec<Descriptor> = all
+        .iter()
+        .zip(raws.iter())
+        .map(|(f, &r)| descriptor(f, r))
+        .collect();
     let total: f64 = all.len().convert_lossy();
     let floor = (total * MIN_SHARE).to_index().max(MIN_CLUSTER);
     // Splits until a level leaves a group too thin to train, or fails to earn DISTINCT_GAIN.
@@ -1561,7 +1589,7 @@ mod tests {
     }
 
     fn descriptors(at: f64, n: usize) -> Vec<Descriptor> {
-        vec![[at; DESC_POINTS * 2]; n]
+        vec![[at; DESC_POINTS * 4]; n]
     }
 
     /// The floor `fit` would use for a character with this many drawings.
@@ -1618,11 +1646,26 @@ mod tests {
 
     #[test]
     fn a_resampled_descriptor_keeps_the_endpoints() {
-        let d = descriptor(&features(&box_stroke()));
-        let feats = features(&box_stroke());
+        let strokes = box_stroke();
+        let feats = features(&strokes);
+        let d = descriptor(&feats, &strokes);
         let first = feats.first().map(|f| f[0]).expect("a first point");
         assert!((d[0] - first.x).abs() < 1e-9 && (d[1] - first.y).abs() < 1e-9);
     }
+
+    #[test]
+    fn the_order_half_tells_apart_two_drawings_with_the_same_strokes_in_a_different_order() {
+        let forward = box_stroke();
+        let reversed: Vec<Vec<(f32, f32)>> = forward.iter().rev().cloned().collect();
+        let order_half = |strokes: &Vec<Vec<(f32, f32)>>| {
+            let d = descriptor(&features(strokes), strokes);
+            d[DESC_POINTS * 2..].to_vec()
+        };
+        let (a, b) = (order_half(&forward), order_half(&reversed));
+        let gap: f64 = a.iter().zip(&b).map(|(x, y)| (x - y).powi(2)).sum();
+        assert!(gap > 1e-6, "reversing stroke order left the order half unchanged");
+    }
+
 
     #[test]
     fn a_model_survives_a_round_trip_through_bytes() {
