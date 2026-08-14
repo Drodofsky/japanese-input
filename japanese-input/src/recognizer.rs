@@ -747,7 +747,7 @@ fn clusters(desc: &[Descriptor], k: usize, floor: usize) -> Vec<Vec<usize>> {
             break;
         }
         for (c, seed) in seeds.iter_mut().enumerate() {
-            let mut sum = [0.0_f64; DESC_POINTS * 2];
+            let mut sum = [0.0_f64; DESC_POINTS * 4];
             let mut count = 0.0_f64;
             for (d, _) in desc.iter().zip(&owner).filter(|(_, o)| **o == c) {
                 for (acc, v) in sum.iter_mut().zip(d) {
@@ -1660,6 +1660,27 @@ mod tests {
         let c = clusters(&d, 2, floor_for(d.len()));
         assert_eq!(c.len(), 2);
         assert!(c.iter().all(|g| g.len() == 40));
+    }
+
+    #[test]
+    fn clustering_can_separate_on_order_alone_across_several_iterations() {
+        // Identical shape everywhere, two clean order blobs offset just enough that the
+        // first Lloyd iteration does not already have every point on its true side —
+        // a stand-in for a seed whose order half stays wrong unless later iterations
+        // are able to update it, rather than only ever refining the shape half.
+        let shape = 0..DESC_POINTS * 2;
+        let order = DESC_POINTS * 2..DESC_POINTS * 4;
+        let point = |order_at: f64| {
+            let mut d = [0.0_f64; DESC_POINTS * 4];
+            d[shape.clone()].fill(0.5);
+            d[order.clone()].fill(order_at);
+            d
+        };
+        let mut two: Vec<Descriptor> = (0..40).map(|i| point(f64::from(i) * 0.001)).collect();
+        two.extend((0..40).map(|i| point(1.0 + f64::from(i) * 0.001)));
+        let groups = clusters(&two, 2, floor_for(two.len()));
+        assert_eq!(groups.len(), 2, "shape gives no signal at all, so this must come from order");
+        assert!(groups.iter().all(|g| g.len() == 40), "the two order blobs should split evenly");
     }
 
     #[test]
