@@ -1288,6 +1288,15 @@ impl Recognizer {
         before.saturating_sub(self.models.len())
     }
 
+    /// Replaces every prototype for the given base characters with `patch`'s versions of them, leaving everyone else untouched.
+    #[inline]
+    pub fn splice(&mut self, patch: &Self, targets: &[char]) {
+        self.models.retain(|(c, _)| !targets.contains(&to_base(*c)));
+        self.models
+            .extend(patch.models.iter().filter(|(c, _)| targets.contains(&to_base(*c))).cloned());
+        self.refresh();
+    }
+
     #[inline]
     pub fn upsert_preset(
         &mut self,
@@ -1798,6 +1807,32 @@ mod tests {
             Some(2),
             "the depths still name levels that exist, so they stay"
         );
+    }
+
+    #[test]
+    fn splicing_replaces_only_the_targeted_characters() {
+        let feats = features(&box_stroke());
+        let mut rec = Recognizer {
+            weights: Weights::default(),
+            depths: HashMap::new(),
+            live: Vec::new(),
+            window: default_window(),
+            models: vec![
+                ('あ', CharModel::from_template(&feats, 2)),
+                ('い', CharModel::from_template(&feats, 2)),
+            ],
+            presets: Vec::new(),
+        };
+        rec.refresh();
+        let mut patch = rec.clone();
+        patch.models = vec![
+            ('あ', CharModel::from_template(&feats, 2)),
+            ('あ', CharModel::from_template(&feats, 2)),
+        ];
+        rec.splice(&patch, &['あ']);
+        assert_eq!(rec.model_count(), 3, "あ's two fresh prototypes replace its one, い is untouched");
+        assert_eq!(rec.models.iter().filter(|(c, _)| *c == 'い').count(), 1);
+        assert_eq!(rec.models.iter().filter(|(c, _)| *c == 'あ').count(), 2);
     }
 
     #[test]
