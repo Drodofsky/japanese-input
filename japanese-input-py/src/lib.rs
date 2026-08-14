@@ -28,7 +28,6 @@ pub mod japanese_input_py {
             let mut recognizer = NativeRecognizer::load(&model)
                 .map_err(|e| PyRuntimeError::new_err(format!("failed to load model: {e}")))?;
             recognizer.select_preset(22);
-            recognizer.set_small_threshold(0.5);
 
             Ok(Self { recognizer })
         }

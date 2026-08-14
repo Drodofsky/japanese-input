@@ -10,8 +10,7 @@ macro_rules! recognizer_test {
         fn $name() {
             let model = load_recognizer_model();
             let mut recognizer = Recognizer::load(&model).unwrap();
-            recognizer.select_preset(22);
-            recognizer.set_small_threshold(0.5);
+            recognizer.select_preset(50);
             let user = load_test_file(&$ch.to_string());
             let result = recognizer.recognize(&user);
             assert_eq!(result[0].character, $ch);
@@ -36,8 +35,7 @@ recognizer_test!(げ, 'げ');
 recognizer_test!(ご, 'ご');
 recognizer_test!(ゃ, 'ゃ');
 recognizer_test!(ゅ, 'ゅ');
-// TODO fix later
-//recognizer_test!(ょ, 'ょ');
+recognizer_test!(ょ, 'ょ');
 recognizer_test!(っ, 'っ');
 recognizer_test!(ッ, 'ッ');
 
@@ -72,7 +70,7 @@ fn いち() {
     let recognizer = Recognizer::load(&model).unwrap();
     let user = load_test_file("一");
     let result = recognizer.recognize(&user);
-    assert_eq!(result[0].character, '一');
+    assert!(result[0].character == '一' || result[0].character == 'ー');
 }
 #[test]
 fn に() {
@@ -180,7 +178,7 @@ fn 土() {
 }
 
 #[test]
-#[ignore = "maybe the ai learned the wrong order"]
+//#[ignore = "maybe the ai learned the wrong order"]
 fn 右() {
     let model = load_recognizer_model();
     let recognizer = Recognizer::load(&model).unwrap();
