@@ -2,6 +2,7 @@ use core::cmp::Reverse;
 use core::f64::consts::{LN_2, TAU};
 use core::iter::{self, repeat_with};
 use core::mem::swap;
+use core::ops::Range;
 use std::collections::{HashMap, HashSet};
 
 use kurbo::{Point, Rect, Vec2};
@@ -42,23 +43,24 @@ pub const MAX_LEVEL: usize = 8;
 /// Minimum distortion drop a split must earn to be kept as its own level.
 const DISTINCT_GAIN: f64 = 0.02;
 
-/// Mean squared distance from each drawing to its own group's centre.
-fn distortion(desc: &[Descriptor], groups: &[Vec<usize>]) -> f64 {
+/// Mean squared distance from each drawing to its own group's centre, over `dims` of the descriptor.
+fn distortion_over(desc: &[Descriptor], groups: &[Vec<usize>], dims: Range<usize>) -> f64 {
     let mut total = 0.0_f64;
     let mut n = 0.0_f64;
     for g in groups {
-        let mut centre = [0.0_f64; DESC_POINTS * 4];
         let count: f64 = g.len().convert_lossy();
         if count <= 0.0_f64 {
             continue;
         }
+        let mut centre = vec![0.0_f64; dims.len()];
         for d in g.iter().filter_map(|&i| desc.get(i)) {
-            for (c, v) in centre.iter_mut().zip(d) {
+            for (c, v) in centre.iter_mut().zip(d.get(dims.clone()).unwrap_or(&[])) {
                 *c += v / count;
             }
         }
         for d in g.iter().filter_map(|&i| desc.get(i)) {
-            total += dist2(d, &centre);
+            let slice = d.get(dims.clone()).unwrap_or(&[]);
+            total += centre.iter().zip(slice).map(|(x, y)| (x - y) * (x - y)).sum::<f64>();
             n += 1.0_f64;
         }
     }
@@ -900,19 +902,27 @@ fn train_char(
         .collect();
     let total: f64 = all.len().convert_lossy();
     let floor = (total * MIN_SHARE).to_index().max(MIN_CLUSTER);
-    // Splits until a level leaves a group too thin to train, or fails to earn DISTINCT_GAIN.
+    // Splits until a level leaves a group too thin to train, or neither half of the fingerprint
+    // earns DISTINCT_GAIN. Judged separately per half rather than on the combined distance, so a
+    // character with uniform order but varied shape (or the reverse) is not diluted out of a
+    // split its stronger half clearly earns.
     let mut levels: Vec<Vec<Vec<usize>>> = Vec::new();
-    let mut tightest = f64::INFINITY;
+    let (mut tightest_shape, mut tightest_order) = (f64::INFINITY, f64::INFINITY);
     for k in 1..=MAX_LEVEL {
         let g = clusters(&desc, k, floor);
         if g.len() != k || g.iter().any(|x| x.len() < floor) {
             break;
         }
-        let spread = distortion(&desc, &g);
-        if k > 1 && spread > tightest * (1.0_f64 - DISTINCT_GAIN) {
+        let shape = distortion_over(&desc, &g, 0..DESC_POINTS * 2);
+        let order = distortion_over(&desc, &g, DESC_POINTS * 2..DESC_POINTS * 4);
+        if k > 1
+            && shape > tightest_shape * (1.0_f64 - DISTINCT_GAIN)
+            && order > tightest_order * (1.0_f64 - DISTINCT_GAIN)
+        {
             break;
         }
-        tightest = spread;
+        tightest_shape = shape;
+        tightest_order = order;
         levels.push(g);
     }
     if levels.is_empty() {
@@ -1737,16 +1747,47 @@ mod tests {
 
     #[test]
     fn a_split_must_earn_its_level() {
+        let full = 0..DESC_POINTS * 4;
         // One blob: any cut through it is arbitrary, so no second level.
         let one = descriptors(0.5, 90);
-        assert!(distortion(&one, &clusters(&one, 1, floor_for(one.len()))) < 1e-12);
+        assert!(distortion_over(&one, &clusters(&one, 1, floor_for(one.len())), full.clone()) < 1e-12);
         // Two blobs far apart: cutting between them collapses the spread.
         let mut two = descriptors(0.0, 40);
         two.extend(descriptors(1.0, 40));
         let f = floor_for(two.len());
-        let flat = distortion(&two, &clusters(&two, 1, f));
-        let split = distortion(&two, &clusters(&two, 2, f));
+        let flat = distortion_over(&two, &clusters(&two, 1, f), full.clone());
+        let split = distortion_over(&two, &clusters(&two, 2, f), full);
         assert!(split < flat * (1.0 - DISTINCT_GAIN), "a real division");
+    }
+
+    #[test]
+    fn a_style_split_is_not_diluted_by_an_order_half_the_split_does_not_explain() {
+        // Two clean shape blobs, but each contains the same 50/50 mix of two order
+        // values, so a shape-driven split leaves the order half's spread unchanged.
+        // Judged separately, shape earns its level on its own; judged summed into
+        // one combined distance, order's unmoving spread would only pad the
+        // denominator and could mask a smaller, otherwise-real shape gain.
+        let shape = 0..DESC_POINTS * 2;
+        let order = DESC_POINTS * 2..DESC_POINTS * 4;
+        let point = |shape_at: f64, order_at: f64| {
+            let mut d = [0.0_f64; DESC_POINTS * 4];
+            d[shape.clone()].fill(shape_at);
+            d[order.clone()].fill(order_at);
+            d
+        };
+        let mut two: Vec<Descriptor> = (0..40).map(|i| point(0.0, if i % 2 == 0 { 0.3 } else { 0.7 })).collect();
+        two.extend((0..40).map(|i| point(1.0, if i % 2 == 0 { 0.3 } else { 0.7 })));
+        let f = floor_for(two.len());
+        let groups = clusters(&two, 2, f);
+        let shape_flat = distortion_over(&two, &clusters(&two, 1, f), shape.clone());
+        let shape_split = distortion_over(&two, &groups, shape);
+        let order_flat = distortion_over(&two, &clusters(&two, 1, f), order.clone());
+        let order_split = distortion_over(&two, &groups, order);
+        assert!(shape_split < shape_flat * (1.0 - DISTINCT_GAIN), "shape alone clears the bar");
+        assert!(
+            (order_split - order_flat).abs() < 1e-9,
+            "order's spread should be unchanged by a split it had no part in: {order_flat} -> {order_split}"
+        );
     }
 
     #[test]
