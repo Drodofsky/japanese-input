@@ -24,5 +24,9 @@ criterion = "0.8"
 name = "match_bench"
 harness = false
 
+[[bench]]
+name = "recognizer_bench"
+harness = false
+
 [lints]
 workspace = true

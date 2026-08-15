@@ -28,6 +28,17 @@ pub fn load_hiragana_map() -> KanjiMap {
 }
 
 /// # Panics
+/// Panics if `data/generated/recognizer2_tuned.bin` cannot be read.
+#[must_use]
+pub fn load_recognizer_model() -> Vec<u8> {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("data/generated/recognizer2_tuned.bin");
+    std::fs::read(path).expect("failed to read recognizer2_tuned.bin")
+}
+
+/// # Panics
 /// Panics if `data/test/{name}.bin` cannot be read or deserialized.
 #[must_use]
 pub fn load_test_file(name: &str) -> Vec<Vec<(f32, f32)>> {

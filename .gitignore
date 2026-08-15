@@ -69,6 +69,7 @@ pyenv/
 !japanese-input/benches/hiragana_bench.rs
 !japanese-input/benches/kanji_bench.rs
 !japanese-input/benches/match_bench.rs
+!japanese-input/benches/recognizer_bench.rs
 !japanese-input-py/Cargo.toml
 !japanese-input-py/src/lib.rs
 !japanese-input-py/gen_stubs.sh
