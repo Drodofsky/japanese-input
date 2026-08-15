@@ -70,6 +70,37 @@ impl Weights {
         }
     }
 
+    /// Fitted with merge examples in the training set, so `merge_penalty` and the harmonic
+    /// weights are no longer stuck at whatever `v1` guessed. They still lack a training
+    /// gradient of their own: every merge example currently fits comfortably, so nothing yet
+    /// pins these down beyond what keeps the pre-existing 28 hand-labeled examples correct.
+    #[must_use]
+    #[inline]
+    pub fn v2() -> Self {
+        Self {
+            direction_weight: 0.05189100035092373,
+            sideways_weights: [
+                0.0055693029032002715,
+                0.0050708803955375305,
+                0.0061229586130859106,
+            ],
+            along_weights: [
+                0.0050708803955375305,
+                0.0050708803955375305,
+                0.0050708803955375305,
+            ],
+            length_weight: 0.0050708803955375305,
+            missing_penalty: 0.9313724848748363,
+            extra_penalty: 0.4006588516097685,
+            order_weight: 0.006351387556892866,
+            group_weight: 0.2542778785477804,
+            contiguity_weight: 0.0050708803955375305,
+            rel_length_weight: 0.013778061121349015,
+            abs_position_weight: 0.6315841285335426,
+            merge_penalty: 0.519651099954349,
+        }
+    }
+
     #[must_use]
     #[inline]
     pub fn leaf(&self) -> [f64; LEAF_FEATURE_COUNT] {
