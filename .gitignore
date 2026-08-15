@@ -45,6 +45,7 @@ pyenv/
 !japanese-input/src/group_score.rs
 !japanese-input/src/weights.rs
 !japanese-input/src/match_strokes.rs
+!japanese-input/src/merge_variants.rs
 !japanese-input/src/gen_svg.rs
 !japanese-input/src/recognizer.rs
 !japanese-input/tests/utils/mod.rs

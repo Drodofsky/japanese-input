@@ -13,6 +13,7 @@ pub mod leaf_matrix;
 pub mod leaf_score;
 pub mod map_space_to;
 pub mod match_strokes;
+pub mod merge_variants;
 pub mod normalize;
 pub mod rdp;
 pub mod recognizer;
