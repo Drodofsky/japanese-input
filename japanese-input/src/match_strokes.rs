@@ -26,7 +26,7 @@ pub const MISSING: u8 = u8::MAX;
 const PERMUTE_UPTO: usize = 3;
 
 /// Longest run of consecutive children a single drawn stroke may stand for.
-const MERGE_UPTO: usize = 3;
+pub(crate) const MERGE_UPTO: usize = 3;
 
 /// How many drawn strokes beyond its own count a child may absorb.
 ///
@@ -258,9 +258,12 @@ impl Solver {
         }
         let mut done: Vec<(f64, StrokeVec)> = Vec::new();
         for taken in 0..order.len() {
-            for bucket in &mut next {
-                bucket.clear();
-            }
+            // A merge can jump several slots of `taken` ahead in one step (it lands at
+            // depth `taken + length`, not `taken + 1`), so a hypothesis it produces has to
+            // survive iterations that read some other depth before its own depth comes up.
+            // Carrying `frontier` forward keeps it alive; only the depths this round
+            // actually writes to change.
+            next.clone_from(&frontier);
             let Some(index) = order.get(taken).copied() else {
                 break;
             };
@@ -326,8 +329,11 @@ impl Solver {
                 bucket.truncate(self.beam);
             }
             swap(&mut frontier, &mut next);
-            if let Some(bucket) = frontier.get(last) {
+            if let Some(bucket) = frontier.get_mut(last) {
                 done.extend(bucket.iter().cloned());
+                // Harvested once; left alone it would keep being carried forward and
+                // re-harvested by every remaining iteration's check below.
+                bucket.clear();
             }
         }
         if order.is_empty() && start == end {
@@ -394,39 +400,45 @@ impl Solver {
         out
     }
 
-    /// Shape of consecutive reference strokes drawn as one motion.
-    ///
-    /// Concatenating the point lists inserts the travel the hand makes when joining them,
-    /// so a joined form needs no separately authored path.
+    /// Shape of consecutive reference strokes drawn as one motion, cached per run.
     fn joined_reference(&mut self, offset: usize, length: usize) -> Option<Shape> {
         if let Some(cached) = self.joined.get(&(offset, length)) {
             return *cached;
         }
-        let mut points: Vec<StrokePoint> = Vec::new();
-        for step in 0..length {
-            let Some(stroke) = self.points.get(offset.saturating_add(step)) else {
-                self.joined.insert((offset, length), None);
-                return None;
-            };
-            for (index, point) in stroke.iter().enumerate() {
-                let mut copy = *point;
-                if index == 0 {
-                    copy.displacement = match points.last() {
-                        Some(previous) => Vec2::new(
-                            point.position.x - previous.position.x,
-                            point.position.y - previous.position.y,
-                        ),
-                        None => Vec2::ZERO,
-                    };
-                }
-                points.push(copy);
-            }
-        }
-        let shape = points.to_shape();
-        let out = shape.is_usable().then_some(shape);
+        let out = joined_reference_shape(&self.points, offset, length);
         self.joined.insert((offset, length), out);
         out
     }
+}
+
+/// Shape of `length` consecutive reference strokes starting at `offset`, drawn as one
+/// motion.
+#[must_use]
+#[inline]
+pub fn joined_reference_shape(
+    reference_strokes: &[Vec<StrokePoint>],
+    offset: usize,
+    length: usize,
+) -> Option<Shape> {
+    let mut points: Vec<StrokePoint> = Vec::new();
+    for step in 0..length {
+        let stroke = reference_strokes.get(offset.saturating_add(step))?;
+        for (index, point) in stroke.iter().enumerate() {
+            let mut copy = *point;
+            if index == 0 {
+                copy.displacement = match points.last() {
+                    Some(previous) => Vec2::new(
+                        point.position.x - previous.position.x,
+                        point.position.y - previous.position.y,
+                    ),
+                    None => Vec2::ZERO,
+                };
+            }
+            points.push(copy);
+        }
+    }
+    let shape = points.to_shape();
+    shape.is_usable().then_some(shape)
 }
 
 /// Puts the flat list back in reference order, since children were taken in drawing order.
@@ -492,7 +504,7 @@ fn inversions(order: &[usize]) -> usize {
 }
 
 /// Filler entries are not drawn strokes, so scoring must see them as undrawn.
-fn scoring_order(order: &[u8]) -> StrokeVec {
+pub(crate) fn scoring_order(order: &[u8]) -> StrokeVec {
     order
         .iter()
         .map(|value| if *value == FILLER { MISSING } else { *value })
