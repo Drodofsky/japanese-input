@@ -1,6 +1,7 @@
 pub mod analyze;
 pub mod analyzed_kanji_node;
 pub mod arc_len;
+pub mod assignment;
 pub mod bbox;
 pub mod centroid;
 pub mod convert_lossy;
@@ -23,7 +24,6 @@ pub mod to_bez_path;
 pub mod to_index;
 pub mod transform;
 pub mod weights;
-pub mod assignment;
 use std::collections::HashMap;
 
 use crate::kanji_node::KanjiNode;

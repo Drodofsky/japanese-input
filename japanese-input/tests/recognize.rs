@@ -249,3 +249,11 @@ fn 雨() {
     let result = recognizer.recognize(&user);
     assert_eq!(result[0].character, '雨');
 }
+#[test]
+fn 語_m1() {
+    let model = load_recognizer_model();
+    let recognizer = Recognizer::load(&model).unwrap();
+    let user = load_test_file("語_m1");
+    let result = recognizer.recognize(&user);
+    assert_eq!(result[0].character, '語');
+}

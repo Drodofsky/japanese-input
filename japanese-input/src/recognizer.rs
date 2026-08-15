@@ -60,7 +60,11 @@ fn distortion_over(desc: &[Descriptor], groups: &[Vec<usize>], dims: Range<usize
         }
         for d in g.iter().filter_map(|&i| desc.get(i)) {
             let slice = d.get(dims.clone()).unwrap_or(&[]);
-            total += centre.iter().zip(slice).map(|(x, y)| (x - y) * (x - y)).sum::<f64>();
+            total += centre
+                .iter()
+                .zip(slice)
+                .map(|(x, y)| (x - y) * (x - y))
+                .sum::<f64>();
             n += 1.0_f64;
         }
     }
@@ -96,7 +100,10 @@ pub struct RecognitionResult {
 }
 
 /// The tuned parameters (paper's λ): three shape terms and a transition weight, plus size, stroke-gap, and prior weights.
-#[expect(clippy::exhaustive_structs, reason = "tuning tools build this by literal")]
+#[expect(
+    clippy::exhaustive_structs,
+    reason = "tuning tools build this by literal"
+)]
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Weights {
     pub term: [f64; N_TERMS],
@@ -166,9 +173,7 @@ fn frame_rect(strokes: &[Vec<(f32, f32)>]) -> Option<Rect> {
 #[inline]
 #[must_use]
 pub fn frame_size(strokes: &[Vec<(f32, f32)>]) -> f32 {
-    frame_rect(strokes).map_or(f32::INFINITY, |r| {
-        r.width().max(r.height()).convert_lossy()
-    })
+    frame_rect(strokes).map_or(f32::INFINITY, |r| r.width().max(r.height()).convert_lossy())
 }
 
 /// Size and position of the drawing's box, both axes kept since small kana shrink unevenly.
@@ -191,12 +196,7 @@ fn unit_points(strokes: &[Vec<(f32, f32)>]) -> Vec<Point> {
     for s in strokes {
         let pts: Vec<Point> = s
             .iter()
-            .map(|&(x, y)| {
-                Point::new(
-                    (f64::from(x) - bb.x0) / span,
-                    (f64::from(y) - bb.y0) / span,
-                )
-            })
+            .map(|&(x, y)| Point::new((f64::from(x) - bb.x0) / span, (f64::from(y) - bb.y0) / span))
             .collect();
         out.extend(rdp_slice(&pts, RDP_EPS));
     }
@@ -685,17 +685,17 @@ fn descriptor(feats: &[Terms], raw: &RawStrokes) -> Descriptor {
     resample(&feats.iter().map(|f| f[0]).collect::<Vec<Vec2>>(), shape);
     if let Some(frame) = frame_rect(raw) {
         let span = frame.width().max(frame.height()).max(EPS);
-        let centroids: Vec<Vec2> = raw.iter().map(|s| stroke_centroid(s, frame, span)).collect();
+        let centroids: Vec<Vec2> = raw
+            .iter()
+            .map(|s| stroke_centroid(s, frame, span))
+            .collect();
         resample(&centroids, order);
     }
     out
 }
 
 fn dist2(a: &Descriptor, b: &Descriptor) -> f64 {
-    a.iter()
-        .zip(b)
-        .map(|(x, y)| (x - y) * (x - y))
-        .sum()
+    a.iter().zip(b).map(|(x, y)| (x - y) * (x - y)).sum()
 }
 
 /// K-means over the style-and-order fingerprint into writing styles, largest group first, thin ones folded into it.
@@ -705,7 +705,10 @@ fn clusters(desc: &[Descriptor], k: usize, floor: usize) -> Vec<Vec<usize>> {
         return Vec::new();
     }
     let floor = floor.max(MIN_CLUSTER);
-    #[expect(clippy::arithmetic_side_effects, reason = "floor is at least MIN_CLUSTER, never zero")]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "floor is at least MIN_CLUSTER, never zero"
+    )]
     let k = k.max(1).min(n.saturating_div(floor).max(1));
     if k == 1 {
         return vec![(0..n).collect()];
@@ -720,7 +723,12 @@ fn clusters(desc: &[Descriptor], k: usize, floor: usize) -> Vec<Vec<usize>> {
     while seeds.len() < k {
         let pick = desc
             .iter()
-            .map(|d| seeds.iter().map(|s| dist2(d, s)).fold(f64::INFINITY, f64::min))
+            .map(|d| {
+                seeds
+                    .iter()
+                    .map(|s| dist2(d, s))
+                    .fold(f64::INFINITY, f64::min)
+            })
             .enumerate()
             .max_by(|a, b| a.1.total_cmp(&b.1))
             .map(|(i, _)| i);
@@ -814,7 +822,10 @@ pub struct Preset {
     pub stats: PresetStats,
 }
 
-#[expect(clippy::exhaustive_structs, reason = "tuning tools build this by literal")]
+#[expect(
+    clippy::exhaustive_structs,
+    reason = "tuning tools build this by literal"
+)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct PresetStats {
     pub hira: f64,
@@ -939,12 +950,19 @@ fn train_char(
     let mut out: Vec<(char, CharModel)> = Vec::new();
     for (li, groups) in levels.iter().enumerate() {
         for group in groups {
-            let feats: Vec<Vec<Terms>> = group.iter().filter_map(|&i| all.get(i).cloned()).collect();
-            let picked: Vec<&RawStrokes> = group.iter().filter_map(|&i| raws.get(i).copied()).collect();
-            let mut sorted: Vec<(usize, usize)> =
-                feats.iter().enumerate().map(|(i, f)| (f.len(), i)).collect();
+            let feats: Vec<Vec<Terms>> =
+                group.iter().filter_map(|&i| all.get(i).cloned()).collect();
+            let picked: Vec<&RawStrokes> =
+                group.iter().filter_map(|&i| raws.get(i).copied()).collect();
+            let mut sorted: Vec<(usize, usize)> = feats
+                .iter()
+                .enumerate()
+                .map(|(i, f)| (f.len(), i))
+                .collect();
             sorted.sort_unstable();
-            let t = sorted.get(sorted.len().saturating_div(2)).map_or(0, |&(_, i)| i);
+            let t = sorted
+                .get(sorted.len().saturating_div(2))
+                .map_or(0, |&(_, i)| i);
             let count = common_stroke_count(picked.iter().map(|s| s.len()));
             let mut m = train_one(&feats, t, count, weights);
             m.place_full = full;
@@ -961,7 +979,10 @@ fn train_char(
 }
 
 /// Training-time report on cluster depth, mixture weights, and small-kana separability.
-#[expect(clippy::print_stderr, reason = "diagnostics for the fit-recognizer tool, not library behavior")]
+#[expect(
+    clippy::print_stderr,
+    reason = "diagnostics for the fit-recognizer tool, not library behavior"
+)]
 fn log_fit_diagnostics(models: &[(char, CharModel)], extent: &HashMap<char, Vec<Placement>>) {
     let measured = extent
         .iter()
@@ -979,7 +1000,10 @@ fn log_fit_diagnostics(models: &[(char, CharModel)], extent: &HashMap<char, Vec<
         *e = (*e).max(m.levels);
     }
     let mut hist = [0_usize; MAX_LEVEL + 1];
-    #[expect(clippy::iter_over_hash_type, reason = "counting into a histogram is order-independent")]
+    #[expect(
+        clippy::iter_over_hash_type,
+        reason = "counting into a histogram is order-independent"
+    )]
     for &l in deepest.values() {
         if let Some(h) = hist.get_mut(l.min(MAX_LEVEL)) {
             *h = h.saturating_add(1);
@@ -1047,7 +1071,11 @@ fn log_fit_diagnostics(models: &[(char, CharModel)], extent: &HashMap<char, Vec<
             sd.get(1).copied().unwrap_or(0.0_f64),
             sd.get(2).copied().unwrap_or(0.0_f64),
             sd.get(3).copied().unwrap_or(0.0_f64),
-            if best < 1.0_f64 { "  <- not separable" } else { "" }
+            if best < 1.0_f64 {
+                "  <- not separable"
+            } else {
+                ""
+            }
         );
     }
 }
@@ -1079,7 +1107,10 @@ impl Recognizer {
         let mut extent: HashMap<char, Vec<Placement>> = HashMap::new();
         // Shape trains on the base character (a small kana is its base drawn smaller);
         // placement stays keyed on the literal one, so size can tell them apart.
-        #[expect(clippy::iter_over_hash_type, reason = "every entry is folded in independent of order")]
+        #[expect(
+            clippy::iter_over_hash_type,
+            reason = "every entry is folded in independent of order"
+        )]
         for (&c, raws) in data {
             shape.entry(to_base(c)).or_default().extend(raws.iter());
             extent
@@ -1112,7 +1143,10 @@ impl Recognizer {
         w: &'model Weights,
     ) -> impl Iterator<Item = (char, f64)> + 'model {
         let gap = m.stroke_count.abs_diff(d.strokes).convert_lossy();
-        let base = w.stroke.mul_add(f64::min(gap, MAX_STROKE_GAP), viterbi_energy(m, &d.feats, w));
+        let base = w.stroke.mul_add(
+            f64::min(gap, MAX_STROKE_GAP),
+            viterbi_energy(m, &d.feats, w),
+        );
         let share = m.ln_share;
         let lp = m.log_prior;
         let score = move |p: PlaceModel, prior: f64| {
@@ -1148,7 +1182,14 @@ impl Recognizer {
     /// The best reading from any character except `skip`, independent of `skip`'s own depth.
     #[inline]
     #[must_use]
-    pub fn best_other(&self, d: &Drawing, w: &Weights, window: &[(u8, u8)], live: &[bool], skip: char) -> Option<(char, f64)> {
+    pub fn best_other(
+        &self,
+        d: &Drawing,
+        w: &Weights,
+        window: &[(u8, u8)],
+        live: &[bool],
+        skip: char,
+    ) -> Option<(char, f64)> {
         self.models
             .par_iter()
             .enumerate()
@@ -1165,11 +1206,20 @@ impl Recognizer {
     /// The best reading from one character, answering at one clustering level.
     #[inline]
     #[must_use]
-    pub fn best_at(&self, d: &Drawing, w: &Weights, window: &[(u8, u8)], ch: char, level: usize) -> Option<(char, f64)> {
+    pub fn best_at(
+        &self,
+        d: &Drawing,
+        w: &Weights,
+        window: &[(u8, u8)],
+        ch: char,
+        level: usize,
+    ) -> Option<(char, f64)> {
         self.models
             .iter()
             .filter(|(c, m)| {
-                *c == ch && m.level == level.min(m.levels).max(1) && admits(window, m.stroke_count, d.strokes)
+                *c == ch
+                    && m.level == level.min(m.levels).max(1)
+                    && admits(window, m.stroke_count, d.strokes)
             })
             .flat_map(|(c, m)| Self::emit(*c, m, d, w))
             .filter(|&(_, e)| e.is_finite())
@@ -1178,7 +1228,13 @@ impl Recognizer {
 
     #[inline]
     #[must_use]
-    pub fn classify_with(&self, d: &Drawing, w: &Weights, window: &[(u8, u8)], live: &[bool]) -> Option<char> {
+    pub fn classify_with(
+        &self,
+        d: &Drawing,
+        w: &Weights,
+        window: &[(u8, u8)],
+        live: &[bool],
+    ) -> Option<char> {
         self.readings(d, w, window, live)
             .min_by(|a, b| a.1.total_cmp(&b.1).then_with(|| a.0.cmp(&b.0)))
             .map(|(c, _)| c)
@@ -1195,7 +1251,11 @@ impl Recognizer {
             .readings(&d, &self.weights, &self.window, &self.live)
             .map(|(character, score)| RecognitionResult { character, score })
             .collect();
-        r.sort_by(|a, b| a.score.total_cmp(&b.score).then_with(|| a.character.cmp(&b.character)));
+        r.sort_by(|a, b| {
+            a.score
+                .total_cmp(&b.score)
+                .then_with(|| a.character.cmp(&b.character))
+        });
         // A prototype's small-kana reading is a second candidate for the same character;
         // keep only the best-scoring proposal per character.
         let mut seen: HashSet<char> = HashSet::new();
@@ -1319,8 +1379,13 @@ impl Recognizer {
     #[inline]
     pub fn splice(&mut self, patch: &Self, targets: &[char]) {
         self.models.retain(|(c, _)| !targets.contains(&to_base(*c)));
-        self.models
-            .extend(patch.models.iter().filter(|(c, _)| targets.contains(&to_base(*c))).cloned());
+        self.models.extend(
+            patch
+                .models
+                .iter()
+                .filter(|(c, _)| targets.contains(&to_base(*c)))
+                .cloned(),
+        );
         self.refresh();
     }
 
@@ -1556,8 +1621,14 @@ mod tests {
         let sum = w.term.iter().sum::<f64>() + w.transition;
         assert!((sum - 1.0).abs() < 1e-12, "{sum}");
         assert!((w.size - 0.3).abs() < 1e-12);
-        assert!((w.stroke - 1.5).abs() < 1e-12, "stroke stays out of the budget");
-        assert!((w.prior - 0.25).abs() < 1e-12, "prior stays out of the budget");
+        assert!(
+            (w.stroke - 1.5).abs() < 1e-12,
+            "stroke stays out of the budget"
+        );
+        assert!(
+            (w.prior - 0.25).abs() < 1e-12,
+            "prior stays out of the budget"
+        );
     }
 
     #[test]
@@ -1679,8 +1750,15 @@ mod tests {
         let mut two: Vec<Descriptor> = (0..40).map(|i| point(f64::from(i) * 0.001)).collect();
         two.extend((0..40).map(|i| point(1.0 + f64::from(i) * 0.001)));
         let groups = clusters(&two, 2, floor_for(two.len()));
-        assert_eq!(groups.len(), 2, "shape gives no signal at all, so this must come from order");
-        assert!(groups.iter().all(|g| g.len() == 40), "the two order blobs should split evenly");
+        assert_eq!(
+            groups.len(),
+            2,
+            "shape gives no signal at all, so this must come from order"
+        );
+        assert!(
+            groups.iter().all(|g| g.len() == 40),
+            "the two order blobs should split evenly"
+        );
     }
 
     #[test]
@@ -1720,9 +1798,11 @@ mod tests {
         };
         let (a, b) = (order_half(&forward), order_half(&reversed));
         let gap: f64 = a.iter().zip(&b).map(|(x, y)| (x - y).powi(2)).sum();
-        assert!(gap > 1e-6, "reversing stroke order left the order half unchanged");
+        assert!(
+            gap > 1e-6,
+            "reversing stroke order left the order half unchanged"
+        );
     }
-
 
     #[test]
     fn a_model_survives_a_round_trip_through_bytes() {
@@ -1753,15 +1833,42 @@ mod tests {
 
     #[test]
     fn a_character_answers_at_the_deepest_level_it_has() {
-        let shallow = Slot { ch: 'し', strokes: 2, level: 1, levels: 1 };
-        assert!(shallow.active(1) && shallow.active(3), "asking deeper costs it nothing");
+        let shallow = Slot {
+            ch: 'し',
+            strokes: 2,
+            level: 1,
+            levels: 1,
+        };
+        assert!(
+            shallow.active(1) && shallow.active(3),
+            "asking deeper costs it nothing"
+        );
         let deep = [
-            Slot { ch: '右', strokes: 2, level: 1, levels: 3 },
-            Slot { ch: '右', strokes: 2, level: 2, levels: 3 },
-            Slot { ch: '右', strokes: 2, level: 3, levels: 3 },
+            Slot {
+                ch: '右',
+                strokes: 2,
+                level: 1,
+                levels: 3,
+            },
+            Slot {
+                ch: '右',
+                strokes: 2,
+                level: 2,
+                levels: 3,
+            },
+            Slot {
+                ch: '右',
+                strokes: 2,
+                level: 3,
+                levels: 3,
+            },
         ];
         for depth in 1..=3 {
-            let live: Vec<usize> = deep.iter().filter(|s| s.active(depth)).map(|s| s.level).collect();
+            let live: Vec<usize> = deep
+                .iter()
+                .filter(|s| s.active(depth))
+                .map(|s| s.level)
+                .collect();
             assert_eq!(live, vec![depth], "exactly one level answers at a time");
         }
     }
@@ -1771,7 +1878,9 @@ mod tests {
         let full = 0..DESC_POINTS * 4;
         // One blob: any cut through it is arbitrary, so no second level.
         let one = descriptors(0.5, 90);
-        assert!(distortion_over(&one, &clusters(&one, 1, floor_for(one.len())), full.clone()) < 1e-12);
+        assert!(
+            distortion_over(&one, &clusters(&one, 1, floor_for(one.len())), full.clone()) < 1e-12
+        );
         // Two blobs far apart: cutting between them collapses the spread.
         let mut two = descriptors(0.0, 40);
         two.extend(descriptors(1.0, 40));
@@ -1796,7 +1905,9 @@ mod tests {
             d[order.clone()].fill(order_at);
             d
         };
-        let mut two: Vec<Descriptor> = (0..40).map(|i| point(0.0, if i % 2 == 0 { 0.3 } else { 0.7 })).collect();
+        let mut two: Vec<Descriptor> = (0..40)
+            .map(|i| point(0.0, if i % 2 == 0 { 0.3 } else { 0.7 }))
+            .collect();
         two.extend((0..40).map(|i| point(1.0, if i % 2 == 0 { 0.3 } else { 0.7 })));
         let f = floor_for(two.len());
         let groups = clusters(&two, 2, f);
@@ -1804,7 +1915,10 @@ mod tests {
         let shape_split = distortion_over(&two, &groups, shape);
         let order_flat = distortion_over(&two, &clusters(&two, 1, f), order.clone());
         let order_split = distortion_over(&two, &groups, order);
-        assert!(shape_split < shape_flat * (1.0 - DISTINCT_GAIN), "shape alone clears the bar");
+        assert!(
+            shape_split < shape_flat * (1.0 - DISTINCT_GAIN),
+            "shape alone clears the bar"
+        );
         assert!(
             (order_split - order_flat).abs() < 1e-9,
             "order's spread should be unchanged by a split it had no part in: {order_flat} -> {order_split}"
@@ -1909,7 +2023,11 @@ mod tests {
             ('あ', CharModel::from_template(&feats, 2)),
         ];
         rec.splice(&patch, &['あ']);
-        assert_eq!(rec.model_count(), 3, "あ's two fresh prototypes replace its one, い is untouched");
+        assert_eq!(
+            rec.model_count(),
+            3,
+            "あ's two fresh prototypes replace its one, い is untouched"
+        );
         assert_eq!(rec.models.iter().filter(|(c, _)| *c == 'い').count(), 1);
         assert_eq!(rec.models.iter().filter(|(c, _)| *c == 'あ').count(), 2);
     }
@@ -1940,7 +2058,10 @@ mod tests {
         let rare = ln_share(6, 20_292);
         assert!(rare < common);
         assert!((common - rare - (1044.0_f64 / 6.0).ln()).abs() < 1e-9);
-        assert!(ln_share(0, 20_292).is_finite(), "an unseen label is not impossible");
+        assert!(
+            ln_share(0, 20_292).is_finite(),
+            "an unseen label is not impossible"
+        );
     }
 
     #[test]
