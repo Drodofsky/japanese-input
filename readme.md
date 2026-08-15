@@ -28,14 +28,13 @@ An Anki add-on for practicing Japanese handwriting. Draw a hiragana, katakana, o
 
 ## Recognition
 
-The add-on currently uses a recognition engine based on DTW. 
+The add-on currently uses a recognition engine based on HMM. 
 
-This benchmark tracks the recognition engines and models the add-on uses, or has considered using over time. The table compares the percentage of correctly recognized characters across samples from 6 writers of the *HANDS-nakayosi_t-98-09* dataset for the DTW engine and Zinnia (using a model from Tegaki).  The selected writers are evenly split in men and women.
+This benchmark tracks the recognition engines and models the add-on uses, or has considered using over time. The table compares the percentage of correctly recognized characters across samples from 6 writers of the *HANDS-nakayosi_t-98-09* dataset for the DTW engine, Zinnia (using a model from Tegaki) and a custom HMM recognizer.  The selected writers are evenly split in men and women.
 
 |                         | Hiragana | Katakana | Kanji  | Japanese |
 | ----------------------- | -------- | -------- | ------ | -------- |
-| correct (MRF50)         | 92.17%   | 81.77%   | 96.63% | 93.77%   |
-| correct (MRF22)         | 85.65%   | 78.25%   | 83.44% | 81.24%   |
+| correct (HMM)           | 92.85%   | 81.61%   | 96.55% | 93.71%   |
 | correct (DTW)           | 59.5%    | 62.67%   | 54.23% | 53.15%   |
 | correct (Zinnia+Tegaki) | 21.53%   | 2.01%    | 47.77% | 45.13%   |
 
