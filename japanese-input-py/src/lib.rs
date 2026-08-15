@@ -33,11 +33,9 @@ fn correct_answer(expected: &str, drawn: &[[char; 2]]) -> String {
 pub mod japanese_input_py {
     use japanese_input::analyze::AnalyzeResult as AnalyzeResultNative;
     use japanese_input::analyze::Analyzer as AnalyzerNative;
+    use japanese_input::gen_svg::SVGBuilder;
     use japanese_input::{
-        KanjiMap,
-        gen_svg::{gen_kanji_grid, gen_kanji_grid_with_hint},
-        recognizer::Recognizer as NativeRecognizer,
-        stroke_point::ToStrokeVector as _,
+        KanjiMap, recognizer::Recognizer as NativeRecognizer, stroke_point::ToStrokeVector as _,
     };
     use pyo3::exceptions::PyRuntimeError;
     use pyo3::prelude::*;
@@ -109,7 +107,9 @@ pub mod japanese_input_py {
         }
         #[expect(clippy::unused_self, reason = "pyo3")]
         fn generate(&self, grid_color: &str, corner_radius: f32) -> String {
-            gen_kanji_grid(grid_color, corner_radius)
+            SVGBuilder::init()
+                .draw_grid(grid_color, corner_radius)
+                .to_string()
         }
         fn generate_with_hint(
             &self,
@@ -124,12 +124,10 @@ pub mod japanese_input_py {
                 .ok_or(PyRuntimeError::new_err(format!(
                     "failed to find hint for '{hint}'"
                 )))?;
-            Ok(gen_kanji_grid_with_hint(
-                grid_color,
-                corner_radius,
-                &hint.collect_paths(),
-                hint_color,
-            ))
+            Ok(SVGBuilder::init()
+                .draw_grid(grid_color, corner_radius)
+                .draw_hint(&hint.collect_paths(), hint_color)
+                .to_string())
         }
     }
     #[pyclass(skip_from_py_object)]

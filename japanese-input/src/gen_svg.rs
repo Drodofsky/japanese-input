@@ -1,3 +1,5 @@
+use core::fmt::{self, Display, Formatter};
+
 use colorous::{CATEGORY10, Color};
 use kurbo::{Affine, BezPath, PathEl, Point, Rect};
 use svg::{
@@ -5,9 +7,72 @@ use svg::{
     node::element::{Circle, Line, Path, Rectangle, Text},
 };
 
-use crate::convert_stroke_index::ConvertStrokeIndex;
-
 const STEPS_PER_UNIT: f64 = 1000.0;
+
+#[derive(Debug, Clone)]
+pub struct SVGBuilder {
+    doc: Document,
+}
+
+impl SVGBuilder {
+    #[must_use]
+    #[inline]
+    pub fn init() -> Self {
+        let mut doc = Document::new();
+        doc = init_doc(doc);
+
+        Self { doc }
+    }
+    #[must_use]
+    #[inline]
+    pub fn draw_grid(self, grid_color: &str, corner_radius: f32) -> Self {
+        let doc = draw_grid(self.doc, grid_color, corner_radius);
+        Self { doc }
+    }
+    #[must_use]
+    #[inline]
+    pub fn draw_hint(self, paths: &[BezPath], hint_color: &str) -> Self {
+        let doc = draw_hint(self.doc, paths, hint_color);
+        Self { doc }
+    }
+    #[must_use]
+    #[inline]
+    pub fn draw_maru(self) -> Self {
+        let doc = draw_maru(self.doc);
+        Self { doc }
+    }
+    #[must_use]
+    #[inline]
+    pub fn draw_batsu(self) -> Self {
+        let doc = draw_batsu(self.doc);
+        Self { doc }
+    }
+    #[must_use]
+    #[inline]
+    pub fn draw_stroke_order(self, user_strokes: &[BezPath], order: &[u8]) -> Self {
+        let doc = draw_stroke_order(self.doc, user_strokes, order);
+        Self { doc }
+    }
+    #[must_use]
+    #[inline]
+    pub fn draw_stroke(self, stroke: BezPath, color: &str) -> Self {
+        let doc = draw_stroke(self.doc, stroke, color);
+        Self { doc }
+    }
+    #[must_use]
+    #[inline]
+    pub fn draw_rects(self, rects: &[Rect], color: &str) -> Self {
+        let doc = draw_rects(self.doc, rects, color);
+        Self { doc }
+    }
+}
+
+impl Display for SVGBuilder {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.doc)
+    }
+}
 
 #[inline]
 fn round(value: f64) -> f64 {
@@ -35,147 +100,17 @@ fn round_path(path: BezPath) -> BezPath {
             .collect(),
     )
 }
-
-#[must_use]
-#[inline]
-pub fn gen_kanji_grid(grid_color: &str, corner_radius: f32) -> String {
-    let mut doc = Document::new();
-    doc = init_doc(doc);
-    doc = draw_grid(doc, grid_color, corner_radius);
-    doc.to_string()
-}
-
-#[must_use]
-#[inline]
-pub fn gen_kanji_grid_with_hint(
-    grid_color: &str,
-    corner_radius: f32,
-    hint: &[BezPath],
-    hint_color: &str,
-) -> String {
-    let mut doc = Document::new();
-    doc = init_doc(doc);
-    doc = draw_grid(doc, grid_color, corner_radius);
-    doc = draw_hint(doc, hint, hint_color);
-    doc.to_string()
-}
-
-#[must_use]
-#[inline]
-pub fn gen_batsu_remove_strokes(
-    grid_color: &str,
-    corner_radius: f32,
-    user_strokes: &[BezPath],
-    stroke_color: &str,
-    draw_strokes: &[bool],
-    markers: &[Rect],
-) -> String {
-    let mut doc = Document::new();
-    doc = init_doc(doc);
-    doc = draw_grid(doc, grid_color, corner_radius);
-    doc = draw_batsu(doc);
-    doc = draw_moved_markers(doc, markers);
+fn draw_stroke(doc: Document, stroke: BezPath, color: &str) -> Document {
     let scale = Affine::scale(109.0);
-    for (path, color) in user_strokes.iter().zip(
-        draw_strokes
-            .iter()
-            .map(|d| if *d { stroke_color } else { "#DC4A38" }),
-    ) {
-        let svg_path = scale_path(scale, path).to_svg();
-        let element = Path::new()
-            .set("d", svg_path)
-            .set("fill", "none")
-            .set("stroke", color)
-            .set("stroke-width", 3.0_f64)
-            .set("stroke-linecap", "round")
-            .set("stroke-linejoin", "round");
-        doc = doc.add(element);
-    }
-    doc.to_string()
-}
-
-#[must_use]
-#[inline]
-pub fn gen_maru_add_strokes(
-    grid_color: &str,
-    corner_radius: f32,
-    user_strokes: &[BezPath],
-    stroke_color: &str,
-    draw_strokes: &[bool],
-    highlight_strokes: &[bool],
-) -> String {
-    let mut doc = Document::new();
-    doc = init_doc(doc);
-    doc = draw_grid(doc, grid_color, corner_radius);
-    doc = draw_maru(doc);
-    let scale = Affine::scale(109.0);
-    for (path, color) in user_strokes
-        .iter()
-        .zip(
-            highlight_strokes
-                .iter()
-                .map(|d| if *d { "#2A8DC9" } else { stroke_color }),
-        )
-        .zip(draw_strokes.iter())
-        .filter_map(|(data, drawn)| drawn.then_some(data))
-    {
-        let svg_path = scale_path(scale, path).to_svg();
-        let element = Path::new()
-            .set("d", svg_path)
-            .set("fill", "none")
-            .set("stroke", color)
-            .set("stroke-width", 3.0_f64)
-            .set("stroke-linecap", "round")
-            .set("stroke-linejoin", "round");
-        doc = doc.add(element);
-    }
-    doc.to_string()
-}
-
-#[must_use]
-#[inline]
-pub fn gen_maru_stroke_order(
-    grid_color: &str,
-    corner_radius: f32,
-    user_strokes: &[BezPath],
-    reference_order: &[u8],
-) -> String {
-    let mut doc = init_doc(Document::new());
-    doc = draw_grid(doc, grid_color, corner_radius);
-    doc = draw_maru(doc);
-    doc = draw_stroke_order(doc, user_strokes, reference_order);
-    doc.to_string()
-}
-
-#[must_use]
-#[inline]
-pub fn gen_stroke_order(
-    grid_color: &str,
-    corner_radius: f32,
-    user_strokes: &[BezPath],
-    reference_order: &[u8],
-) -> String {
-    let mut doc = init_doc(Document::new());
-    doc = draw_grid(doc, grid_color, corner_radius);
-    doc = draw_stroke_order(doc, user_strokes, reference_order);
-    doc.to_string()
-}
-
-#[must_use]
-#[inline]
-pub fn gen_batsu_stroke_order(
-    grid_color: &str,
-    corner_radius: f32,
-    user_strokes: &[BezPath],
-) -> String {
-    let mut doc = init_doc(Document::new());
-    doc = draw_grid(doc, grid_color, corner_radius);
-    doc = draw_batsu(doc);
-    let drawn_order: Vec<u8> = (0..user_strokes.len())
-        .map(ConvertStrokeIndex::convert_stroke_index)
-        .collect();
-    doc = draw_stroke_order(doc, user_strokes, &drawn_order);
-    doc.to_string()
+    let svg_path = scale_path(scale, &stroke).to_svg();
+    let element = Path::new()
+        .set("d", svg_path)
+        .set("fill", "none")
+        .set("stroke", color)
+        .set("stroke-width", 3.0_f64)
+        .set("stroke-linecap", "round")
+        .set("stroke-linejoin", "round");
+    doc.add(element)
 }
 
 fn draw_maru(mut doc: Document) -> Document {
@@ -316,8 +251,7 @@ fn draw_stroke_order(mut doc: Document, user_strokes: &[BezPath], order: &[u8]) 
     }
     doc
 }
-
-fn draw_moved_markers(mut doc: Document, rects: &[Rect]) -> Document {
+fn draw_rects(mut doc: Document, rects: &[Rect], color: &str) -> Document {
     for r in rects {
         let x = f64::max(r.x0 * 109.0 - 2.0, 0.0);
         let y = f64::max(r.y0 * 109.0 - 2.0, 0.0);
@@ -328,7 +262,7 @@ fn draw_moved_markers(mut doc: Document, rects: &[Rect]) -> Document {
             .set("y", round(y))
             .set("width", round(w))
             .set("height", round(h))
-            .set("fill", "#D98A00")
+            .set("fill", color)
             .set("opacity", 0.3_f64)
             .set("rx", 4.0_f64)
             .set("ry", 4.0_f64);
@@ -372,15 +306,12 @@ mod tests {
     use serde::{Deserialize, Serialize};
 
     use crate::{
-        KanjiMap,
-        gen_svg::{gen_batsu_remove_strokes, gen_kanji_grid, gen_kanji_grid_with_hint},
-        stroke_point::ToStrokePoint,
-        to_bez_path::ToBezPath,
+        KanjiMap, gen_svg::SVGBuilder, stroke_point::ToStrokePoint, to_bez_path::ToBezPath,
     };
 
     #[test]
     fn draw_grid() {
-        let grid = gen_kanji_grid("#808080ff", 0.0);
+        let grid = SVGBuilder::init().draw_grid("#808080ff", 0.0).to_string();
         assert_eq!(
             grid.as_str(),
             include_str!("../../data/test/kanji_grid.svg")
@@ -388,7 +319,7 @@ mod tests {
     }
     #[test]
     fn draw_grid_round_corners() {
-        let grid = gen_kanji_grid("#808080ff", 8.0);
+        let grid = SVGBuilder::init().draw_grid("#808080ff", 8.0).to_string();
         assert_eq!(
             grid.as_str(),
             include_str!("../../data/test/kanji_grid_round_corners.svg")
@@ -403,7 +334,10 @@ mod tests {
         let bytes = std::fs::read(path).expect("failed to read reference_data.bin");
         let map: KanjiMap = postcard::from_bytes(&bytes).expect("failed to deserialize kanji map");
         let hint_path = map.get(&'食').unwrap().collect_paths();
-        let grid = gen_kanji_grid_with_hint("#808080ff", 8.0, &hint_path, "darkgrey");
+        let grid = SVGBuilder::init()
+            .draw_grid("#808080ff", 8.0)
+            .draw_hint(&hint_path, "darkgrey")
+            .to_string();
         println!("{}", grid);
         assert_eq!(
             grid.as_str(),
@@ -425,15 +359,15 @@ mod tests {
             .map(|s| s.to_stroke_points().to_bez_path())
             .collect();
         let drawn_strokes = [true, false, true, true];
-        let markers = Vec::new();
-        let svg = gen_batsu_remove_strokes(
-            "#808080ff",
-            8.0,
-            &user_strokes,
-            "darkgrey",
-            drawn_strokes.as_slice(),
-            &markers,
-        );
+        let mut svg = SVGBuilder::init().draw_grid("#808080ff", 8.0).draw_batsu();
+        for (stroke, drawn) in user_strokes.into_iter().zip(drawn_strokes.into_iter()) {
+            if drawn {
+                svg = svg.draw_stroke(stroke, "darkgrey");
+            } else {
+                svg = svg.draw_stroke(stroke, "#DC4A38");
+            }
+        }
+        let svg = svg.to_string();
         println!("{}", svg);
 
         assert_eq!(
@@ -451,7 +385,10 @@ mod tests {
         let bytes = std::fs::read(path).expect("failed to read reference_data.bin");
         let map: KanjiMap = postcard::from_bytes(&bytes).expect("failed to deserialize kanji map");
         let hint_path = map.get(&'食').unwrap().collect_paths();
-        let grid = gen_kanji_grid_with_hint("#808080ff", 8.0, &hint_path, "darkgrey");
+        let grid = SVGBuilder::init()
+            .draw_grid("#808080ff", 8.0)
+            .draw_hint(&hint_path, "darkgrey")
+            .to_string();
         for token in grid.split(|c: char| !c.is_ascii_digit() && c != '.') {
             let Some((_, fraction)) = token.split_once('.') else {
                 continue;

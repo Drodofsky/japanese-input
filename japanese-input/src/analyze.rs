@@ -3,21 +3,10 @@ use core::ops::Range;
 use kurbo::{Affine, BezPath, Rect};
 
 use crate::{
-    KanjiMap,
-    analyzed_kanji_node::AnalyzedKanjiNode,
-    bbox::BBox as _,
-    convert_stroke_index::ConvertStrokeIndex as _,
-    gen_svg::{
-        gen_batsu_remove_strokes, gen_batsu_stroke_order, gen_maru_add_strokes,
-        gen_maru_stroke_order,
-    },
-    map_space_to::MapSpaceTo as _,
-    match_strokes::match_strokes,
-    stroke_geometry::StrokeGeometry,
-    stroke_point::StrokePoint,
-    to_bez_path::ToBezPathVec as _,
-    transform::Transform as _,
-    weights::Weights,
+    KanjiMap, analyzed_kanji_node::AnalyzedKanjiNode, bbox::BBox as _,
+    convert_stroke_index::ConvertStrokeIndex, gen_svg::SVGBuilder, map_space_to::MapSpaceTo as _,
+    match_strokes::match_strokes, stroke_geometry::StrokeGeometry, stroke_point::StrokePoint,
+    to_bez_path::ToBezPathVec as _, transform::Transform as _, weights::Weights,
 };
 
 const MOVE_THRESHOLD: f64 = 0.3;
@@ -119,24 +108,26 @@ impl Analyzer {
                           correct: &[BezPath],
                           c_keep: &[bool],
                           c_high: &[bool]| {
-            (
-                gen_batsu_remove_strokes(
-                    grid_color,
-                    corner_radius,
-                    wrong,
-                    stroke_color,
-                    w_keep,
-                    w_marks,
-                ),
-                gen_maru_add_strokes(
-                    grid_color,
-                    corner_radius,
-                    correct,
-                    stroke_color,
-                    c_keep,
-                    c_high,
-                ),
-            )
+            let mut wrong_svg = SVGBuilder::init()
+                .draw_grid(grid_color, corner_radius)
+                .draw_batsu()
+                .draw_rects(w_marks, "#D98A00");
+            for (stroke, &drawn) in wrong.iter().zip(w_keep) {
+                let color = if drawn { stroke_color } else { "#DC4A38" };
+                wrong_svg = wrong_svg.draw_stroke(stroke.clone(), color);
+            }
+
+            let mut correct_svg = SVGBuilder::init()
+                .draw_grid(grid_color, corner_radius)
+                .draw_maru();
+            for ((stroke, &high), &drawn) in correct.iter().zip(c_high).zip(c_keep) {
+                if drawn {
+                    let color = if high { "#2A8DC9" } else { stroke_color };
+                    correct_svg = correct_svg.draw_stroke(stroke.clone(), color);
+                }
+            }
+
+            (wrong_svg.to_string(), correct_svg.to_string())
         };
 
         let res = if (has_extra || has_missing) && has_moved {
@@ -172,8 +163,21 @@ impl Analyzer {
         } else if order_wrong {
             let strokes = pre_moved.iter().to_bez_path_vec();
             AnalyzeResult::StrokeOrder {
-                wrong: gen_batsu_stroke_order(grid_color, corner_radius, &strokes),
-                correct: gen_maru_stroke_order(grid_color, corner_radius, &strokes, &mapping),
+                wrong: SVGBuilder::init()
+                    .draw_grid(grid_color, corner_radius)
+                    .draw_batsu()
+                    .draw_stroke_order(
+                        &strokes,
+                        &(0..strokes.len())
+                            .map(ConvertStrokeIndex::convert_stroke_index)
+                            .collect::<Vec<_>>(),
+                    )
+                    .to_string(),
+                correct: SVGBuilder::init()
+                    .draw_grid(grid_color, corner_radius)
+                    .draw_maru()
+                    .draw_stroke_order(&strokes, &mapping)
+                    .to_string(),
             }
         } else {
             AnalyzeResult::NoError
