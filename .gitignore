@@ -66,6 +66,7 @@ pyenv/
 !japanese-input/tests/つち.rs
 !japanese-input/tests/に.rs
 !japanese-input/tests/みぎ.rs
+!japanese-input/tests/merged_strokes.rs
 !japanese-input/benches/utils/mod.rs
 !japanese-input/benches/match_bench.rs
 !japanese-input/benches/recognizer_bench.rs
