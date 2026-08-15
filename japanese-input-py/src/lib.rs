@@ -1,4 +1,34 @@
 use pyo3::prelude::*;
+const CONFUSABLE_GROUPS: [&str; 13] = [
+    "へヘ", "べベ", "ぺペ", "イ亻", "エ工", "カ力", "タ夕", "ト卜", "ニ二", "ネ礻", "ム厶", "ロ口",
+    "ー一",
+];
+
+fn correct_char(expected_char: char, drawn_chars: [char; 2]) -> char {
+    for drawn_char in drawn_chars {
+        if drawn_char == expected_char {
+            return drawn_char;
+        }
+        for group in CONFUSABLE_GROUPS {
+            if group.contains(expected_char) && group.contains(drawn_char) {
+                return expected_char;
+            }
+        }
+    }
+    drawn_chars[0]
+}
+fn correct_answer(expected: &str, drawn: &[[char; 2]]) -> String {
+    let mut out: String = drawn
+        .iter()
+        .zip(expected.chars())
+        .map(|(d, e)| correct_char(e, *d))
+        .collect();
+    if out.len() < drawn.len() {
+        drawn.iter().skip(out.len()).for_each(|s| out.push(s[0]));
+    }
+    out
+}
+
 #[pymodule]
 pub mod japanese_input_py {
     use japanese_input::analyze::AnalyzeResult as AnalyzeResultNative;
@@ -13,6 +43,8 @@ pub mod japanese_input_py {
     use pyo3::prelude::*;
     use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
     use std::fs::read;
+
+    use crate::correct_answer;
 
     #[pyclass]
     pub struct Recognizer {
@@ -41,6 +73,23 @@ pub mod japanese_input_py {
                         .map_or('-', |r| r.character)
                 })
                 .collect()
+        }
+        fn compare_with_target(
+            &self,
+            committed: Vec<Vec<Vec<(f32, f32)>>>,
+            target: String,
+        ) -> String {
+            let recognized: Vec<_> = committed
+                .par_iter()
+                .map(|strokes| {
+                    let results = self.recognizer.recognize(strokes);
+                    [
+                        results.first().map_or('-', |r| r.character),
+                        results.get(1).map_or('-', |r| r.character),
+                    ]
+                })
+                .collect();
+            correct_answer(&target, &recognized)
         }
     }
 

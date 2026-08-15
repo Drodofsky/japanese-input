@@ -96,7 +96,6 @@ _input_widget: InputWidget | None = None
 _review_widget: ReviewWidget | None = None
 _expected_answer: str = ""
 _recognized_answer: str = ""
-_CONFUSABLE_GROUPS = ["へヘ", "べベ", "ぺペ", "イ亻", "エ工", "カ力", "タ夕", "ト卜", "ニ二", "ネ礻", "ム厶", "ロ口", "ー一"]
 
 def _ensure_review_widget() -> "ReviewWidget | None":
     global _review_widget
@@ -141,18 +140,6 @@ def _is_kana(ch: str) -> bool:
         or "ｦ" <= ch <= "ﾝ"    # halfwidth katakana
         or ch in "ーｰ・"        # prolonged sound mark + halfwidth, middle dot
     )
-def correct_char(expected_ch: str, drawn_ch: str) -> str:
-    if drawn_ch == expected_ch:
-        return drawn_ch
-    for group in _CONFUSABLE_GROUPS:
-        if expected_ch in group:
-            return expected_ch if drawn_ch in group else drawn_ch
-    return drawn_ch
-
-def correct_answer(expected: str, drawn: str) -> str:
-    out = [correct_char(e, d) for e, d in zip(expected, drawn)]
-    out.extend(drawn[len(expected):])   # keep any extra chars the user drew
-    return "".join(out)
 
 def _on_question_shown(card: Card) -> None:
     global _input_widget, _expected_answer, _review_widget
@@ -245,11 +232,10 @@ def _on_js_message(handled: tuple[bool, object], message: str, context: object) 
         return handled
 
     try:
-        result: str = recognizer.recognize(commits) 
+        result: str = recognizer.compare_with_target(commits, _expected_answer) 
     except Exception as e:
         showCritical(f"[japanese-input] analyze_answer failed: {e}")
         return handled
-    result = correct_answer(_expected_answer,result)
     _recognized_answer = result 
 
     escaped = json.dumps(result)
