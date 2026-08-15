@@ -75,6 +75,7 @@ pyenv/
 !japanese_input_anki/japanese_input_py.pyi
 !japanese_input_anki/widgets.py
 !data/License.txt
+!data/MODEL_NOTICE.txt
 !data/raw/kanjivg.xml
 !data/test/*.bin
 !data/test/*.svg

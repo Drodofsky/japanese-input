@@ -79,6 +79,13 @@ jobs:
         with:
           path: artifacts
 
+      - name: Checkout model repo
+        uses: actions/checkout@v4
+        with:
+          repository: Drodofsky/regonizer-model
+          token: ${{ secrets.model }}
+          path: model-repo
+
       - name: Assemble addon directory
         run: |
           mkdir -p addon_out
@@ -95,7 +102,8 @@ jobs:
           mkdir -p addon_out/user_files/assets
           cp data/generated/reference_data.bin addon_out/user_files/assets/reference_data.bin
 
-          wget -P  addon_out/user_files/assets/ https://github.com/Drodofsky/regonizer-model/raw/refs/heads/main/recognizer2_tuned.bin
+          cp model-repo/recognizer2_tuned.bin addon_out/user_files/assets/recognizer2_tuned.bin
+          cp data/MODEL_NOTICE.txt addon_out/user_files/assets/MODEL_NOTICE.txt
           
           # KanjiVG license attribution
           cp data/License.txt addon_out/user_files/assets/LICENSE.txt

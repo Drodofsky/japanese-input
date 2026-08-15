@@ -1,0 +1,10 @@
+Recognizer Model Notice
+=======================
+
+File: recognizer2_tuned.bin
+
+This model was trained on the TUAT Nakagawa Lab HANDS-nakayosi_t-98-09
+on line handwritten Japanese character stroke database.
+
+This file is not separately licensed. No rights are granted for its use,
+redistribution, or modification outside of this Anki add-on.

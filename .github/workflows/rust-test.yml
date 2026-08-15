@@ -24,7 +24,13 @@ jobs:
       run: cargo test tests::generate_hiragana
     - name: generate kanji reference data
       run: cargo test tests::generate_kanji
+    - name: Checkout model repo
+      uses: actions/checkout@v4
+      with:
+        repository: Drodofsky/regonizer-model
+        token: ${{ secrets.model }}
+        path: model-repo
     - name: download recognizer model
-      run: wget -P data/generated/ https://github.com/Drodofsky/regonizer-model/raw/refs/heads/main/recognizer2_tuned.bin
+      run: cp model-repo/recognizer2_tuned.bin data/generated/recognizer2_tuned.bin
     - name: Run tests
       run: cargo test --verbose
