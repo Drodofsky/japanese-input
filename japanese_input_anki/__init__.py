@@ -96,6 +96,7 @@ _input_widget: InputWidget | None = None
 _review_widget: ReviewWidget | None = None
 _expected_answer: str = ""
 _recognized_answer: str = ""
+_has_input_field: bool = False
 
 def _ensure_review_widget() -> "ReviewWidget | None":
     global _review_widget
@@ -142,7 +143,7 @@ def _is_kana(ch: str) -> bool:
     )
 
 def _on_question_shown(card: Card) -> None:
-    global _input_widget, _expected_answer, _review_widget
+    global _input_widget, _expected_answer, _recognized_answer, _review_widget, _has_input_field
     if mw is None or mw.reviewer is None:
         return
     if _review_widget is not None:
@@ -150,10 +151,14 @@ def _on_question_shown(card: Card) -> None:
 
     qfmt = card.template().get("qfmt", "")
     has_type_field = isinstance(qfmt, str) and "{{type:" in qfmt
+    _has_input_field = has_type_field
 
     if not has_type_field:
         if _input_widget is not None:
             _input_widget.hide()
+            _input_widget.reset()
+        _expected_answer = ""
+        _recognized_answer = ""
         return
 
     mw.reviewer.web.eval(
@@ -182,7 +187,7 @@ def _on_question_shown(card: Card) -> None:
 def _on_answer_shown(card: Card) -> None:
     if _input_widget is not None:
         _input_widget.hide()
-    if _input_widget is None:
+    if not _has_input_field or _input_widget is None:
         return
 
     commits = _input_widget.commits()
@@ -221,7 +226,7 @@ def _on_js_message(handled: tuple[bool, object], message: str, context: object) 
     global _recognized_answer
     if message != "ans":
         return handled
-    if _input_widget is None or not _input_widget.isVisible():
+    if not _has_input_field or _input_widget is None or not _input_widget.isVisible():
         return handled
     if  mw is None or mw.reviewer is None:
         return handled
