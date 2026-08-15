@@ -9,8 +9,7 @@ macro_rules! recognizer_test {
         #[test]
         fn $name() {
             let model = load_recognizer_model();
-            let mut recognizer = Recognizer::load(&model).unwrap();
-            recognizer.select_preset(50);
+            let recognizer = Recognizer::load(&model).unwrap();
             let user = load_test_file(&$ch.to_string());
             let result = recognizer.recognize(&user);
             assert_eq!(result[0].character, $ch);

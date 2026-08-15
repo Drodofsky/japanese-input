@@ -25,9 +25,8 @@ pub mod japanese_input_py {
         fn new(map_path: &str) -> PyResult<Self> {
             let model = read(map_path)
                 .map_err(|e| PyRuntimeError::new_err(format!("failed to read {map_path}: {e}")))?;
-            let mut recognizer = NativeRecognizer::load(&model)
+            let recognizer = NativeRecognizer::load(&model)
                 .map_err(|e| PyRuntimeError::new_err(format!("failed to load model: {e}")))?;
-            recognizer.select_preset(22);
 
             Ok(Self { recognizer })
         }

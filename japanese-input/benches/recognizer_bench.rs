@@ -12,8 +12,7 @@ const STROKE_SAMPLES: [&str; 9] = ["一", "こ", "あ", "円", "右", "ぎ", "�
 
 fn bench_recognize(c: &mut Criterion) {
     let model = load_recognizer_model();
-    let mut recognizer = Recognizer::load(&model).expect("load recognizer model");
-    recognizer.select_preset(50);
+    let recognizer = Recognizer::load(&model).expect("load recognizer model");
     let corpus: Vec<Vec<Vec<(f32, f32)>>> = STROKE_SAMPLES
         .iter()
         .map(|&name| load_test_file(name))

@@ -811,52 +811,6 @@ fn admits(window: &[(u8, u8)], template: usize, user: usize) -> bool {
     }
 }
 
-/// A tuned configuration for one candidate budget, built by [`Recognizer::upsert_preset`].
-#[non_exhaustive]
-#[derive(Clone, Serialize, Deserialize)]
-pub struct Preset {
-    pub cap: usize,
-    pub depths: HashMap<char, usize>,
-    pub weights: Weights,
-    pub window: Vec<(u8, u8)>,
-    pub stats: PresetStats,
-}
-
-#[expect(
-    clippy::exhaustive_structs,
-    reason = "tuning tools build this by literal"
-)]
-#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct PresetStats {
-    pub hira: f64,
-    pub kanji: f64,
-    pub samples: usize,
-    pub candidates: usize,
-}
-
-impl Preset {
-    #[inline]
-    #[must_use]
-    pub fn key(&self) -> usize {
-        self.cap.saturating_div(1000)
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn describe(&self) -> String {
-        format!(
-            "key {:>3}  cand {:>6}/{:>6}  deep {:>4}  hira {:5.2}%  kanji {:5.2}%  (n={})",
-            self.key(),
-            self.stats.candidates,
-            self.cap,
-            self.depths.values().filter(|&&d| d > 1).count(),
-            self.stats.hira * 100.0,
-            self.stats.kanji * 100.0,
-            self.stats.samples
-        )
-    }
-}
-
 /// What one stored prototype costs and when it is used, for budget arithmetic.
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug)]
@@ -886,8 +840,6 @@ pub struct Recognizer {
     live: Vec<bool>,
     window: Vec<(u8, u8)>,
     models: Vec<(char, CharModel)>,
-    /// Tuned configurations by candidate budget; the active one is mirrored into `weights` and `window`.
-    presets: Vec<Preset>,
 }
 
 /// Every prototype trained for one character: its shape models at each clustering level it earns, sharing one placement model.
@@ -1129,7 +1081,6 @@ impl Recognizer {
             live: Vec::new(),
             window: default_window(),
             models,
-            presets: Vec::new(),
         };
         rec.refresh();
         rec
@@ -1350,15 +1301,10 @@ impl Recognizer {
         &self.live
     }
 
-    /// Drops every prototype that neither the live depths nor any stored preset uses.
+    /// Drops every prototype the live depths do not use.
     #[inline]
     pub fn trim(&mut self) -> usize {
-        let mut used = self.mask_for(&self.depths);
-        for p in &self.presets {
-            for (u, m) in used.iter_mut().zip(self.mask_for(&p.depths)) {
-                *u |= m;
-            }
-        }
+        let used = self.mask_for(&self.depths);
         let before = self.models.len();
         let mut keep = used.iter();
         self.models
@@ -1389,78 +1335,6 @@ impl Recognizer {
         self.refresh();
     }
 
-    #[inline]
-    pub fn upsert_preset(
-        &mut self,
-        cap: usize,
-        depths: HashMap<char, usize>,
-        weights: Weights,
-        window: Vec<(u8, u8)>,
-        stats: PresetStats,
-    ) {
-        let p = Preset {
-            cap,
-            depths,
-            weights,
-            window,
-            stats,
-        };
-        match self.presets.iter_mut().find(|e| e.cap == cap) {
-            Some(slot) => *slot = p,
-            None => self.presets.push(p),
-        }
-        self.presets.sort_by_key(|e| e.cap);
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn list_presets(&self) -> Vec<usize> {
-        self.presets.iter().map(Preset::key).collect()
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn describe_presets(&self) -> Vec<String> {
-        self.presets.iter().map(Preset::describe).collect()
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn preset(&self, key: usize) -> Option<&Preset> {
-        self.presets.iter().find(|p| p.key() == key)
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn nearest_preset(&self, key: usize) -> Option<&Preset> {
-        self.presets.get(self.nearest_index(key)?)
-    }
-
-    /// Index of the preset closest to `key`, ties going to the smaller budget.
-    fn nearest_index(&self, key: usize) -> Option<usize> {
-        self.presets
-            .iter()
-            .enumerate()
-            .min_by(|(_, a), (_, b)| {
-                a.key()
-                    .abs_diff(key)
-                    .cmp(&b.key().abs_diff(key))
-                    .then_with(|| a.key().cmp(&b.key()))
-            })
-            .map(|(i, _)| i)
-    }
-
-    #[inline]
-    pub fn select_preset(&mut self, key: usize) -> Option<usize> {
-        let chosen = self.presets.get(self.nearest_index(key)?)?;
-        let chosen_key = chosen.key();
-        self.weights = chosen.weights;
-        self.depths = chosen.depths.clone();
-        self.window = chosen.window.clone();
-        self.refresh();
-        Some(chosen_key)
-    }
-
     /// # Errors
     /// [`postcard::Error`] on serialization failure.
     #[inline]
@@ -1475,11 +1349,6 @@ impl Recognizer {
         let mut rec = postcard::from_bytes::<Self>(bytes)?;
         rec.refresh();
         Ok(rec)
-    }
-
-    #[inline]
-    pub fn set_size_weight(&mut self, weight: f64) {
-        self.weights.size = weight;
     }
 }
 
@@ -1808,27 +1677,19 @@ mod tests {
     fn a_model_survives_a_round_trip_through_bytes() {
         let mut rec = Recognizer {
             weights: Weights::default(),
-            depths: HashMap::new(),
+            depths: HashMap::from([('あ', 2)]),
             live: Vec::new(),
             window: default_window(),
             models: vec![('あ', CharModel::from_template(&features(&box_stroke()), 2))],
-            presets: Vec::new(),
         };
         rec.refresh();
-        rec.upsert_preset(
-            20_000,
-            HashMap::from([('あ', 2)]),
-            Weights::default(),
-            default_window(),
-            PresetStats::default(),
-        );
         let bytes = rec.to_bytes().expect("serialize");
         let back = Recognizer::load(&bytes).expect("deserialize");
         assert_eq!(back.model_count(), 1);
         let slots = back.model_slots();
         assert_eq!(slots.len(), 1);
         assert!(slots.first().is_some_and(|s| s.strokes == 2 && s.active(3)));
-        assert_eq!(back.list_presets(), vec![20]);
+        assert_eq!(back.depths().get(&'あ').copied(), Some(2));
     }
 
     #[test]
@@ -1926,50 +1787,6 @@ mod tests {
     }
 
     #[test]
-    fn trimming_spares_every_preset_not_just_the_live_one() {
-        let feats = features(&box_stroke());
-        let at = |level: usize| {
-            let mut m = CharModel::from_template(&feats, 2);
-            m.level = level;
-            m.levels = 3;
-            m
-        };
-        let mut rec = Recognizer {
-            weights: Weights::default(),
-            depths: HashMap::from([('あ', 1)]),
-            live: Vec::new(),
-            window: default_window(),
-            // levels 1, 2 and 3 for one character: 1 + 2 + 3 prototypes.
-            models: vec![
-                ('あ', at(1)),
-                ('あ', at(2)),
-                ('あ', at(2)),
-                ('あ', at(3)),
-                ('あ', at(3)),
-                ('あ', at(3)),
-            ],
-            presets: Vec::new(),
-        };
-        rec.refresh();
-        rec.upsert_preset(
-            50_000,
-            HashMap::from([('あ', 3)]),
-            Weights::default(),
-            default_window(),
-            PresetStats::default(),
-        );
-        // Live is depth 1, the preset is depth 3, so level 2 is what goes.
-        assert_eq!(rec.trim(), 2);
-        assert_eq!(rec.model_count(), 4);
-        assert_eq!(rec.select_preset(50), Some(50));
-        assert_eq!(
-            rec.live().iter().filter(|&&b| b).count(),
-            3,
-            "the preset still finds all three of its prototypes"
-        );
-    }
-
-    #[test]
     fn trimming_keeps_only_what_the_depths_use() {
         let feats = features(&box_stroke());
         let deep = |level: usize, levels: usize| {
@@ -1989,7 +1806,6 @@ mod tests {
                 ('あ', deep(2, 2)),
                 ('い', deep(1, 1)),
             ],
-            presets: Vec::new(),
         };
         rec.refresh();
         assert_eq!(rec.trim(), 1, "あ's unused level-1 prototype goes");
@@ -2014,7 +1830,6 @@ mod tests {
                 ('あ', CharModel::from_template(&feats, 2)),
                 ('い', CharModel::from_template(&feats, 2)),
             ],
-            presets: Vec::new(),
         };
         rec.refresh();
         let mut patch = rec.clone();
@@ -2083,18 +1898,5 @@ mod tests {
             small <= full + MAX_SMALL_PRIOR_GAP + 1e-9,
             "small={small} should never clear full={full} by more than the cap"
         );
-    }
-
-    #[test]
-    fn a_preset_key_is_its_budget_in_thousands() {
-        let p = Preset {
-            cap: 20_000,
-            depths: HashMap::new(),
-            weights: Weights::default(),
-            window: default_window(),
-            stats: PresetStats::default(),
-        };
-        assert_eq!(p.key(), 20);
-        assert!(p.describe().contains("key  20"));
     }
 }
