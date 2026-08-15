@@ -3,8 +3,10 @@ use crate::{
     convert_lossy::ConvertLossy as _,
     group_score::{GROUP_FEATURE_COUNT, GroupScore as _},
     leaf_score::{LEAF_FEATURE_COUNT, LeafScore as _},
+    match_strokes::{FILLER, joined_reference_shape, scoring_order},
     shape::Shape,
     stroke_geometry::StrokeGeometry,
+    stroke_point::StrokePoint,
     weights::{WEIGHT_COUNT, Weights},
 };
 
@@ -19,6 +21,7 @@ pub trait AssignmentFeatures {
         &self,
         user_stroke_order: &[u8],
         reference_shapes: &[Shape],
+        reference_strokes: &[Vec<StrokePoint>],
         user_shapes: &[Shape],
         user_stroke_geometries: &[StrokeGeometry],
     ) -> Option<[f64; WEIGHT_COUNT]>;
@@ -27,6 +30,7 @@ pub trait AssignmentFeatures {
         &self,
         user_stroke_order: &[u8],
         reference_shapes: &[Shape],
+        reference_strokes: &[Vec<StrokePoint>],
         user_shapes: &[Shape],
         user_stroke_geometries: &[StrokeGeometry],
         weights: &Weights,
@@ -39,6 +43,7 @@ impl AssignmentFeatures for AnalyzedKanjiNode {
         &self,
         user_stroke_order: &[u8],
         reference_shapes: &[Shape],
+        reference_strokes: &[Vec<StrokePoint>],
         user_shapes: &[Shape],
         user_stroke_geometries: &[StrokeGeometry],
     ) -> Option<[f64; WEIGHT_COUNT]> {
@@ -46,13 +51,14 @@ impl AssignmentFeatures for AnalyzedKanjiNode {
         accumulate_leaves(
             user_stroke_order,
             reference_shapes,
+            reference_strokes,
             user_shapes,
             &mut features,
         )?;
         accumulate_extras(user_stroke_order, user_shapes.len(), &mut features);
         accumulate_groups(
             self,
-            user_stroke_order,
+            &scoring_order(user_stroke_order),
             user_stroke_geometries,
             &mut features,
             true,
@@ -65,6 +71,7 @@ impl AssignmentFeatures for AnalyzedKanjiNode {
         &self,
         user_stroke_order: &[u8],
         reference_shapes: &[Shape],
+        reference_strokes: &[Vec<StrokePoint>],
         user_shapes: &[Shape],
         user_stroke_geometries: &[StrokeGeometry],
         weights: &Weights,
@@ -72,6 +79,7 @@ impl AssignmentFeatures for AnalyzedKanjiNode {
         let features = self.assignment_features(
             user_stroke_order,
             reference_shapes,
+            reference_strokes,
             user_shapes,
             user_stroke_geometries,
         )?;
@@ -92,16 +100,36 @@ pub fn dot(weights: &[f64; WEIGHT_COUNT], features: &[f64; WEIGHT_COUNT]) -> f64
 fn accumulate_leaves(
     user_stroke_order: &[u8],
     reference_shapes: &[Shape],
+    reference_strokes: &[Vec<StrokePoint>],
     user_shapes: &[Shape],
     features: &mut [f64; WEIGHT_COUNT],
 ) -> Option<()> {
-    for (position, user_index) in user_stroke_order.iter().enumerate() {
-        let reference = reference_shapes.get(position)?;
-        if *user_index == u8::MAX {
+    let mut position = 0_usize;
+    while position < user_stroke_order.len() {
+        let user_index = *user_stroke_order.get(position)?;
+        if user_index == u8::MAX {
             add_at(features, LEAF_FEATURE_COUNT, 1.0);
+            position = position.saturating_add(1);
             continue;
         }
-        let drawn = user_shapes.get(usize::from(*user_index))?;
+        if user_index == FILLER {
+            // A FILLER only ever trails the real index that opened its run; one reached on
+            // its own means the run's length disagrees with where it starts.
+            return None;
+        }
+        let mut length = 1_usize;
+        while matches!(
+            user_stroke_order.get(position.saturating_add(length)),
+            Some(&FILLER)
+        ) {
+            length = length.saturating_add(1);
+        }
+        let drawn = user_shapes.get(usize::from(user_index))?;
+        let reference = if length > 1 {
+            joined_reference_shape(reference_strokes, position, length)?
+        } else {
+            *reference_shapes.get(position)?
+        };
         if !reference.leaf_accepts(drawn) {
             return None;
         }
@@ -111,6 +139,10 @@ fn accumulate_leaves(
         {
             *slot += feature;
         }
+        if length > 1 {
+            add_at(features, WEIGHT_COUNT.saturating_sub(1), 1.0);
+        }
+        position = position.saturating_add(length);
     }
     Some(())
 }
@@ -230,14 +262,20 @@ mod tests {
     fn parts(
         tree: &AnalyzedKanjiNode,
         user: &[Vec<StrokePoint>],
-    ) -> (Vec<Shape>, Vec<Shape>, Vec<StrokeGeometry>) {
-        let reference = tree.collect_strokes().to_shapes();
+    ) -> (
+        Vec<Shape>,
+        Vec<Vec<StrokePoint>>,
+        Vec<Shape>,
+        Vec<StrokeGeometry>,
+    ) {
+        let strokes = tree.collect_strokes();
+        let reference = strokes.to_shapes();
         let shapes = user.to_shapes();
         let geometries = user
             .iter()
             .map(|s| StrokeGeometry::from_stroke(s))
             .collect();
-        (reference, shapes, geometries)
+        (reference, strokes, shapes, geometries)
     }
 
     fn direct(
@@ -246,8 +284,8 @@ mod tests {
         user: &[Vec<StrokePoint>],
         weights: &Weights,
     ) -> Option<f64> {
-        let (reference, shapes, geometries) = parts(tree, user);
-        tree.assignment_score(order, &reference, &shapes, &geometries, weights)
+        let (reference, strokes, shapes, geometries) = parts(tree, user);
+        tree.assignment_score(order, &reference, &strokes, &shapes, &geometries, weights)
     }
 
     fn approx(a: f64, b: f64) -> bool {
@@ -344,13 +382,20 @@ mod tests {
             path(&horizontal(0.5)),
             path(&horizontal(0.2)),
         ];
-        let (reference, shapes, geometries) = parts(&three(), &user);
+        let (reference, strokes, shapes, geometries) = parts(&three(), &user);
         let features = three()
-            .assignment_features(&[2, 1, 0], &reference, &shapes, &geometries)
+            .assignment_features(&[2, 1, 0], &reference, &strokes, &shapes, &geometries)
             .expect("features");
         for weights in [Weights::ones(), Weights::v1()] {
             let score = three()
-                .assignment_score(&[2, 1, 0], &reference, &shapes, &geometries, &weights)
+                .assignment_score(
+                    &[2, 1, 0],
+                    &reference,
+                    &strokes,
+                    &shapes,
+                    &geometries,
+                    &weights,
+                )
                 .expect("score");
             assert!(approx(score, dot(&weights.to_array(), &features)));
         }
@@ -363,12 +408,12 @@ mod tests {
             path(&horizontal(0.5)),
             path(&horizontal(0.2)),
         ];
-        let (reference, shapes, geometries) = parts(&three(), &user);
+        let (reference, strokes, shapes, geometries) = parts(&three(), &user);
         let first = three()
-            .assignment_features(&[2, 1, 0], &reference, &shapes, &geometries)
+            .assignment_features(&[2, 1, 0], &reference, &strokes, &shapes, &geometries)
             .expect("features");
         let second = three()
-            .assignment_features(&[2, 1, 0], &reference, &shapes, &geometries)
+            .assignment_features(&[2, 1, 0], &reference, &strokes, &shapes, &geometries)
             .expect("features");
         assert_eq!(first, second);
     }
@@ -380,10 +425,10 @@ mod tests {
             path(&horizontal(0.5)),
             path(&horizontal(0.8)),
         ];
-        let (reference, shapes, geometries) = parts(&three(), &user);
+        let (reference, strokes, shapes, geometries) = parts(&three(), &user);
         assert!(
             three()
-                .assignment_features(&[0, 1, 2], &reference, &shapes, &geometries)
+                .assignment_features(&[0, 1, 2], &reference, &strokes, &shapes, &geometries)
                 .is_none()
         );
     }
@@ -391,9 +436,15 @@ mod tests {
     #[test]
     fn undrawn_and_spare_strokes_land_in_their_own_slots() {
         let user = vec![path(&horizontal(0.2)), path(&[(0.5, 0.1), (0.5, 0.9)])];
-        let (reference, shapes, geometries) = parts(&three(), &user);
+        let (reference, strokes, shapes, geometries) = parts(&three(), &user);
         let features = three()
-            .assignment_features(&[0, u8::MAX, u8::MAX], &reference, &shapes, &geometries)
+            .assignment_features(
+                &[0, u8::MAX, u8::MAX],
+                &reference,
+                &strokes,
+                &shapes,
+                &geometries,
+            )
             .expect("features");
         assert!(approx(
             features.get(LEAF_FEATURE_COUNT).copied().unwrap_or(0.0),
@@ -415,10 +466,46 @@ mod tests {
             path(&horizontal(0.2)),
             path(&horizontal(0.5)),
         ];
-        let (reference, shapes, geometries) = parts(&three(), &user);
+        let (reference, strokes, shapes, geometries) = parts(&three(), &user);
         let features = three()
-            .assignment_features(&[1, 2, 0], &reference, &shapes, &geometries)
+            .assignment_features(&[1, 2, 0], &reference, &strokes, &shapes, &geometries)
             .expect("features");
         assert!(features.iter().all(|feature| *feature >= 0.0));
+    }
+
+    #[test]
+    fn a_merged_run_scores_the_joined_shape_and_charges_the_merge_penalty() {
+        let user = vec![
+            path(&[(0.2, 0.2), (0.8, 0.2), (0.2, 0.5), (0.8, 0.5)]),
+            path(&horizontal(0.8)),
+        ];
+        let (reference, strokes, shapes, geometries) = parts(&three(), &user);
+        let features = three()
+            .assignment_features(&[0, FILLER, 1], &reference, &strokes, &shapes, &geometries)
+            .expect("features");
+        assert!(approx(
+            features
+                .get(WEIGHT_COUNT.saturating_sub(1))
+                .copied()
+                .unwrap_or(0.0),
+            1.0
+        ));
+    }
+
+    #[test]
+    fn a_filler_with_no_run_leader_is_rejected() {
+        let user = vec![path(&horizontal(0.2)), path(&horizontal(0.5))];
+        let (reference, strokes, shapes, geometries) = parts(&three(), &user);
+        assert!(
+            three()
+                .assignment_features(
+                    &[FILLER, 0, u8::MAX],
+                    &reference,
+                    &strokes,
+                    &shapes,
+                    &geometries,
+                )
+                .is_none()
+        );
     }
 }
