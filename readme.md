@@ -38,7 +38,21 @@ This benchmark tracks the recognition engines and models the add-on uses, or has
 | correct (DTW)           | 59.5%    | 62.67%   | 54.23% | 53.15%   |
 | correct (Zinnia+Tegaki) | 21.53%   | 2.01%    | 47.77% | 45.13%   |
 
+### Stroke Correspondence
 
+The stroke correspondence algorithm has limited support for:
+
+- wrong stroke order
+- missing strokes
+- added strokes
+- merged strokes
+
+The table compares the percentage of character samples with correctly matched strokes from 6 writers from the *HANDS-nakayosi_t-98-09* dataset for each 漢検 level.
+
+| Level   | １０級 | ９級  |
+| ------- | ------ | ----- |
+| Tested  | 80/80  | 0/160 |
+| Correct | 88.66% | -     |
 
 
 
