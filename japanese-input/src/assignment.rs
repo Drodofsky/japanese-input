@@ -154,7 +154,7 @@ fn accumulate_extras(
 ) {
     let used = user_stroke_order
         .iter()
-        .filter(|index| **index != u8::MAX)
+        .filter(|index| **index != u8::MAX && **index != FILLER)
         .count();
     let extras = user_count.saturating_sub(used);
     let slot = LEAF_FEATURE_COUNT.saturating_add(1);
@@ -419,9 +419,9 @@ mod tests {
     }
 
     #[test]
-    fn a_gated_pair_makes_the_assignment_invalid() {
+    fn an_unusable_pair_makes_the_assignment_invalid() {
         let user = vec![
-            path(&[(0.8, 0.2), (0.2, 0.2)]),
+            path(&[(0.5, 0.5)]),
             path(&horizontal(0.5)),
             path(&horizontal(0.8)),
         ];

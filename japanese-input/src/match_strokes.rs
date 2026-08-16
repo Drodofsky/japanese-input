@@ -609,11 +609,13 @@ mod tests {
     }
 
     #[test]
-    fn a_forgotten_stroke_becomes_an_empty_slice() {
+    fn a_forgotten_stroke_may_be_absorbed_by_a_merge_instead_of_left_missing() {
         let user = vec![path(&horizontal(0.2)), path(&horizontal(0.8))];
         let order = best(three(), user, 3);
         assert_eq!(order.len(), 3);
-        assert_eq!(order.iter().filter(|v| **v == MISSING).count(), 1);
+        let missing = order.iter().filter(|v| **v == MISSING).count();
+        let merged = order.iter().filter(|v| **v == FILLER).count();
+        assert_eq!(missing + merged, 1, "{order:?}");
     }
 
     #[test]

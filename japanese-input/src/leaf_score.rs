@@ -8,12 +8,6 @@ use crate::{
 /// One direction feature, one sideways and one along-chord per harmonic, one length feature.
 pub const LEAF_FEATURE_COUNT: usize = HARMONICS * 2 + 2;
 
-/// Largest straightness gap before a pair is rejected outright.
-const MAX_STRAIGHTNESS_GAP: f64 = 0.35;
-
-/// Largest factor between two arc lengths before a pair is rejected outright.
-const MAX_LENGTH_RATIO: f64 = 3.0;
-
 pub trait LeafScore {
     /// Squared disagreements in this stroke's own chord frame, taking it as the reference.
     fn leaf_features(&self, user: &Self) -> [f64; LEAF_FEATURE_COUNT];
@@ -21,7 +15,7 @@ pub trait LeafScore {
     /// The weighted cost of matching a user stroke here.
     fn leaf_cost(&self, user: &Self, weights: &Weights) -> Option<f64>;
 
-    /// True when no gate rejects this pair.
+    /// True when this pair has a computable cost at all.
     fn leaf_accepts(&self, user: &Self) -> bool;
 }
 
@@ -69,18 +63,7 @@ impl LeafScore for Shape {
 }
 
 fn accepts(reference: &Shape, user: &Shape) -> bool {
-    if !reference.is_usable() || !user.is_usable() {
-        return false;
-    }
-    if (reference.straightness() - user.straightness()).abs() > MAX_STRAIGHTNESS_GAP {
-        return false;
-    }
-    if (reference.ln_arc_len - user.ln_arc_len).abs() > MAX_LENGTH_RATIO.ln() {
-        return false;
-    }
-    reference.direction().is_none()
-        || user.direction().is_none()
-        || reference.mean.dot(user.mean) >= 0.0
+    reference.is_usable() && user.is_usable()
 }
 
 #[inline]
@@ -244,32 +227,32 @@ mod tests {
     }
 
     #[test]
-    fn a_reversed_stroke_is_rejected() {
+    fn a_reversed_stroke_still_scores_but_costs_more_than_a_matched_one() {
         let forward = shape(&[(0.0, 0.0), (1.0, 0.0)]);
         let backward = shape(&[(1.0, 0.0), (0.0, 0.0)]);
-        assert!(forward.leaf_cost(&backward, &Weights::v1()).is_none());
+        let matched = shape(&[(0.0, 0.0), (1.0, 0.0)]);
+        let reversed_cost = forward.leaf_cost(&backward, &Weights::v1()).expect("cost");
+        let matched_cost = forward.leaf_cost(&matched, &Weights::v1()).expect("cost");
+        assert!(reversed_cost > matched_cost, "{reversed_cost} vs {matched_cost}");
     }
 
     #[test]
-    fn a_right_angle_of_aim_is_not_treated_as_reversal() {
-        let horizontal = shape(&[(0.0, 0.0), (1.0, 0.0)]);
-        let vertical = shape(&[(0.0, 0.0), (0.0, 1.0)]);
-        assert!(horizontal.leaf_cost(&vertical, &Weights::v1()).is_some());
-    }
-
-    #[test]
-    fn a_line_is_rejected_against_a_wandering_stroke() {
+    fn a_line_against_a_wandering_stroke_still_scores_but_more_than_a_matched_one() {
         let line = shape(&[(0.0, 0.0), (100.0, 0.0)]);
-        assert!(otsu().leaf_cost(&line, &Weights::v1()).is_none());
+        let weights = Weights::v1();
+        let line_cost = otsu().leaf_cost(&line, &weights).expect("cost");
+        let matched_cost = otsu().leaf_cost(&otsu(), &weights).expect("cost");
+        assert!(line_cost > matched_cost, "{line_cost} vs {matched_cost}");
     }
 
     #[test]
-    fn a_grossly_longer_stroke_is_rejected() {
+    fn a_grossly_longer_stroke_still_scores_but_more_expensively() {
         let short = shape(&[(0.0, 0.0), (1.0, 0.0)]);
         let long = shape(&[(0.0, 0.0), (10.0, 0.0)]);
         let inside = shape(&[(0.0, 0.0), (2.9, 0.0)]);
-        assert!(short.leaf_cost(&long, &Weights::v1()).is_none());
-        assert!(short.leaf_cost(&inside, &Weights::v1()).is_some());
+        let long_cost = short.leaf_cost(&long, &Weights::v1()).expect("cost");
+        let inside_cost = short.leaf_cost(&inside, &Weights::v1()).expect("cost");
+        assert!(long_cost > inside_cost, "{long_cost} vs {inside_cost}");
     }
 
     #[test]
@@ -278,13 +261,6 @@ mod tests {
         let dot = shape(&[(0.5, 0.5)]);
         assert!(line.leaf_cost(&dot, &Weights::v1()).is_none());
         assert!(dot.leaf_cost(&line, &Weights::v1()).is_none());
-    }
-
-    #[test]
-    fn a_curl_is_never_judged_reversed_on_direction_alone() {
-        let folded = shape(&[(0.0, 0.0), (1.0, 0.0), (0.02, 0.0)]);
-        let other = shape(&[(0.0, 0.0), (1.0, 0.0), (0.02, 0.01)]);
-        assert!(folded.leaf_cost(&other, &Weights::v1()).is_some());
     }
 
     #[test]
