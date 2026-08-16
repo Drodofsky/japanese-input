@@ -270,7 +270,7 @@ mod tests {
     ) {
         let strokes = tree.collect_strokes();
         let reference = strokes.to_shapes();
-        let shapes = user.to_shapes();
+        let shapes = crate::length_scale::user_shapes(&strokes, user);
         let geometries = user
             .iter()
             .map(|s| StrokeGeometry::from_stroke(s))

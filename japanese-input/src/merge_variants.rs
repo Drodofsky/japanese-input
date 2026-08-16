@@ -402,7 +402,7 @@ mod tests {
             for variant in generate(&tree, &ink, &truth) {
                 let strokes = tree.collect_strokes();
                 let reference = strokes.to_shapes();
-                let user = variant.ink.to_shapes();
+                let user = crate::length_scale::user_shapes(&strokes, &variant.ink);
                 let geometry: Vec<StrokeGeometry> = variant
                     .ink
                     .iter()

@@ -105,7 +105,7 @@ impl Solver {
         let points = tree.collect_strokes();
         Self {
             reference: points.to_shapes(),
-            user: user_strokes.to_shapes(),
+            user: crate::length_scale::user_shapes(&points, user_strokes),
             geometry: user_strokes
                 .iter()
                 .map(|stroke| StrokeGeometry::from_stroke(stroke))

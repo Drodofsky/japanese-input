@@ -11,6 +11,7 @@ pub mod group_score;
 pub mod kanji_node;
 pub mod leaf_matrix;
 pub mod leaf_score;
+pub mod length_scale;
 pub mod map_space_to;
 pub mod match_strokes;
 pub mod merge_variants;

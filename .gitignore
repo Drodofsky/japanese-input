@@ -4,6 +4,7 @@
 
 # Deny folders
 optimize-stroke-match-weights/
+triage-stroke-matching/
 pyenv/
 
 # allow:
@@ -46,6 +47,7 @@ pyenv/
 !japanese-input/src/weights.rs
 !japanese-input/src/match_strokes.rs
 !japanese-input/src/merge_variants.rs
+!japanese-input/src/length_scale.rs
 !japanese-input/src/gen_svg.rs
 !japanese-input/src/recognizer.rs
 !japanese-input/tests/utils/mod.rs

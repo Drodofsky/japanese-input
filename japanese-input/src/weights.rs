@@ -1,7 +1,7 @@
 use crate::{leaf_score::LEAF_FEATURE_COUNT, shape::HARMONICS};
 
-/// Leaf weights followed by missing, extra, then the five group weights.
-pub const WEIGHT_COUNT: usize = LEAF_FEATURE_COUNT + 8;
+/// Leaf weights followed by missing, extra, then the six group weights.
+pub const WEIGHT_COUNT: usize = LEAF_FEATURE_COUNT + 9;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
@@ -17,6 +17,7 @@ pub struct Weights {
     pub contiguity_weight: f64,
     pub rel_length_weight: f64,
     pub abs_position_weight: f64,
+    pub length_order_weight: f64,
     pub merge_penalty: f64,
 }
 
@@ -43,6 +44,7 @@ impl Weights {
             contiguity_weight: 1.0,
             rel_length_weight: 1.0,
             abs_position_weight: 1.0,
+            length_order_weight: 1.0,
             merge_penalty: 1.0,
         }
     }
@@ -62,10 +64,11 @@ impl Weights {
             missing_penalty: 1.6,
             extra_penalty: 0.4,
             order_weight: 0.08823529411764706,
-            group_weight: 0.21568627450980393,
+            group_weight: 0.13725490196078433,
             contiguity_weight: 0.0784313725490196,
             rel_length_weight: 0.22549019607843138,
             abs_position_weight: 0.22549019607843138,
+            length_order_weight: 0.0784313725490196,
             merge_penalty: 0.5,
         }
     }
@@ -74,26 +77,27 @@ impl Weights {
     #[inline]
     pub fn v2() -> Self {
         Self {
-            direction_weight: 0.267812328693724,
+            direction_weight: 0.19642176498067174,
             sideways_weights: [
-                0.0020615255593966733,
-                0.005391540342305923,
-                0.001878364327402197,
+                0.05624904117046234,
+                0.0164616652580523,
+                0.017069081021697224,
             ],
             along_weights: [
-                0.002221604726736822,
-                0.0017726121903009417,
-                0.0017018205890181554,
+                0.007761026780261849,
+                0.0036237457474731422,
+                0.002829790827681526,
             ],
-            length_weight: 0.3266619668311191,
-            missing_penalty: 0.506311343188184,
-            extra_penalty: 0.7288638120585242,
-            order_weight: 0.001633309834155597,
-            group_weight: 0.2500667131745194,
-            contiguity_weight: 0.0016333098341555947,
-            rel_length_weight: 0.0035858263281270428,
-            abs_position_weight: 0.1335790775690386,
-            merge_penalty: 0.09156850666851826,
+            length_weight: 0.4031847635204463,
+            missing_penalty: 0.46988270859275855,
+            extra_penalty: 0.5906333446957664,
+            order_weight: 0.0401305128794026,
+            group_weight: 0.12488835725396398,
+            contiguity_weight: 0.0035275602567214595,
+            rel_length_weight: 0.0026261506615966575,
+            length_order_weight: 0.08479512300575878,
+            abs_position_weight: 0.04043141663581024,
+            merge_penalty: 0.27121510994264814,
         }
     }
 
@@ -127,6 +131,7 @@ impl Weights {
         write_next(&mut slot, self.group_weight);
         write_next(&mut slot, self.contiguity_weight);
         write_next(&mut slot, self.rel_length_weight);
+        write_next(&mut slot, self.length_order_weight);
         write_next(&mut slot, self.abs_position_weight);
         write_next(&mut slot, self.merge_penalty);
         values
@@ -173,8 +178,9 @@ impl TryFrom<&[f64]> for Weights {
             group_weight: at(value, LEAF_FEATURE_COUNT.saturating_add(3))?,
             contiguity_weight: at(value, LEAF_FEATURE_COUNT.saturating_add(4))?,
             rel_length_weight: at(value, LEAF_FEATURE_COUNT.saturating_add(5))?,
-            abs_position_weight: at(value, LEAF_FEATURE_COUNT.saturating_add(6))?,
-            merge_penalty: at(value, LEAF_FEATURE_COUNT.saturating_add(7))?,
+            length_order_weight: at(value, LEAF_FEATURE_COUNT.saturating_add(6))?,
+            abs_position_weight: at(value, LEAF_FEATURE_COUNT.saturating_add(7))?,
+            merge_penalty: at(value, LEAF_FEATURE_COUNT.saturating_add(8))?,
         })
     }
 }
@@ -223,9 +229,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_layout_is_eight_leaf_weights_and_five_group_weights() {
+    fn the_layout_is_eight_leaf_weights_and_six_group_weights() {
         assert_eq!(LEAF_FEATURE_COUNT, 8);
-        assert_eq!(WEIGHT_COUNT, 16);
+        assert_eq!(WEIGHT_COUNT, 17);
         assert_eq!(Weights::v1().to_vec().len(), WEIGHT_COUNT);
     }
 
@@ -251,8 +257,9 @@ mod tests {
         assert_eq!(flat.get(11).copied(), Some(weights.group_weight));
         assert_eq!(flat.get(12).copied(), Some(weights.contiguity_weight));
         assert_eq!(flat.get(13).copied(), Some(weights.rel_length_weight));
-        assert_eq!(flat.get(14).copied(), Some(weights.abs_position_weight));
-        assert_eq!(flat.get(15).copied(), Some(weights.merge_penalty));
+        assert_eq!(flat.get(14).copied(), Some(weights.length_order_weight));
+        assert_eq!(flat.get(15).copied(), Some(weights.abs_position_weight));
+        assert_eq!(flat.get(16).copied(), Some(weights.merge_penalty));
     }
 
     #[test]
@@ -342,8 +349,8 @@ mod tests {
         let mut seen: Vec<usize> = feature_slots().chain(penalty_slots()).collect();
         seen.sort_unstable();
         assert_eq!(seen, (0..WEIGHT_COUNT).collect::<Vec<usize>>());
-        assert_eq!(feature_slots().count(), 13);
-        assert_eq!(penalty_slots().collect::<Vec<usize>>(), vec![8, 9, 15]);
+        assert_eq!(feature_slots().count(), 14);
+        assert_eq!(penalty_slots().collect::<Vec<usize>>(), vec![8, 9, 16]);
     }
 
     #[test]
