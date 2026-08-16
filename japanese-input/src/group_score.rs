@@ -15,7 +15,7 @@ type Matches = SmallVec<[(StrokeGeometry, StrokeGeometry); 32]>;
 /// One entry per matched leaf, holding which user stroke it took and which child owns it.
 type Ownership = SmallVec<[(u8, usize); 32]>;
 
-pub const GROUP_FEATURE_COUNT: usize = 6;
+pub const GROUP_FEATURE_COUNT: usize = 5;
 
 /// Guards a division by an arc length.
 const EPS: f64 = 1e-12;
@@ -58,15 +58,11 @@ impl GroupScore for AnalyzedKanjiNode {
             user_stroke_geometries,
         );
         let matches = matched_pairs(&reference, user_stroke_order, user_stroke_geometries);
-        // absolute_position stays last: `group_score` drops the last feature below the
-        // root (sub-groups can be shifted around freely without penalty, only the root's
-        // placement matters), so whatever's meant to be root-only has to stay in that slot.
         [
             disorder(user_stroke_order),
             placement(&centroids),
             contiguity(&ownership),
             relative_length(&matches),
-            length_order(&matches),
             absolute_position(&matches),
         ]
     }
@@ -85,7 +81,6 @@ impl GroupScore for AnalyzedKanjiNode {
             weights.group_weight,
             weights.contiguity_weight,
             weights.rel_length_weight,
-            weights.length_order_weight,
             weights.abs_position_weight,
         ];
         let counted = if root {
@@ -180,37 +175,6 @@ fn relative_length(matches: &Matches) -> f64 {
         return 0.0;
     }
     total / pairs.convert_lossy()
-}
-
-/// Kendall-tau-style: the share of matched-leaf pairs whose reference-length order is
-/// contradicted by their drawn-length order, the same inversions-over-max-pairs shape
-/// `disorder` uses for stroke-index order. A discrete, count-based signal rather than a
-/// continuous ratio, so unlike `relative_length` a genuine mismatch always contributes a
-/// full unit instead of a difference that can be arbitrarily small for a close call.
-fn length_order(matches: &Matches) -> f64 {
-    let mut inversions = 0_usize;
-    let mut pairs = 0_usize;
-    for (index, (left_reference, left_user)) in matches.iter().enumerate() {
-        for (right_reference, right_user) in matches.iter().skip(index.saturating_add(1)) {
-            if left_reference.arc_len <= EPS
-                || right_reference.arc_len <= EPS
-                || left_user.arc_len <= EPS
-                || right_user.arc_len <= EPS
-            {
-                continue;
-            }
-            let reference_order = left_reference.arc_len < right_reference.arc_len;
-            let drawn_order = left_user.arc_len < right_user.arc_len;
-            if reference_order != drawn_order {
-                inversions = inversions.saturating_add(1);
-            }
-            pairs = pairs.saturating_add(1);
-        }
-    }
-    if pairs == 0 {
-        return 0.0;
-    }
-    inversions.convert_lossy() / pairs.convert_lossy()
 }
 
 fn absolute_position(matches: &Matches) -> f64 {
@@ -426,10 +390,10 @@ mod tests {
             &vec![(0.5, 1.0), (1.1, 1.0)],
         ]);
         let features = three().group_features(&[0, 1, 2], &shifted);
-        for (index, value) in features.iter().enumerate().take(5) {
+        for (index, value) in features.iter().enumerate().take(4) {
             assert!(approx(*value, 0.0, 1e-12), "feature {index} moved: {value}");
         }
-        let absolute = features.get(5).copied().unwrap_or(0.0);
+        let absolute = features.get(4).copied().unwrap_or(0.0);
         assert!(
             absolute > 1e-3,
             "absolute position should notice a shift: {absolute}"
@@ -638,8 +602,8 @@ mod tests {
         let geometries = three_geometries();
         let correct = three().group_features(&[0, 1, 2], &geometries);
         let swapped = three().group_features(&[2, 1, 0], &geometries);
-        assert!(approx(correct.get(5).copied().unwrap_or(1.0), 0.0, 1e-12));
-        assert!(swapped.get(5).copied().unwrap_or(0.0) > 1e-3);
+        assert!(approx(correct.get(4).copied().unwrap_or(1.0), 0.0, 1e-12));
+        assert!(swapped.get(4).copied().unwrap_or(0.0) > 1e-3);
     }
 
     /// 三 drawn with two strokes: the labels differ only in which reference went undrawn.
@@ -654,14 +618,14 @@ mod tests {
             1e-12
         ));
         let gap =
-            (early.get(5).copied().unwrap_or(0.0) - late.get(5).copied().unwrap_or(0.0)).abs();
+            (early.get(4).copied().unwrap_or(0.0) - late.get(4).copied().unwrap_or(0.0)).abs();
         assert!(gap > 1e-3, "absolute position should separate these: {gap}");
     }
 
     #[test]
     fn absolute_position_is_zero_for_a_perfect_copy() {
         let features = three().group_features(&[0, 1, 2], &three_geometries());
-        assert!(approx(features.get(5).copied().unwrap_or(1.0), 0.0, 1e-12));
+        assert!(approx(features.get(4).copied().unwrap_or(1.0), 0.0, 1e-12));
     }
 
     #[test]
@@ -681,7 +645,7 @@ mod tests {
     #[test]
     fn zero_weights_silence_every_group_channel() {
         let mut values = Weights::v1().to_vec();
-        for index in [10, 11, 12, 13, 14, 15] {
+        for index in [10, 11, 12, 13, 14] {
             if let Some(slot) = values.get_mut(index) {
                 *slot = 0.0;
             }
