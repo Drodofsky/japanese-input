@@ -57,7 +57,9 @@ fn longest(strokes: &[Vec<StrokePoint>]) -> Option<f64> {
         .iter()
         .map(|stroke| stroke.arc_len())
         .filter(|len| len.is_finite() && *len > EPS)
-        .fold(None, |acc: Option<f64>, len| Some(acc.map_or(len, |a| a.max(len))))
+        .fold(None, |acc: Option<f64>, len| {
+            Some(acc.map_or(len, |a| a.max(len)))
+        })
 }
 
 #[cfg(test)]
@@ -72,27 +74,41 @@ mod tests {
 
     #[test]
     fn identical_drawings_scale_to_one() {
-        let strokes = vec![stroke(&[(0.0, 0.0), (1.0, 0.0)]), stroke(&[(0.0, 1.0), (1.0, 1.0)])];
+        let strokes = vec![
+            stroke(&[(0.0, 0.0), (1.0, 0.0)]),
+            stroke(&[(0.0, 1.0), (1.0, 1.0)]),
+        ];
         assert!((length_scale(&strokes, &strokes) - 1.0).abs() < 1e-9);
     }
 
     #[test]
     fn a_uniformly_smaller_drawing_gets_a_scale_below_one() {
-        let reference = vec![stroke(&[(0.0, 0.0), (1.0, 0.0)]), stroke(&[(0.0, 1.0), (1.0, 1.0)])];
-        let smaller = vec![stroke(&[(0.0, 0.0), (0.5, 0.0)]), stroke(&[(0.0, 0.5), (0.5, 0.5)])];
+        let reference = vec![
+            stroke(&[(0.0, 0.0), (1.0, 0.0)]),
+            stroke(&[(0.0, 1.0), (1.0, 1.0)]),
+        ];
+        let smaller = vec![
+            stroke(&[(0.0, 0.0), (0.5, 0.0)]),
+            stroke(&[(0.0, 0.5), (0.5, 0.5)]),
+        ];
         let scale = length_scale(&reference, &smaller);
         assert!((scale - 0.5).abs() < 1e-9, "{scale}");
     }
 
     #[test]
     fn rescaling_shrinks_a_smaller_drawings_length_gap_to_the_reference() {
-        let reference = vec![stroke(&[(0.0, 0.0), (1.0, 0.0)]), stroke(&[(0.0, 1.0), (1.0, 1.0)])];
-        let smaller = vec![stroke(&[(0.0, 0.0), (0.5, 0.0)]), stroke(&[(0.0, 0.5), (0.5, 0.5)])];
+        let reference = vec![
+            stroke(&[(0.0, 0.0), (1.0, 0.0)]),
+            stroke(&[(0.0, 1.0), (1.0, 1.0)]),
+        ];
+        let smaller = vec![
+            stroke(&[(0.0, 0.0), (0.5, 0.0)]),
+            stroke(&[(0.0, 0.5), (0.5, 0.5)]),
+        ];
         let corrected = user_shapes(&reference, &smaller);
         let plain = smaller.to_shapes();
         let reference_shapes = reference.to_shapes();
-        let corrected_gap =
-            (reference_shapes[0].ln_arc_len - corrected[0].ln_arc_len).abs();
+        let corrected_gap = (reference_shapes[0].ln_arc_len - corrected[0].ln_arc_len).abs();
         let plain_gap = (reference_shapes[0].ln_arc_len - plain[0].ln_arc_len).abs();
         assert!(corrected_gap < plain_gap, "{corrected_gap} vs {plain_gap}");
         assert!(corrected_gap < 1e-9, "{corrected_gap}");

@@ -233,7 +233,10 @@ mod tests {
         let matched = shape(&[(0.0, 0.0), (1.0, 0.0)]);
         let reversed_cost = forward.leaf_cost(&backward, &Weights::v1()).expect("cost");
         let matched_cost = forward.leaf_cost(&matched, &Weights::v1()).expect("cost");
-        assert!(reversed_cost > matched_cost, "{reversed_cost} vs {matched_cost}");
+        assert!(
+            reversed_cost > matched_cost,
+            "{reversed_cost} vs {matched_cost}"
+        );
     }
 
     #[test]
