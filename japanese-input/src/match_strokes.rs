@@ -220,8 +220,13 @@ impl Solver {
         for order in orderings(children.len()) {
             for (score, taken) in self.splits(&layout, &order, start, end) {
                 let flat = reorder(&counts, &order, &taken);
-                let group =
-                    node.group_score(&scoring_order(&flat), &self.geometry, &self.weights, root);
+                let group = node.group_score(
+                    &scoring_order(&flat),
+                    &self.geometry,
+                    &self.user,
+                    &self.weights,
+                    root,
+                );
                 out.push(Candidate {
                     score: score + group,
                     order: flat,

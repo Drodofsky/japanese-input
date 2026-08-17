@@ -47,6 +47,7 @@ pyenv/
 !japanese-input/src/weights.rs
 !japanese-input/src/match_strokes.rs
 !japanese-input/src/merge_variants.rs
+!japanese-input/src/cross_group_variants.rs
 !japanese-input/src/length_scale.rs
 !japanese-input/src/gen_svg.rs
 !japanese-input/src/recognizer.rs
@@ -69,6 +70,8 @@ pyenv/
 !japanese-input/tests/に.rs
 !japanese-input/tests/みぎ.rs
 !japanese-input/tests/とし.rs
+!japanese-input/tests/ひゃく.rs
+!japanese-input/tests/みる.rs
 !japanese-input/tests/merged_strokes.rs
 !japanese-input/benches/utils/mod.rs
 !japanese-input/benches/match_bench.rs

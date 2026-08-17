@@ -24,6 +24,7 @@ pub trait AssignmentFeatures {
         reference_strokes: &[Vec<StrokePoint>],
         user_shapes: &[Shape],
         user_stroke_geometries: &[StrokeGeometry],
+        weights: &Weights,
     ) -> Option<[f64; WEIGHT_COUNT]>;
 
     fn assignment_score(
@@ -46,6 +47,7 @@ impl AssignmentFeatures for AnalyzedKanjiNode {
         reference_strokes: &[Vec<StrokePoint>],
         user_shapes: &[Shape],
         user_stroke_geometries: &[StrokeGeometry],
+        weights: &Weights,
     ) -> Option<[f64; WEIGHT_COUNT]> {
         let mut features = [0.0_f64; WEIGHT_COUNT];
         accumulate_leaves(
@@ -60,6 +62,8 @@ impl AssignmentFeatures for AnalyzedKanjiNode {
             self,
             &scoring_order(user_stroke_order),
             user_stroke_geometries,
+            user_shapes,
+            weights,
             &mut features,
             true,
         );
@@ -82,6 +86,7 @@ impl AssignmentFeatures for AnalyzedKanjiNode {
             reference_strokes,
             user_shapes,
             user_stroke_geometries,
+            weights,
         )?;
         Some(dot(&weights.to_array(), &features))
     }
@@ -164,6 +169,8 @@ fn accumulate_groups(
     node: &AnalyzedKanjiNode,
     user_stroke_order: &[u8],
     user_stroke_geometries: &[StrokeGeometry],
+    user_shapes: &[Shape],
+    weights: &Weights,
     features: &mut [f64; WEIGHT_COUNT],
     root: bool,
 ) {
@@ -171,21 +178,37 @@ fn accumulate_groups(
         AnalyzedKanjiNode::Group { children, .. } => children,
         AnalyzedKanjiNode::Stroke { .. } => return,
     };
-    let own = node.group_features(user_stroke_order, user_stroke_geometries);
+    let own = node.group_features(
+        user_stroke_order,
+        user_stroke_geometries,
+        user_shapes,
+        weights,
+    );
     let start = LEAF_FEATURE_COUNT.saturating_add(2);
-    let counted = if root {
-        own.len()
-    } else {
-        own.len().saturating_sub(1)
-    };
-    for (offset, feature) in own.iter().take(counted).enumerate() {
+    // Slot 4 (`absolute_position`) is root-only; every other slot, including slot 5
+    // (`cross_group_bonus`), is charged at every level. See `group_score`'s own doc comment
+    // for why: `absolute_position` is recomputed identically by every ancestor, but
+    // `cross_group_bonus` only ever looks at this node's own direct children.
+    for (offset, feature) in own
+        .iter()
+        .enumerate()
+        .filter(|(index, _)| root || *index != 4)
+    {
         add_at(features, start.saturating_add(offset), *feature);
     }
     let mut cursor = 0_usize;
     for child in children {
         let end = cursor.saturating_add(child.leaf_count());
         if let Some(slice) = user_stroke_order.get(cursor..end) {
-            accumulate_groups(child, slice, user_stroke_geometries, features, false);
+            accumulate_groups(
+                child,
+                slice,
+                user_stroke_geometries,
+                user_shapes,
+                weights,
+                features,
+                false,
+            );
         }
         cursor = end;
     }
@@ -384,7 +407,14 @@ mod tests {
         ];
         let (reference, strokes, shapes, geometries) = parts(&three(), &user);
         let features = three()
-            .assignment_features(&[2, 1, 0], &reference, &strokes, &shapes, &geometries)
+            .assignment_features(
+                &[2, 1, 0],
+                &reference,
+                &strokes,
+                &shapes,
+                &geometries,
+                &Weights::v1(),
+            )
             .expect("features");
         for weights in [Weights::ones(), Weights::v1()] {
             let score = three()
@@ -410,10 +440,24 @@ mod tests {
         ];
         let (reference, strokes, shapes, geometries) = parts(&three(), &user);
         let first = three()
-            .assignment_features(&[2, 1, 0], &reference, &strokes, &shapes, &geometries)
+            .assignment_features(
+                &[2, 1, 0],
+                &reference,
+                &strokes,
+                &shapes,
+                &geometries,
+                &Weights::v1(),
+            )
             .expect("features");
         let second = three()
-            .assignment_features(&[2, 1, 0], &reference, &strokes, &shapes, &geometries)
+            .assignment_features(
+                &[2, 1, 0],
+                &reference,
+                &strokes,
+                &shapes,
+                &geometries,
+                &Weights::v1(),
+            )
             .expect("features");
         assert_eq!(first, second);
     }
@@ -428,7 +472,14 @@ mod tests {
         let (reference, strokes, shapes, geometries) = parts(&three(), &user);
         assert!(
             three()
-                .assignment_features(&[0, 1, 2], &reference, &strokes, &shapes, &geometries)
+                .assignment_features(
+                    &[0, 1, 2],
+                    &reference,
+                    &strokes,
+                    &shapes,
+                    &geometries,
+                    &Weights::v1()
+                )
                 .is_none()
         );
     }
@@ -444,6 +495,7 @@ mod tests {
                 &strokes,
                 &shapes,
                 &geometries,
+                &Weights::v1(),
             )
             .expect("features");
         assert!(approx(
@@ -468,7 +520,14 @@ mod tests {
         ];
         let (reference, strokes, shapes, geometries) = parts(&three(), &user);
         let features = three()
-            .assignment_features(&[1, 2, 0], &reference, &strokes, &shapes, &geometries)
+            .assignment_features(
+                &[1, 2, 0],
+                &reference,
+                &strokes,
+                &shapes,
+                &geometries,
+                &Weights::v1(),
+            )
             .expect("features");
         assert!(features.iter().all(|feature| *feature >= 0.0));
     }
@@ -481,7 +540,14 @@ mod tests {
         ];
         let (reference, strokes, shapes, geometries) = parts(&three(), &user);
         let features = three()
-            .assignment_features(&[0, FILLER, 1], &reference, &strokes, &shapes, &geometries)
+            .assignment_features(
+                &[0, FILLER, 1],
+                &reference,
+                &strokes,
+                &shapes,
+                &geometries,
+                &Weights::v1(),
+            )
             .expect("features");
         assert!(approx(
             features
@@ -504,6 +570,7 @@ mod tests {
                     &strokes,
                     &shapes,
                     &geometries,
+                    &Weights::v1(),
                 )
                 .is_none()
         );

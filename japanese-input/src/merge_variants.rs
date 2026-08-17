@@ -28,12 +28,12 @@ pub struct MergeVariant {
 /// leaf occupies — the same cursor walk `accumulate_groups` uses to find a group's slice
 /// of a `user_stroke_order`, generalized to yield the group itself rather than accumulate
 /// a feature.
-struct GroupSite<'tree> {
-    start: usize,
-    children: &'tree [AnalyzedKanjiNode],
+pub(crate) struct GroupSite<'tree> {
+    pub(crate) start: usize,
+    pub(crate) children: &'tree [AnalyzedKanjiNode],
 }
 
-fn walk_groups<'tree>(
+pub(crate) fn walk_groups<'tree>(
     node: &'tree AnalyzedKanjiNode,
     start: usize,
     out: &mut Vec<GroupSite<'tree>>,
@@ -103,7 +103,7 @@ fn cartesian(per_group: &[Vec<Option<(usize, usize)>>]) -> Vec<Vec<Option<(usize
 /// first point of each absorbed stroke needs its displacement corrected to reflect the
 /// jump from the previous stroke's last point, matching how a joined shape is already
 /// built on the reference side.
-fn join_ink(strokes: &[&Vec<StrokePoint>]) -> Vec<StrokePoint> {
+pub(crate) fn join_ink(strokes: &[&Vec<StrokePoint>]) -> Vec<StrokePoint> {
     let mut out: Vec<StrokePoint> = Vec::new();
     for stroke in strokes {
         for (index, point) in stroke.iter().enumerate() {
@@ -414,7 +414,8 @@ mod tests {
                         &reference,
                         &strokes,
                         &user,
-                        &geometry
+                        &geometry,
+                        &Weights::v1()
                     )
                     .is_some(),
                     "{}: {:?} rejected by a gate",
