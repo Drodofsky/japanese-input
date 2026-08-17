@@ -52,7 +52,7 @@ The table compares the percentage of character samples with correctly matched st
 | Level   | １０級 | ９級  |
 | ------- | ------ | ----- |
 | Tested  | 80/80  | 0/160 |
-| Correct | 89.53% | -     |
+| Correct | 88.04% | -     |
 
 
 
