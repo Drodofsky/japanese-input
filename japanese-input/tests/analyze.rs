@@ -264,3 +264,9 @@ fn ご_m1() {
         }
     )
 }
+
+#[test]
+fn とし() {
+    let res = analyze('年', "年");
+    assert_eq!(res, AnalyzeResult::NoError)
+}
