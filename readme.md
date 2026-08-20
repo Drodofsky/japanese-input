@@ -6,6 +6,8 @@ An Anki add-on for practicing Japanese handwriting. Draw a hiragana, katakana, o
 
 ⚠️ **Early development:** Handwriting recognition and writing correction may not yet be accurate enough for reliable use.
 
+Try the [live demo](https://drodofsky.github.io/japanese-input/) of the recognition and analysis engine right in your browser. Note that the demo always reflects the latest code, so it can be ahead of what's in the installable add-on.
+
 ## Features
 
 - Handwriting recognition 
