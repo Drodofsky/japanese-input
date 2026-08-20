@@ -1,0 +1,95 @@
+name: Deploy website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "webside/**"
+      - "japanese-input/**"
+      - "kanji-vg/**"
+      - "data/raw/**"
+      - "media/**"
+      - "readme.md"
+      - ".github/workflows/deploy-website.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Private repo, never made public. Only its checked-out content (used to
+      # embed the model into the compiled WASM below) leaves this runner — the
+      # raw file is never committed anywhere in this repository.
+      - name: Checkout recognizer model repo
+        uses: actions/checkout@v4
+        with:
+          repository: Drodofsky/regonizer-model
+          token: ${{ secrets.model }}
+          path: model-repo
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install dioxus-cli
+        run: cargo install dioxus-cli --version 0.7.10 --locked
+
+      # Same generation step build_bins.yml uses for the addon itself —
+      # never committed, always freshly generated from the KanjiVG source.
+      - name: Generate reference data
+        run: cargo test tests::generate_reference_data
+
+      - name: Build release web bundle
+        working-directory: webside
+        env:
+          RECOGNIZER_MODEL_PATH: ${{ github.workspace }}/model-repo/recognizer2_tuned.bin
+        run: dx build --platform web --release --base-path japanese-input
+
+      - name: Publish to gh-pages if the build changed
+        run: |
+          set -e
+          BUILD_DIR="webside/target/dx/japanese-input-webside/release/web/public"
+
+          # Stage the build output outside the checkout first — the branch
+          # switch below wipes the working tree (including webside/target),
+          # so $BUILD_DIR itself won't survive if we don't copy it out now.
+          STAGING="$(mktemp -d)"
+          cp -r "$BUILD_DIR"/. "$STAGING"/
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git fetch origin gh-pages
+            git checkout -B gh-pages origin/gh-pages
+          else
+            git checkout --orphan gh-pages
+          fi
+
+          # Clear everything but .git, then repopulate from the staged build.
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          cp -r "$STAGING"/. .
+          touch .nojekyll
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Built site is unchanged, nothing to publish."
+          else
+            git commit -m "Deploy website: ${GITHUB_SHA}"
+            git push origin gh-pages
+          fi
+
+# One-time manual setup this workflow can't do itself:
+#   - Add a repo secret named `model`: a token with read access to the
+#     private Drodofsky/regonizer-model repo (same one build_bins.yml uses).
+#   - In this repo's Settings -> Pages, set the source to "Deploy from a
+#     branch" / branch "gh-pages".

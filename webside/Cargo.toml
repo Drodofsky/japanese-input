@@ -1,0 +1,25 @@
+[package]
+name = "japanese-input-webside"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+dioxus = { version = "0.7", features = ["web"] }
+japanese-input = { path = "../japanese-input" }
+postcard = { version = "1", features = ["alloc"] }
+serde = { version = "1", features = ["derive"] }
+
+# Only used by build.rs to pre-render the home page's embedded README to HTML
+# at build time, so pulldown-cmark itself never ends up in the shipped wasm.
+[build-dependencies]
+pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
+
+[profile.dev.package."*"]
+opt-level = 1
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

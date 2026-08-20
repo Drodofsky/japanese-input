@@ -1,0 +1,504 @@
+:root {
+  --bg: #ffffff;
+  --bg-raised: #f6f6f7;
+  --fg: #1b1b1f;
+  --fg-muted: #6b6b76;
+  --border: #e2e2e6;
+  --accent: #3a5bfd;
+  --accent-hover: #2544e0;
+  --accent-fg: #ffffff;
+  --danger: #d1373f;
+  --success: #1e8a4c;
+  /* drawn/handwritten ink — deliberately softer than --fg (body text) so
+     drawn strokes read as pencil/ink rather than as near-black UI text */
+  --ink: #3a3a42;
+
+  --radius: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1b1b1f;
+    --bg-raised: #242429;
+    --fg: #f0f0f2;
+    --fg-muted: #9a9aa5;
+    --border: #35353c;
+    --accent: #6d85ff;
+    --accent-hover: #8a9fff;
+    --accent-fg: #14142b;
+    --danger: #ff6b73;
+    --success: #4fd282;
+    --ink: #c7c7ce;
+  }
+}
+
+/* explicit toggle (see the nav bar's theme button) wins over system pref;
+   default is no data-theme attribute at all, i.e. plain system preference */
+:root[data-theme="dark"] {
+  --bg: #1b1b1f;
+  --bg-raised: #242429;
+  --fg: #f0f0f2;
+  --fg-muted: #9a9aa5;
+  --border: #35353c;
+  --accent: #6d85ff;
+  --accent-hover: #8a9fff;
+  --accent-fg: #14142b;
+  --danger: #ff6b73;
+  --success: #4fd282;
+  --ink: #c7c7ce;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* modern pill scrollbar: a rounded track with a narrower rounded thumb
+   floating inside it, themed to match light/dark */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--fg) var(--border);
+}
+
+::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--fg);
+  background-clip: padding-box;
+  border: 3px solid var(--border);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--fg-muted);
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+html {
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+h1, h2, h3 {
+  font-weight: 600;
+  margin: 0 0 var(--space-2);
+}
+
+h1 { font-size: 20px; }
+h2 { font-size: 17px; }
+h3 { font-size: 15px; }
+
+p { margin: 0 0 var(--space-3); }
+
+a { color: var(--accent); }
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+/* layout */
+
+.tab-nav {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.tab {
+  border: none;
+  background: none;
+  color: var(--fg-muted);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  white-space: nowrap;
+}
+
+.tab:hover {
+  background: var(--bg-raised);
+  color: var(--fg);
+}
+
+.tab.active {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+.theme-toggle {
+  margin-left: auto;
+  border: 1px solid var(--border);
+}
+
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-4);
+}
+
+/* buttons */
+
+.btn {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  color: var(--fg);
+  padding: var(--space-2) var(--space-3);
+}
+
+.btn:hover {
+  border-color: var(--fg-muted);
+}
+
+.btn-primary {
+  /* self-sufficient, same geometry as .btn, so it never depends on being
+     combined with it — a bare "btn-primary" class used on its own must look
+     identical in shape to every other button, not fall back to the browser's
+     native (differently-rounded) button chrome */
+  border-radius: var(--radius);
+  border: 1px solid var(--accent);
+  padding: var(--space-2) var(--space-3);
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* generic cards / panels */
+
+.card {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.notice {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  color: var(--fg-muted);
+  font-size: 14px;
+}
+
+/* stroke drawing canvas */
+
+.stroke-canvas {
+  /* No background/border/radius here on purpose: the grid SVG rendered into
+     stroke-canvas-bg already draws its own rounded-corner frame at the same
+     corner radius, so adding a second one on this container just produces a
+     mismatched double border at the corners. */
+  position: relative;
+  width: 300px;
+  height: 300px;
+  margin: 0 auto var(--space-2);
+  touch-action: none;
+}
+
+.stroke-canvas-bg,
+.stroke-canvas-fg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.stroke-canvas-bg svg,
+.stroke-canvas-fg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.stroke-canvas-fg {
+  cursor: crosshair;
+}
+
+.stroke-canvas-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+/* character picker */
+
+.char-row {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: var(--space-1);
+  width: 80%;
+  margin: 0 auto var(--space-3);
+  padding-bottom: var(--space-1);
+}
+
+.char-tile {
+  flex: 0 0 auto;
+  font-size: 20px;
+  min-width: 2.5em;
+  padding: var(--space-2) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  color: var(--fg);
+}
+
+.char-tile:hover {
+  border-color: var(--fg-muted);
+}
+
+.char-tile.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+}
+
+/* multi-character (word/reading) input, and the recognized-vs-correct compare */
+
+.multi-char-canvas {
+  margin-top: var(--space-2);
+}
+
+.compare-row {
+  font-size: 22px;
+  margin: var(--space-2) 0;
+  letter-spacing: 0.05em;
+}
+
+.compare-char-ok {
+  color: var(--success);
+}
+
+.compare-char-bad {
+  color: var(--danger);
+}
+
+.committed-preview {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-1);
+  width: 300px;
+  margin: 0 auto var(--space-2);
+}
+
+.committed-thumb {
+  position: relative;
+  width: 44px;
+  height: 44px;
+}
+
+.committed-thumb-bg,
+.committed-thumb-fg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.committed-thumb-bg svg,
+.committed-thumb-fg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* recognition candidates */
+
+.candidate-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: center;
+}
+
+.candidate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+}
+
+.candidate .char {
+  font-size: 28px;
+}
+
+.candidate .score {
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+/* vocab review */
+
+.review-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.review-controls .field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.review-controls label {
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+
+.review-controls select {
+  font: inherit;
+  padding: var(--space-2);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  color: var(--fg);
+}
+
+.flashcard {
+  text-align: center;
+}
+
+.flashcard .sentence {
+  font-size: 22px;
+  margin-bottom: var(--space-2);
+}
+
+.flashcard .target-word {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.flashcard .reading {
+  color: var(--fg-muted);
+  margin-bottom: var(--space-3);
+}
+
+.sentence-translation {
+  color: var(--fg-muted);
+  font-size: 13px;
+  font-style: italic;
+  margin-top: calc(-1 * var(--space-2));
+  margin-bottom: var(--space-3);
+}
+
+.result-svg-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.result-svg-row figure {
+  margin: 0;
+}
+
+.result-svg-row figcaption {
+  text-align: center;
+  font-size: 12px;
+  color: var(--fg-muted);
+  margin-top: var(--space-1);
+}
+
+.result-svg-row svg {
+  width: 140px;
+  height: 140px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.result-mark {
+  display: flex;
+  justify-content: center;
+  margin: var(--space-3) 0;
+}
+
+.result-mark svg {
+  width: 120px;
+  height: 120px;
+}
+
+.status-ok { color: var(--success); }
+.status-bad { color: var(--danger); }
+
+/* rendered README on the home page */
+
+.readme table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: var(--space-3);
+  overflow-x: auto;
+  display: block;
+}
+
+.readme th,
+.readme td {
+  border: 1px solid var(--border);
+  padding: var(--space-2);
+  text-align: left;
+}
+
+.readme h2 {
+  margin-top: var(--space-4);
+}
+
+.readme-screenshot {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: var(--space-3) 0;
+}
+
+footer {
+  padding: var(--space-4);
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: 13px;
+}

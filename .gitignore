@@ -89,3 +89,26 @@ pyenv/
 !data/test/*.svg
 !data/test/HANDS_TEST.TXT
 !Cargo.toml
+
+# webside: static Dioxus showcase site, excluded from the workspace (see
+# Cargo.toml). Neither the recognizer model nor reference_data.bin are ever
+# committed here — build.rs pulls both in from data/generated/ (already
+# denied above), generated locally or fresh in CI.
+!webside/Cargo.toml
+!webside/Cargo.lock
+!webside/build.rs
+!webside/src/main.rs
+!webside/src/data.rs
+!webside/src/outcome.rs
+!webside/src/recognize_answer.rs
+!webside/src/vocab_data.rs
+!webside/src/components/mod.rs
+!webside/src/components/stroke_canvas.rs
+!webside/src/components/multi_char_canvas.rs
+!webside/src/pages/mod.rs
+!webside/src/pages/home.rs
+!webside/src/pages/analyze.rs
+!webside/src/pages/recognize.rs
+!webside/src/pages/review.rs
+!webside/assets/style.css
+!.github/workflows/deploy-website.yml
