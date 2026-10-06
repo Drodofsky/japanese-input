@@ -6,15 +6,18 @@
 <line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="109"/>
 <circle cx="54.5" cy="54.5" fill="none" opacity="0.15" r="29.5" stroke="#D0021B" stroke-width="20"/>
 <path d="M30.006,33.183 C46.291,32.391 62.576,31.599 78.862,30.807" fill="none" stroke="#1f77b4" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<text fill="#1f77b4" font-size="8" text-anchor="end" x="28.006" y="31.183">
+<path d="M36.529,55.364 C48.852,54.194 61.175,53.025 73.498,51.855" fill="none" stroke="#ff7f0e" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M21.525,79.581 C44.237,78.411 66.95,77.242 89.662,76.072" fill="none" stroke="#2ca02c" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<circle cx="22.914" cy="33.528" fill="#1f77b4" r="4.6"/>
+<text fill="#ffffff" font-family="sans-serif" font-size="5.6" font-weight="bold" text-anchor="middle" x="22.914" y="35.488">
 1
 </text>
-<path d="M36.529,55.364 C48.852,54.194 61.175,53.025 73.498,51.855" fill="none" stroke="#ff7f0e" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<text fill="#ff7f0e" font-size="8" text-anchor="end" x="34.529" y="53.364">
+<circle cx="29.461" cy="56.035" fill="#ff7f0e" r="4.6"/>
+<text fill="#ffffff" font-family="sans-serif" font-size="5.6" font-weight="bold" text-anchor="middle" x="29.461" y="57.995">
 2
 </text>
-<path d="M21.525,79.581 C44.237,78.411 66.95,77.242 89.662,76.072" fill="none" stroke="#2ca02c" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<text fill="#2ca02c" font-size="8" text-anchor="end" x="19.525" y="77.581">
+<circle cx="14.434" cy="79.946" fill="#2ca02c" r="4.6"/>
+<text fill="#ffffff" font-family="sans-serif" font-size="5.6" font-weight="bold" text-anchor="middle" x="14.434" y="81.906">
 3
 </text>
 </svg>

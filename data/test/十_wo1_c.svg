@@ -6,11 +6,13 @@
 <line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="109"/>
 <circle cx="54.5" cy="54.5" fill="none" opacity="0.15" r="29.5" stroke="#D0021B" stroke-width="20"/>
 <path d="M22.685,51.403 C43.706,49.894 64.727,48.385 85.748,46.876" fill="none" stroke="#1f77b4" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<text fill="#1f77b4" font-size="8" text-anchor="end" x="20.685" y="49.403">
+<path d="M53.564,20.848 C52.936,42.878 52.307,64.907 51.679,86.936" fill="none" stroke="#ff7f0e" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<circle cx="15.603" cy="51.911" fill="#1f77b4" r="4.6"/>
+<text fill="#ffffff" font-family="sans-serif" font-size="5.6" font-weight="bold" text-anchor="middle" x="15.603" y="53.871">
 1
 </text>
-<path d="M53.564,20.848 C52.936,42.878 52.307,64.907 51.679,86.936" fill="none" stroke="#ff7f0e" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<text fill="#ff7f0e" font-size="8" text-anchor="end" x="51.564" y="18.848">
+<circle cx="53.766" cy="13.751" fill="#ff7f0e" r="4.6"/>
+<text fill="#ffffff" font-family="sans-serif" font-size="5.6" font-weight="bold" text-anchor="middle" x="53.766" y="15.711">
 2
 </text>
 </svg>

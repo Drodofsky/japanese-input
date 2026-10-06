@@ -1,7 +1,7 @@
 use core::fmt::{self, Display, Formatter};
 
 use colorous::{CATEGORY10, Color};
-use kurbo::{Affine, BezPath, PathEl, Point, Rect};
+use kurbo::{Affine, BezPath, ParamCurve as _, PathEl, Point, Rect, Vec2};
 use svg::{
     Document,
     node::element::{Circle, Line, Path, Rectangle, Text},
@@ -216,8 +216,16 @@ fn init_doc(mut doc: Document) -> Document {
     doc
 }
 
+const BADGE_RADIUS: f64 = 4.6;
+const BADGE_OFFSET: f64 = 7.0;
+const BADGE_GAP: f64 = 1.0;
+const BADGE_FONT_SIZE: f64 = 5.6;
+const BADGE_ITERATIONS: usize = 64;
+
 fn draw_stroke_order(mut doc: Document, user_strokes: &[BezPath], order: &[u8]) -> Document {
     let scale = Affine::scale(109.0);
+    let mut badges = Vec::new();
+    let mut ends = Vec::new();
     for (seq, &idx) in order.iter().enumerate() {
         let Some(path) = user_strokes.get(usize::from(idx)) else {
             continue;
@@ -233,23 +241,113 @@ fn draw_stroke_order(mut doc: Document, user_strokes: &[BezPath], order: &[u8]) 
             .set("stroke-linecap", "round")
             .set("stroke-linejoin", "round");
         doc = doc.add(element);
-        if let Some(start) = scaled.elements().first().and_then(|el| {
-            if let PathEl::MoveTo(p) = el {
-                Some(*p)
-            } else {
-                None
-            }
-        }) {
-            let label = Text::new((seq.saturating_add(1)).to_string())
-                .set("x", round(start.x - 2.0_f64))
-                .set("y", round(start.y - 2.0_f64))
-                .set("fill", color)
-                .set("font-size", 8.0_f64)
-                .set("text-anchor", "end");
-            doc = doc.add(label);
+        if let Some((start, end, badge)) = badge_anchor(&scaled) {
+            ends.push(start);
+            ends.push(end);
+            badges.push((seq, color, badge));
         }
     }
+
+    let mut centers: Vec<Point> = badges.iter().map(|&(_, _, p)| p).collect();
+    spread_badges(&mut centers, &ends);
+    for ((seq, color, _), center) in badges.into_iter().zip(centers) {
+        let ball = Circle::new()
+            .set("cx", round(center.x))
+            .set("cy", round(center.y))
+            .set("r", BADGE_RADIUS)
+            .set("fill", color);
+        let label = Text::new((seq.saturating_add(1)).to_string())
+            .set("x", round(center.x))
+            .set("y", round(BADGE_FONT_SIZE.mul_add(0.35, center.y)))
+            .set("fill", "#ffffff")
+            .set("font-size", BADGE_FONT_SIZE)
+            .set("font-weight", "bold")
+            .set("font-family", "sans-serif")
+            .set("text-anchor", "middle");
+        doc = doc.add(ball).add(label);
+    }
     doc
+}
+
+#[expect(
+    clippy::arithmetic_side_effects,
+    reason = "kurbo Point/Vec2 float arithmetic, which can't panic"
+)]
+fn badge_anchor(path: &BezPath) -> Option<(Point, Point, Point)> {
+    let start = path.segments().next()?.start();
+    let end = path.segments().last().map_or(start, |seg| seg.end());
+    let toward = path
+        .segments()
+        .map(|seg| seg.end())
+        .find(|p| p.distance(start) > BADGE_RADIUS)
+        .unwrap_or(end);
+    let heading = toward - start;
+    let away = if heading.hypot() > f64::EPSILON {
+        -heading.normalize()
+    } else {
+        Vec2::new(-1.0_f64, -1.0_f64).normalize()
+    };
+    Some((start, end, start + away * BADGE_OFFSET))
+}
+
+#[expect(
+    clippy::arithmetic_side_effects,
+    reason = "kurbo Point/Vec2 float arithmetic, which can't panic"
+)]
+fn spread_badges(balls: &mut [Point], ends: &[Point]) {
+    let ball_spacing = BADGE_RADIUS.mul_add(2.0, BADGE_GAP);
+    let end_spacing = BADGE_RADIUS + BADGE_GAP + 1.5_f64;
+    let lo = BADGE_RADIUS + 0.5_f64;
+    let hi = 109.0_f64 - lo;
+    for _ in 0..BADGE_ITERATIONS {
+        let mut moved = false;
+        for i in 0..balls.len() {
+            for j in i.saturating_add(1)..balls.len() {
+                let (Some(&first), Some(&second)) = (balls.get(i), balls.get(j)) else {
+                    continue;
+                };
+                let Some(push) = separation(second - first, ball_spacing) else {
+                    continue;
+                };
+                if let Some(a) = balls.get_mut(i) {
+                    *a -= push / 2.0_f64;
+                }
+                if let Some(b) = balls.get_mut(j) {
+                    *b += push / 2.0_f64;
+                }
+                moved = true;
+            }
+        }
+        for ball in balls.iter_mut() {
+            for &end in ends {
+                if let Some(push) = separation(*ball - end, end_spacing) {
+                    *ball += push;
+                    moved = true;
+                }
+            }
+            *ball = Point::new(ball.x.clamp(lo, hi), ball.y.clamp(lo, hi));
+        }
+        if !moved {
+            break;
+        }
+    }
+}
+
+#[expect(
+    clippy::arithmetic_side_effects,
+    reason = "kurbo Point/Vec2 float arithmetic, which can't panic"
+)]
+fn separation(offset: Vec2, min: f64) -> Option<Vec2> {
+    let dist = offset.hypot();
+    if dist >= min {
+        return None;
+    }
+    let dir = if dist > f64::EPSILON {
+        offset / dist
+    } else {
+        Vec2::new(1.0_f64, 0.0_f64)
+    };
+    Some(dir * (min - dist))
 }
 fn draw_rects(mut doc: Document, rects: &[Rect], color: &str) -> Document {
     for r in rects {

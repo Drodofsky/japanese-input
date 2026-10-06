@@ -6,15 +6,18 @@
 <line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="109"/>
 <circle cx="54.5" cy="54.5" fill="none" opacity="0.15" r="29.5" stroke="#D0021B" stroke-width="20"/>
 <path d="M37.545,25.828 C37.762,34.239 39.526,43.446 38.197,51.063 C36.867,58.681 29.498,73.395 25.149,84.56" fill="none" stroke="#1f77b4" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<text fill="#1f77b4" font-size="8" text-anchor="end" x="35.545" y="23.828">
+<path d="M59.653,26.507 C60.595,31.411 62.426,35.302 62.48,41.218 C62.556,49.703 58.565,63.776 56.608,75.054" fill="none" stroke="#ff7f0e" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M82.631,20.962 C81.834,42.916 81.036,64.87 80.239,86.824" fill="none" stroke="#2ca02c" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<circle cx="37.362" cy="18.73" fill="#1f77b4" r="4.6"/>
+<text fill="#ffffff" font-family="sans-serif" font-size="5.6" font-weight="bold" text-anchor="middle" x="37.362" y="20.69">
 1
 </text>
-<path d="M59.653,26.507 C60.595,31.411 62.426,35.302 62.48,41.218 C62.556,49.703 58.565,63.776 56.608,75.054" fill="none" stroke="#ff7f0e" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<text fill="#ff7f0e" font-size="8" text-anchor="end" x="57.653" y="24.507">
+<circle cx="58.313" cy="19.535" fill="#ff7f0e" r="4.6"/>
+<text fill="#ffffff" font-family="sans-serif" font-size="5.6" font-weight="bold" text-anchor="middle" x="58.313" y="21.495">
 2
 </text>
-<path d="M82.631,20.962 C81.834,42.916 81.036,64.87 80.239,86.824" fill="none" stroke="#2ca02c" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-<text fill="#2ca02c" font-size="8" text-anchor="end" x="80.631" y="18.962">
+<circle cx="82.889" cy="13.867" fill="#2ca02c" r="4.6"/>
+<text fill="#ffffff" font-family="sans-serif" font-size="5.6" font-weight="bold" text-anchor="middle" x="82.889" y="15.827">
 3
 </text>
 </svg>
