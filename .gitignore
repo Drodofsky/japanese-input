@@ -102,6 +102,7 @@ pyenv/
 !webside/src/outcome.rs
 !webside/src/recognize_answer.rs
 !webside/src/vocab_data.rs
+!webside/src/stroke_file.rs
 !webside/src/components/mod.rs
 !webside/src/components/stroke_canvas.rs
 !webside/src/components/multi_char_canvas.rs
@@ -110,5 +111,6 @@ pyenv/
 !webside/src/pages/analyze.rs
 !webside/src/pages/recognize.rs
 !webside/src/pages/review.rs
+!webside/src/pages/test_case_editor.rs
 !webside/assets/style.css
 !.github/workflows/deploy-website.yml

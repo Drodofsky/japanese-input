@@ -3,6 +3,7 @@ mod data;
 mod outcome;
 mod pages;
 mod recognize_answer;
+mod stroke_file;
 mod vocab_data;
 
 use std::rc::Rc;
@@ -10,7 +11,7 @@ use std::rc::Rc;
 use dioxus::prelude::*;
 
 use data::{AppData, AppDataHandle};
-use pages::{AnalyzePage, HomePage, RecognizePage, ReviewPage};
+use pages::{AnalyzePage, HomePage, RecognizePage, ReviewPage, TestCaseEditorPage};
 
 const STYLESHEET: Asset = asset!("/assets/style.css");
 
@@ -23,6 +24,7 @@ enum Page {
     Home,
     Recognize,
     Analyze,
+    TestCaseEditor,
     Review,
 }
 
@@ -105,6 +107,11 @@ fn app() -> Element {
                 "Kanji Analysis"
             }
             button {
+                class: tab_class(Page::TestCaseEditor),
+                onclick: move |_| page.set(Page::TestCaseEditor),
+                "Test Case Editor"
+            }
+            button {
                 class: tab_class(Page::Review),
                 onclick: move |_| page.set(Page::Review),
                 "Vocab Review"
@@ -120,6 +127,7 @@ fn app() -> Element {
             match page() {
                 Page::Home => rsx! { HomePage {} },
                 Page::Analyze => rsx! { AnalyzePage {} },
+                Page::TestCaseEditor => rsx! { TestCaseEditorPage {} },
                 Page::Recognize => rsx! { RecognizePage {} },
                 Page::Review => rsx! { ReviewPage {} },
             }
