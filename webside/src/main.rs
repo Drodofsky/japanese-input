@@ -93,6 +93,7 @@ fn app() -> Element {
     };
 
     rsx! {
+        document::Title { "japanese-input" }
         document::Stylesheet { href: STYLESHEET }
         nav { class: "tab-nav",
             button { class: tab_class(Page::Home), onclick: move |_| page.set(Page::Home), "Home" }

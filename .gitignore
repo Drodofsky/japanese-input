@@ -97,6 +97,7 @@ pyenv/
 !webside/Cargo.toml
 !webside/Cargo.lock
 !webside/build.rs
+!webside/index.html
 !webside/src/main.rs
 !webside/src/data.rs
 !webside/src/outcome.rs
