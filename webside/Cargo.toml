@@ -21,5 +21,7 @@ opt-level = 1
 opt-level = "z"
 lto = true
 codegen-units = 1
-strip = true
+# Only debuginfo: since Rust 1.99 (LLVM 23) a full strip also removes the custom section
+# wasm-bindgen reads, which breaks the build ("import ... doesn't have an adapter listed").
+strip = "debuginfo"
 panic = "abort"
