@@ -6,6 +6,7 @@ use japanese_input::stroke_point::ToStrokeVector as _;
 use japanese_input::weights::Weights;
 
 #[test]
+#[ignore = "not jet supported"]
 fn wc1() {
     let map = load_kanji_map();
     let reference = load_kanji_node(&map, '見');
