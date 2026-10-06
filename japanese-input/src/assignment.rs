@@ -183,12 +183,12 @@ fn accumulate_groups(
         user_stroke_geometries,
         user_shapes,
         weights,
+        root,
     );
     let start = LEAF_FEATURE_COUNT.saturating_add(2);
-    // Slot 4 (`absolute_position`) is root-only; every other slot, including slot 5
-    // (`cross_group_bonus`), is charged at every level. See `group_score`'s own doc comment
-    // for why: `absolute_position` is recomputed identically by every ancestor, but
-    // `cross_group_bonus` only ever looks at this node's own direct children.
+    // Slot 4 (`absolute_position`) is root-only; `group_features` itself already forces slot
+    // 5 (`cross_group_bonus`) to 0.0 at every non-root call, for the same reason (see its own
+    // doc comment), so no extra filtering is needed for it here.
     for (offset, feature) in own
         .iter()
         .enumerate()

@@ -16,6 +16,6 @@ fn wc1() {
     let result = match_strokes(reference, user.to_stroke_vector(), Weights::default(), 64);
     assert_eq!(
         result[0].user_stroke_order.as_slice(),
-        vec![0, 1, 2, 3, MISSING, MISSING, 5]
+        vec![0, 1, 2, 3, 4, 4, 5]
     );
 }

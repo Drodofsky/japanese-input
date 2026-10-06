@@ -2,9 +2,15 @@ use kurbo::{Point, Vec2};
 use smallvec::SmallVec;
 
 use crate::{
-    analyzed_kanji_node::AnalyzedKanjiNode, convert_lossy::ConvertLossy as _,
-    leaf_score::LeafScore as _, match_strokes::joined_reference_shape, shape::Shape,
-    stroke_geometry::StrokeGeometry, stroke_point::StrokePoint, weights::Weights,
+    analyzed_kanji_node::AnalyzedKanjiNode,
+    convert_lossy::ConvertLossy as _,
+    leaf_score::LeafScore as _,
+    match_strokes::joined_reference_shape,
+    merge_variants::{GroupSite, walk_groups},
+    shape::Shape,
+    stroke_geometry::StrokeGeometry,
+    stroke_point::StrokePoint,
+    weights::Weights,
 };
 
 /// One centroid pair per child.
@@ -28,6 +34,7 @@ pub trait GroupScore {
         user_stroke_geometries: &[StrokeGeometry],
         user_shapes: &[Shape],
         weights: &Weights,
+        root: bool,
     ) -> [f64; GROUP_FEATURE_COUNT];
 
     fn group_score(
@@ -48,6 +55,7 @@ impl GroupScore for AnalyzedKanjiNode {
         user_stroke_geometries: &[StrokeGeometry],
         user_shapes: &[Shape],
         weights: &Weights,
+        root: bool,
     ) -> [f64; GROUP_FEATURE_COUNT] {
         let children = match self {
             AnalyzedKanjiNode::Group { children, .. } => children,
@@ -64,19 +72,26 @@ impl GroupScore for AnalyzedKanjiNode {
             user_stroke_geometries,
         );
         let matches = matched_pairs(&reference, user_stroke_order, user_stroke_geometries);
+        // Computed whole-tree and only at the root (see `cross_group_bonus`'s own doc
+        // comment for why): everywhere else it's a flat 0.0, contributing nothing.
+        let cross_group = if root {
+            cross_group_bonus(
+                self,
+                &self.collect_strokes(),
+                user_stroke_order,
+                user_shapes,
+                weights,
+            )
+        } else {
+            0.0
+        };
         [
             disorder(user_stroke_order),
             placement(&centroids),
             contiguity(&ownership),
             relative_length(&matches),
             absolute_position(&matches),
-            cross_group_bonus(
-                children,
-                &self.collect_strokes(),
-                user_stroke_order,
-                user_shapes,
-                weights,
-            ),
+            cross_group,
         ]
     }
 
@@ -94,6 +109,7 @@ impl GroupScore for AnalyzedKanjiNode {
             user_stroke_geometries,
             user_shapes,
             weights,
+            root,
         );
         let scales = [
             weights.order_weight,
@@ -105,10 +121,8 @@ impl GroupScore for AnalyzedKanjiNode {
         ];
         // `absolute_position` (slot 4) is recomputed identically at every nesting level (each
         // ancestor's own local order still covers the same descendant positions), so it's only
-        // charged once, at the root. `cross_group_bonus` (slot 5) is the opposite: it only ever
-        // looks at a boundary between two of *this* node's own direct children, a boundary no
-        // ancestor or descendant call can see, so it can never be double-counted and is charged
-        // at every level.
+        // charged once, at the root; `cross_group_bonus` (slot 5) is already forced to 0.0 by
+        // `group_features` itself at every other level, for the same reason.
         features
             .iter()
             .zip(scales.iter())
@@ -287,27 +301,6 @@ fn contiguity(ownership: &Ownership) -> f64 {
     excess.convert_lossy() / span.convert_lossy()
 }
 
-/// A negative count, for every boundary between two of this node's own direct children where
-/// missing reference leaves touch the boundary from *both* sides *and* some drawn stroke's
-/// shape actually matches what those missing leaves would look like glued into one motion:
-/// how many missing leaves are in that connected run. Zero whenever nothing is missing right
-/// at a boundary, and zero even when it is, unless a real stroke backs up the story.
-///
-/// One drawn stroke that glues together a group-ending leaf and the next group's opening leaf
-/// can't be recognized as a merge (`Solver::merges` only ever looks within one group's own
-/// children), so the matcher's only way to accept that input is to leave both reference leaves
-/// missing and the drawn stroke unassigned ("extra"). `missing_penalty`/`extra_penalty` charge
-/// that outcome the same as any ordinary missing or stray stroke anywhere else in the kanji,
-/// which is too blunt an instrument to fix without also making those two penalties too weak
-/// everywhere else. This feature gives the optimizer a narrow, separate knob for exactly this
-/// shape instead — but only as much as the geometry actually backs it up.
-///
-/// `leaf_cost` (the same one `Solver::merges` uses for an ordinary same-group merge) returns
-/// `Some` for almost any pair of usable strokes, cheap or not — accepting is a low bar, not a
-/// good-match signal. So the discount isn't a flat award for finding *any* usable stroke; it's
-/// the run length minus the best matching cost found anywhere in the drawing, floored at zero.
-/// A perfect match keeps the full discount; a merely-plausible but poor one earns little or
-/// none; nothing ever turns this into a penalty.
 /// How far apart (in the kanji's own roughly-unit-square reference space) a group-ending
 /// leaf's last point and the next group's opening leaf's first point may sit and still
 /// plausibly be one continuous, pen-never-lifted motion.
@@ -335,55 +328,87 @@ pub(crate) fn boundary_gap(
     Some(dx.mul_add(dx, dy * dy).sqrt())
 }
 
+/// Every adjacent reference-position pair `(i, i+1)` that crosses a genuine group boundary —
+/// one no same-group `FILLER` merge could ever represent — across the *whole* tree, found
+/// once by walking every group's own direct children the same way `cross_group_variants`
+/// does. A pair between two plain single-leaf siblings is excluded (already `Solver::merges`'
+/// territory), and so is one whose two reference points sit further apart than
+/// [`MAX_BOUNDARY_GAP`] plausibly allows.
+fn tree_boundaries(
+    root: &AnalyzedKanjiNode,
+    reference_points: &[Vec<StrokePoint>],
+) -> SmallVec<[usize; 8]> {
+    let mut sites: Vec<GroupSite<'_>> = Vec::new();
+    walk_groups(root, 0, &mut sites);
+    let mut out = SmallVec::new();
+    for site in &sites {
+        let mut cursor = site.start;
+        let mut previous: Option<(usize, &AnalyzedKanjiNode)> = None;
+        for child in site.children {
+            let count = child.leaf_count();
+            let first = cursor;
+            if let Some((previous_last, previous_child)) = previous
+                && !(previous_child.leaf_count() == 1 && count == 1)
+                && boundary_gap(reference_points, previous_last, first)
+                    .is_some_and(|gap| gap <= MAX_BOUNDARY_GAP)
+            {
+                out.push(previous_last);
+            }
+            previous = Some((cursor.saturating_add(count).saturating_sub(1), child));
+            cursor = cursor.saturating_add(count);
+        }
+    }
+    out
+}
+
+/// A negative count, once per maximal run of consecutive missing reference leaves that
+/// crosses at least one genuine group boundary (see [`tree_boundaries`]) *and* whose shape,
+/// glued into one motion, actually matches some drawn stroke: the run's length minus the
+/// best matching cost found anywhere in the drawing, floored at zero. A perfect geometric
+/// match keeps the full discount; a merely-plausible but poor one earns little or none;
+/// nothing ever turns this into a penalty.
+///
+/// One drawn stroke that glues together a group-ending leaf and the next group's opening leaf
+/// can't be recognized as a merge (`Solver::merges` only ever looks within one group's own
+/// children), so the matcher's only way to accept that input is to leave both reference leaves
+/// missing and the drawn stroke unassigned ("extra"). `missing_penalty`/`extra_penalty` charge
+/// that outcome the same as any ordinary missing or stray stroke anywhere else in the kanji,
+/// which is too blunt an instrument to fix without also making those two penalties too weak
+/// everywhere else. This feature gives the optimizer a narrow, separate knob for exactly this
+/// shape instead.
+///
+/// Computed once, whole-tree, at the root: a run spanning *two* nested boundaries at once
+/// (e.g. `百`'s outer 一/白 boundary immediately followed by its inner 白/日 boundary) used to
+/// be scored by each boundary's own, independent call, so one connected stroke earned two
+/// separate discounts. Finding every maximal run once up front, globally, means each missing
+/// leaf can only ever belong to one run and be counted once.
 fn cross_group_bonus(
-    children: &[AnalyzedKanjiNode],
+    root: &AnalyzedKanjiNode,
     reference_points: &[Vec<StrokePoint>],
     user_stroke_order: &[u8],
     user_shapes: &[Shape],
     weights: &Weights,
 ) -> f64 {
-    let mut ranges = SmallVec::<[(usize, usize); 8]>::new();
-    let mut cursor = 0_usize;
-    for child in children {
-        let end = cursor.saturating_add(child.leaf_count());
-        ranges.push((cursor, end));
-        cursor = end;
-    }
+    let boundaries = tree_boundaries(root, reference_points);
     let mut discount = 0.0_f64;
-    for (siblings, pair) in children.windows(2).zip(ranges.windows(2)) {
-        // A boundary between two plain single-leaf siblings is already `Solver::merges`'
-        // territory (a real `FILLER` merge can represent it); scoring it here too would
-        // just compete with that correct mechanism instead of covering ground it can't
-        // reach.
-        if siblings.iter().all(|child| child.leaf_count() == 1) {
+    let mut position = 0_usize;
+    while position < user_stroke_order.len() {
+        if user_stroke_order[position] != u8::MAX {
+            position = position.saturating_add(1);
             continue;
         }
-        let (left_start, left_end) = pair[0];
-        let (right_start, right_end) = pair[1];
-        let too_far = boundary_gap(reference_points, left_end.saturating_sub(1), right_start)
-            .is_none_or(|gap| gap > MAX_BOUNDARY_GAP);
-        if too_far {
-            continue;
+        let start = position;
+        while user_stroke_order.get(position) == Some(&u8::MAX) {
+            position = position.saturating_add(1);
         }
-        let left_run = user_stroke_order
-            .get(left_start..left_end)
-            .unwrap_or(&[])
+        let run_length = position.saturating_sub(start);
+        let crosses_a_boundary = boundaries
             .iter()
-            .rev()
-            .take_while(|value| **value == u8::MAX)
-            .count();
-        let right_run = user_stroke_order
-            .get(right_start..right_end)
-            .unwrap_or(&[])
-            .iter()
-            .take_while(|value| **value == u8::MAX)
-            .count();
-        if left_run == 0 || right_run == 0 {
+            .any(|&boundary| (start..position.saturating_sub(1)).contains(&boundary));
+        if run_length < 2 || !crosses_a_boundary {
             continue;
         }
-        let run_start = left_end.saturating_sub(left_run);
-        let run_length = left_run.saturating_add(right_run);
-        let Some(joined) = joined_reference_shape(reference_points, run_start, run_length) else {
+        let Some(joined) = joined_reference_shape(reference_points, start, run_length) else {
             continue;
         };
         let best_cost = user_shapes
@@ -520,7 +545,7 @@ mod tests {
             &vec![(0.5, 0.7), (1.1, 0.7)],
             &vec![(0.5, 1.0), (1.1, 1.0)],
         ]);
-        let features = three().group_features(&[0, 1, 2], &shifted, &[], &Weights::v1());
+        let features = three().group_features(&[0, 1, 2], &shifted, &[], &Weights::v1(), true);
         for (index, value) in features.iter().enumerate().take(4) {
             assert!(approx(*value, 0.0, 1e-12), "feature {index} moved: {value}");
         }
@@ -711,14 +736,14 @@ mod tests {
     #[test]
     fn relative_length_is_zero_when_the_ordering_of_lengths_matches() {
         let features =
-            stepped().group_features(&[0, 1, 2], &stepped_geometries(), &[], &Weights::v1());
+            stepped().group_features(&[0, 1, 2], &stepped_geometries(), &[], &Weights::v1(), true);
         assert!(approx(features.get(3).copied().unwrap_or(1.0), 0.0, 1e-12));
     }
 
     #[test]
     fn relative_length_notices_two_strokes_traded_by_length() {
         let swapped =
-            stepped().group_features(&[2, 1, 0], &stepped_geometries(), &[], &Weights::v1());
+            stepped().group_features(&[2, 1, 0], &stepped_geometries(), &[], &Weights::v1(), true);
         assert!(swapped.get(3).copied().unwrap_or(0.0) > 1e-3);
     }
 
@@ -729,22 +754,23 @@ mod tests {
             &vec![(0.0, 0.5), (1.0, 0.5)],
             &vec![(-0.3, 0.8), (1.3, 0.8)],
         ]);
-        let features = stepped().group_features(&[0, 1, 2], &doubled, &[], &Weights::v1());
+        let features = stepped().group_features(&[0, 1, 2], &doubled, &[], &Weights::v1(), true);
         assert!(approx(features.get(3).copied().unwrap_or(1.0), 0.0, 1e-9));
     }
 
     #[test]
     fn relative_length_needs_two_matched_strokes() {
         let order = [0, u8::MAX, u8::MAX];
-        let features = stepped().group_features(&order, &stepped_geometries(), &[], &Weights::v1());
+        let features =
+            stepped().group_features(&order, &stepped_geometries(), &[], &Weights::v1(), true);
         assert!(approx(features.get(3).copied().unwrap_or(1.0), 0.0, 1e-12));
     }
 
     #[test]
     fn absolute_position_charges_a_swap_the_relative_terms_also_catch() {
         let geometries = three_geometries();
-        let correct = three().group_features(&[0, 1, 2], &geometries, &[], &Weights::v1());
-        let swapped = three().group_features(&[2, 1, 0], &geometries, &[], &Weights::v1());
+        let correct = three().group_features(&[0, 1, 2], &geometries, &[], &Weights::v1(), true);
+        let swapped = three().group_features(&[2, 1, 0], &geometries, &[], &Weights::v1(), true);
         assert!(approx(correct.get(4).copied().unwrap_or(1.0), 0.0, 1e-12));
         assert!(swapped.get(4).copied().unwrap_or(0.0) > 1e-3);
     }
@@ -753,8 +779,8 @@ mod tests {
     #[test]
     fn absolute_position_separates_two_ways_of_skipping_one_stroke() {
         let drawn = geometries(&[&horizontal(0.2), &horizontal(0.5)]);
-        let early = three().group_features(&[0, 1, u8::MAX], &drawn, &[], &Weights::v1());
-        let late = three().group_features(&[0, u8::MAX, 1], &drawn, &[], &Weights::v1());
+        let early = three().group_features(&[0, 1, u8::MAX], &drawn, &[], &Weights::v1(), true);
+        let late = three().group_features(&[0, u8::MAX, 1], &drawn, &[], &Weights::v1(), true);
         assert!(approx(
             early.first().copied().unwrap_or(0.0),
             late.first().copied().unwrap_or(1.0),
@@ -767,7 +793,8 @@ mod tests {
 
     #[test]
     fn absolute_position_is_zero_for_a_perfect_copy() {
-        let features = three().group_features(&[0, 1, 2], &three_geometries(), &[], &Weights::v1());
+        let features =
+            three().group_features(&[0, 1, 2], &three_geometries(), &[], &Weights::v1(), true);
         assert!(approx(features.get(4).copied().unwrap_or(1.0), 0.0, 1e-12));
     }
 
