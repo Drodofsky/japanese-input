@@ -61,23 +61,41 @@ impl Analyzer {
     pub fn analyze_kanji(
         &self,
         kanji: char,
+        user_strokes: Vec<Vec<StrokePoint>>,
+        grid_color: &str,
+        corner_radius: f32,
+        stroke_color: &str,
+    ) -> Option<AnalyzeResult> {
+        let kanji_tree = self.kanji_map.get(&kanji)?.clone().to_analyzed();
+        let mapping = match_strokes(kanji_tree, user_strokes.clone(), Weights::default(), 100)
+            .first()?
+            .user_stroke_order
+            .to_vec();
+        self.analyze_kanji_with_mapping(
+            kanji,
+            user_strokes,
+            mapping,
+            grid_color,
+            corner_radius,
+            stroke_color,
+        )
+    }
+
+    /// Like [`Self::analyze_kanji`], but judges the given `mapping` (as `match_strokes` would
+    /// return it) instead of the best one the matcher finds, e.g. a hand-corrected one.
+    #[must_use]
+    #[inline]
+    pub fn analyze_kanji_with_mapping(
+        &self,
+        kanji: char,
         mut user_strokes: Vec<Vec<StrokePoint>>,
+        mut mapping: Vec<u8>,
         grid_color: &str,
         corner_radius: f32,
         stroke_color: &str,
     ) -> Option<AnalyzeResult> {
         let kanji_tree_raw = self.kanji_map.get(&kanji)?;
         let kanji_tree = kanji_tree_raw.clone().to_analyzed();
-
-        let mut mapping = match_strokes(
-            kanji_tree.clone(),
-            user_strokes.clone(),
-            Weights::default(),
-            100,
-        )
-        .first()?
-        .user_stroke_order
-        .to_vec();
 
         let order_wrong = mapping
             .iter()
