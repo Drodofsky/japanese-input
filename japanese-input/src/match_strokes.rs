@@ -17,6 +17,9 @@ use crate::{
 };
 
 /// Marks a reference stroke joined into the drawn stroke that opened the run.
+///
+/// Only used while matching (and by the training-side variant generators): [`match_strokes`]
+/// itself reports joins in the repeat notation, see [`to_repeat_notation`].
 pub const FILLER: u8 = 254;
 
 /// Marks a reference stroke the user never drew.
@@ -65,9 +68,47 @@ pub fn match_strokes(
     let mut results = solver.solve(&kanji_tree, 0, 0, span, true);
     for result in &mut results {
         result.beam_width = beam_with;
+        result.user_stroke_order = to_repeat_notation(&result.user_stroke_order);
     }
     results.sort_by(|a, b| a.score.total_cmp(&b.score));
     results
+}
+
+/// Rewrites a mapping from the internal [`FILLER`] notation into the public repeat notation:
+/// every reference stroke joined into one drawn stroke carries that drawn stroke's own index,
+/// so `[0, FILLER, 1]` becomes `[0, 0, 1]`.
+#[must_use]
+#[inline]
+pub fn to_repeat_notation(order: &[u8]) -> StrokeVec {
+    let mut previous = MISSING;
+    order
+        .iter()
+        .map(|&value| {
+            if value != FILLER {
+                previous = value;
+            }
+            previous
+        })
+        .collect()
+}
+
+/// The inverse of [`to_repeat_notation`], for tests that feed a [`match_strokes`] result back
+/// into code that scores mappings in the internal [`FILLER`] notation.
+#[cfg(test)]
+pub(crate) fn to_filler_notation(order: &[u8]) -> StrokeVec {
+    let mut previous = MISSING;
+    order
+        .iter()
+        .map(|&value| {
+            let out = if value == previous && value != MISSING {
+                FILLER
+            } else {
+                value
+            };
+            previous = value;
+            out
+        })
+        .collect()
 }
 
 /// One assignment under construction.
@@ -599,6 +640,26 @@ mod tests {
             .unwrap_or_default()
     }
 
+    /// How many reference strokes are joined into the drawn stroke before them.
+    fn joined(order: &[u8]) -> usize {
+        order
+            .windows(2)
+            .filter(|pair| pair.first() == pair.last() && pair.first() != Some(&MISSING))
+            .count()
+    }
+
+    #[test]
+    fn filler_runs_become_repeats_of_their_opening_stroke() {
+        assert_eq!(
+            to_repeat_notation(&[0, FILLER, FILLER, MISSING, 2, FILLER, 1]).as_slice(),
+            &[0, 0, 0, MISSING, 2, 2, 1]
+        );
+        assert_eq!(
+            to_filler_notation(&[0, 0, 0, MISSING, 2, 2, 1]).as_slice(),
+            &[0, FILLER, FILLER, MISSING, 2, FILLER, 1]
+        );
+    }
+
     #[test]
     fn a_clean_drawing_matches_in_order() {
         let tree = three();
@@ -619,8 +680,7 @@ mod tests {
         let order = best(three(), user, 3);
         assert_eq!(order.len(), 3);
         let missing = order.iter().filter(|v| **v == MISSING).count();
-        let merged = order.iter().filter(|v| **v == FILLER).count();
-        assert_eq!(missing + merged, 1, "{order:?}");
+        assert_eq!(missing + joined(&order), 1, "{order:?}");
     }
 
     #[test]
@@ -658,12 +718,14 @@ mod tests {
         let tree = nested();
         let ink = tree.collect_strokes();
         for result in match_strokes(tree, ink, Weights::v1(), 3) {
+            // A join repeats its drawn stroke on consecutive positions; that's one claim.
             let mut used: Vec<u8> = result
                 .user_stroke_order
                 .iter()
                 .copied()
-                .filter(|value| *value != MISSING && *value != FILLER)
+                .filter(|value| *value != MISSING)
                 .collect();
+            used.dedup();
             used.sort_unstable();
             let before = used.len();
             used.dedup();
@@ -678,7 +740,7 @@ mod tests {
         assert!(
             results
                 .iter()
-                .any(|result| result.user_stroke_order.contains(&FILLER)),
+                .any(|result| joined(&result.user_stroke_order) > 0),
             "no joined reading was offered"
         );
     }
@@ -687,11 +749,14 @@ mod tests {
     fn a_joined_reading_never_reuses_the_drawn_stroke() {
         let user = vec![path(&[(0.2, 0.2), (0.8, 0.2), (0.2, 0.5), (0.8, 0.5)])];
         for result in match_strokes(three(), user, Weights::v1(), 16) {
-            let drawn = result
+            let mut drawn: Vec<u8> = result
                 .user_stroke_order
                 .iter()
-                .filter(|value| **value != MISSING && **value != FILLER)
-                .count();
+                .copied()
+                .filter(|value| *value != MISSING)
+                .collect();
+            drawn.dedup();
+            let drawn = drawn.len();
             assert!(drawn <= 1, "{:?}", result.user_stroke_order);
         }
     }

@@ -1,7 +1,7 @@
 mod utils;
 
 use crate::utils::*;
-use japanese_input::match_strokes::{FILLER, match_strokes};
+use japanese_input::match_strokes::{FILLER, match_strokes, to_repeat_notation};
 use japanese_input::merge_variants::generate;
 use japanese_input::stroke_point::ToStrokeVector as _;
 use japanese_input::weights::Weights;
@@ -22,7 +22,7 @@ fn an_adjacent_pair_merges_in_a_flat_three_stroke_group() {
     assert!(
         results
             .iter()
-            .any(|result| result.user_stroke_order == found.truth),
+            .any(|result| result.user_stroke_order == to_repeat_notation(&found.truth)),
         "{:?} was never offered",
         found.truth
     );
@@ -43,7 +43,7 @@ fn a_flat_three_stroke_group_can_merge_as_a_whole() {
     assert!(
         results
             .iter()
-            .any(|result| result.user_stroke_order == found.truth),
+            .any(|result| result.user_stroke_order == to_repeat_notation(&found.truth)),
         "{:?} was never offered",
         found.truth
     );
@@ -64,7 +64,7 @@ fn the_only_two_strokes_in_a_group_can_merge_together() {
     assert!(
         results
             .iter()
-            .any(|result| result.user_stroke_order == found.truth),
+            .any(|result| result.user_stroke_order == to_repeat_notation(&found.truth)),
         "{:?} was never offered",
         found.truth
     );
@@ -84,7 +84,7 @@ fn an_adjacent_pair_merges_in_the_first_of_two_sibling_groups() {
     assert!(
         results
             .iter()
-            .any(|result| result.user_stroke_order == found.truth),
+            .any(|result| result.user_stroke_order == to_repeat_notation(&found.truth)),
         "{:?} was never offered",
         found.truth
     );
@@ -104,7 +104,7 @@ fn a_whole_sibling_group_merges_inside_a_larger_kanji() {
     assert!(
         results
             .iter()
-            .any(|result| result.user_stroke_order == found.truth),
+            .any(|result| result.user_stroke_order == to_repeat_notation(&found.truth)),
         "{:?} was never offered",
         found.truth
     );
@@ -124,7 +124,7 @@ fn an_adjacent_pair_merges_in_the_last_of_three_sibling_groups() {
     assert!(
         results
             .iter()
-            .any(|result| result.user_stroke_order == found.truth),
+            .any(|result| result.user_stroke_order == to_repeat_notation(&found.truth)),
         "{:?} was never offered",
         found.truth
     );
@@ -144,7 +144,7 @@ fn two_different_sibling_groups_merge_in_the_same_drawing() {
     assert!(
         results
             .iter()
-            .any(|result| result.user_stroke_order == found.truth),
+            .any(|result| result.user_stroke_order == to_repeat_notation(&found.truth)),
         "{:?} was never offered",
         found.truth
     );

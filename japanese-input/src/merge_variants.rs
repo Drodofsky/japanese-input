@@ -261,7 +261,7 @@ pub fn generate(
 mod tests {
     use super::*;
     use crate::assignment::AssignmentFeatures as _;
-    use crate::match_strokes::match_strokes;
+    use crate::match_strokes::{match_strokes, to_repeat_notation};
     use crate::shape::ToShapes as _;
     use crate::stroke_geometry::StrokeGeometry;
     use crate::stroke_point::to_stroke_points;
@@ -424,9 +424,9 @@ mod tests {
                 );
                 let results = match_strokes(tree.clone(), variant.ink.clone(), Weights::v1(), 64);
                 assert!(
-                    results
-                        .iter()
-                        .any(|result| result.user_stroke_order == variant.truth),
+                    results.iter().any(
+                        |result| result.user_stroke_order == to_repeat_notation(&variant.truth)
+                    ),
                     "{}: the matcher never offered {:?}",
                     variant.suffix,
                     variant.truth

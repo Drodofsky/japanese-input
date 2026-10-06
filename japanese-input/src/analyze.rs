@@ -3,10 +3,18 @@ use core::ops::Range;
 use kurbo::{Affine, BezPath, Rect};
 
 use crate::{
-    KanjiMap, analyzed_kanji_node::AnalyzedKanjiNode, bbox::BBox as _,
-    convert_stroke_index::ConvertStrokeIndex, gen_svg::SVGBuilder, map_space_to::MapSpaceTo as _,
-    match_strokes::match_strokes, stroke_geometry::StrokeGeometry, stroke_point::StrokePoint,
-    to_bez_path::ToBezPathVec as _, transform::Transform as _, weights::Weights,
+    KanjiMap,
+    analyzed_kanji_node::AnalyzedKanjiNode,
+    bbox::BBox as _,
+    convert_stroke_index::ConvertStrokeIndex,
+    gen_svg::SVGBuilder,
+    map_space_to::MapSpaceTo as _,
+    match_strokes::{FILLER, MISSING, match_strokes},
+    stroke_geometry::StrokeGeometry,
+    stroke_point::StrokePoint,
+    to_bez_path::ToBezPathVec as _,
+    transform::Transform as _,
+    weights::Weights,
 };
 
 const MOVE_THRESHOLD: f64 = 0.3;
@@ -96,6 +104,7 @@ impl Analyzer {
     ) -> Option<AnalyzeResult> {
         let kanji_tree_raw = self.kanji_map.get(&kanji)?;
         let kanji_tree = kanji_tree_raw.clone().to_analyzed();
+        drop_joins(&mut mapping);
 
         let order_wrong = mapping
             .iter()
@@ -202,6 +211,27 @@ impl Analyzer {
         };
 
         Some(res)
+    }
+}
+
+/// Joined strokes aren't analyzed yet: every reference position taking part in a join (a
+/// drawn stroke index repeated in the mapping, or a [`FILLER`] run and the index opening it)
+/// is treated as missing, so the joined drawn stroke itself is left unused.
+fn drop_joins(mapping: &mut [u8]) {
+    let original = mapping.to_vec();
+    for (position, value) in mapping.iter_mut().enumerate() {
+        let current = *value;
+        if current == MISSING {
+            continue;
+        }
+        let repeated = original
+            .iter()
+            .enumerate()
+            .any(|(other_position, &other)| other == current && other_position != position);
+        let opens_filler = original.get(position.saturating_add(1)) == Some(&FILLER);
+        if current == FILLER || repeated || opens_filler {
+            *value = MISSING;
+        }
     }
 }
 
@@ -400,5 +430,21 @@ fn move_range(
                 *p = p.transform(t);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_position_in_a_join_is_dropped() {
+        let mut repeat = [0, 0, 0, 1, 2, 2, 3];
+        drop_joins(&mut repeat);
+        assert_eq!(repeat, [MISSING, MISSING, MISSING, 1, MISSING, MISSING, 3]);
+
+        let mut filler = [0, FILLER, 1, MISSING];
+        drop_joins(&mut filler);
+        assert_eq!(filler, [MISSING, MISSING, 1, MISSING]);
     }
 }

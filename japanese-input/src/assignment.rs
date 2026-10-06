@@ -225,7 +225,7 @@ fn add_at(features: &mut [f64; WEIGHT_COUNT], index: usize, value: f64) {
 mod tests {
     use super::*;
     use crate::{
-        match_strokes::match_strokes,
+        match_strokes::{match_strokes, to_filler_notation},
         shape::ToShapes as _,
         stroke_point::{StrokePoint, to_stroke_points},
     };
@@ -324,7 +324,7 @@ mod tests {
         assert!(results.len() > 3, "too few candidates to be a real check");
         for result in &results {
             let order = result.user_stroke_order.as_slice();
-            let actual = direct(tree, order, user, weights).expect("features");
+            let actual = direct(tree, &to_filler_notation(order), user, weights).expect("features");
             assert!(
                 approx(actual, result.score),
                 "{order:?}: direct {actual} vs beam {}",
