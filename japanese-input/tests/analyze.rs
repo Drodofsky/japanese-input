@@ -270,3 +270,123 @@ fn とし() {
     let res = analyze('年', "年");
     assert_eq!(res, AnalyzeResult::NoError)
 }
+
+#[test]
+fn むら_wp() {
+    let res = analyze('村', "村_wp");
+    assert_eq!(
+        res,
+        AnalyzeResult::StrokePositions {
+            correct: include_str!("../../data/test/村_wp_c.svg").to_string(),
+            wrong: include_str!("../../data/test/村_wp_w.svg").to_string()
+        }
+    )
+}
+
+#[test]
+fn むら_wp_wo() {
+    let res = analyze('村', "村_wp_wo");
+    assert_eq!(
+        res,
+        AnalyzeResult::StrokePositions {
+            correct: include_str!("../../data/test/村_wp_wo_c.svg").to_string(),
+            wrong: include_str!("../../data/test/村_wp_wo_w.svg").to_string()
+        }
+    )
+}
+
+#[test]
+fn こう_wp() {
+    let res = analyze('校', "校_wp");
+    assert_eq!(
+        res,
+        AnalyzeResult::StrokePositions {
+            correct: include_str!("../../data/test/校_wp_c.svg").to_string(),
+            wrong: include_str!("../../data/test/校_wp_w.svg").to_string()
+        }
+    )
+}
+
+#[test]
+fn こう_wp_wo() {
+    let res = analyze('校', "校_wp_wo");
+    assert_eq!(
+        res,
+        AnalyzeResult::StrokePositions {
+            correct: include_str!("../../data/test/校_wp_wo_c.svg").to_string(),
+            wrong: include_str!("../../data/test/校_wp_wo_w.svg").to_string()
+        }
+    )
+}
+
+#[test]
+fn もり_wp() {
+    let res = analyze('森', "森_wp");
+    assert_eq!(
+        res,
+        AnalyzeResult::StrokePositions {
+            correct: include_str!("../../data/test/森_wp_c.svg").to_string(),
+            wrong: include_str!("../../data/test/森_wp_w.svg").to_string()
+        }
+    )
+}
+
+#[test]
+fn もり_wp_wo() {
+    let res = analyze('森', "森_wp_wo");
+    assert_eq!(
+        res,
+        AnalyzeResult::StrokePositions {
+            correct: include_str!("../../data/test/森_wp_wo_c.svg").to_string(),
+            wrong: include_str!("../../data/test/森_wp_wo_w.svg").to_string()
+        }
+    )
+}
+
+#[test]
+fn そら_wp() {
+    let res = analyze('空', "空_wp");
+    assert_eq!(
+        res,
+        AnalyzeResult::StrokePositions {
+            correct: include_str!("../../data/test/空_wp_c.svg").to_string(),
+            wrong: include_str!("../../data/test/空_wp_w.svg").to_string()
+        }
+    )
+}
+
+#[test]
+fn そら_wp_wo() {
+    let res = analyze('空', "空_wp_wo");
+    assert_eq!(
+        res,
+        AnalyzeResult::StrokePositions {
+            correct: include_str!("../../data/test/空_wp_wo_c.svg").to_string(),
+            wrong: include_str!("../../data/test/空_wp_wo_w.svg").to_string()
+        }
+    )
+}
+
+#[test]
+fn あお_wp() {
+    let res = analyze('青', "青_wp");
+    assert_eq!(
+        res,
+        AnalyzeResult::StrokePositions {
+            correct: include_str!("../../data/test/青_wp_c.svg").to_string(),
+            wrong: include_str!("../../data/test/青_wp_w.svg").to_string()
+        }
+    )
+}
+
+#[test]
+fn あお_wp_wo() {
+    let res = analyze('青', "青_wp_wo");
+    assert_eq!(
+        res,
+        AnalyzeResult::StrokePositions {
+            correct: include_str!("../../data/test/青_wp_wo_c.svg").to_string(),
+            wrong: include_str!("../../data/test/青_wp_wo_w.svg").to_string()
+        }
+    )
+}

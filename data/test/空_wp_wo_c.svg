@@ -1,0 +1,16 @@
+<svg height="109" viewBox="0 0 109 109" width="109" xmlns="http://www.w3.org/2000/svg">
+<rect fill="none" height="106" rx="8" ry="8" stroke="gray" stroke-linejoin="miter" stroke-width="3" width="106" x="1.5" y="1.5"/>
+<line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="109" y1="54.5" y2="54.5"/>
+<line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="0" y1="54.5" y2="54.5"/>
+<line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="0"/>
+<line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="109"/>
+<circle cx="54.5" cy="54.5" fill="none" opacity="0.15" r="29.5" stroke="#D0021B" stroke-width="20"/>
+<path d="M34.047,71.445 C48.265,70.892 60.957,70.225 75.175,69.672" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M53.275,73.05 C53.985,78.737 54.748,86.409 55.459,92.096" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M21.8,94.379 C44.548,93.51 68.954,92.462 91.702,91.593" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M54.194,16.824 C54.036,19.351 53.912,28.062 53.754,30.589" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M26.722,31.975 C26.801,34.739 26.863,43.88 26.942,46.644" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M29.604,33.482 C50.93,32.06 84.881,27.087 85.468,28.577 C86.055,30.067 80.607,34.576 77.606,37.025" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M42.876,42.796 C38.848,50.616 31.095,56.38 27.067,64.2" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M60.352,36.996 C60.51,43.473 59.269,53.51 60.835,55.118 C62.401,56.726 76.789,55.828 84.53,56.223" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+</svg>

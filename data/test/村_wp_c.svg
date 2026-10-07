@@ -1,0 +1,15 @@
+<svg height="109" viewBox="0 0 109 109" width="109" xmlns="http://www.w3.org/2000/svg">
+<rect fill="none" height="106" rx="8" ry="8" stroke="gray" stroke-linejoin="miter" stroke-width="3" width="106" x="1.5" y="1.5"/>
+<line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="109" y1="54.5" y2="54.5"/>
+<line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="0" y1="54.5" y2="54.5"/>
+<line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="0"/>
+<line stroke="gray" stroke-dasharray="2,2" stroke-linecap="round" stroke-width="1" x1="54.5" x2="54.5" y1="54.5" y2="109"/>
+<circle cx="54.5" cy="54.5" fill="none" opacity="0.15" r="29.5" stroke="#D0021B" stroke-width="20"/>
+<path d="M14.217,41.732 C24.564,41.574 39.273,41.354 49.62,41.196" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M36.033,22.702 C36.033,40.948 36.033,66.348 36.033,84.593" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M36.361,42.492 C29.647,50.549 23.208,60.066 16.494,68.122" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M41.52,49.889 C45.47,54.075 46.034,54.333 49.983,58.519" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M53.149,42.719 C65.55,42.877 85.699,43.05 98.1,43.208" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M80.448,22.511 C80.685,42.573 82.71,83.807 81.193,84.534 C79.675,85.261 75.437,79.909 72.752,77.697" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+<path d="M59.95,55.875 C62.162,58.323 65.312,62.432 67.523,64.88" fill="none" stroke="darkgrey" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+</svg>
