@@ -57,6 +57,7 @@ pyenv/
 !japanese-input/tests/analyze.rs
 !japanese-input/tests/recognize.rs
 !japanese-input/tests/あお.rs
+!japanese-input/tests/うえ.rs
 !japanese-input/tests/あめ.rs
 !japanese-input/tests/いち.rs
 !japanese-input/tests/えん.rs
