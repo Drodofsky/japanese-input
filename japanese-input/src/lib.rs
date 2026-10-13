@@ -7,6 +7,7 @@ pub mod centroid;
 pub mod convert_lossy;
 pub mod convert_stroke_index;
 pub mod cross_group_variants;
+pub mod ge_matcher;
 pub mod gen_svg;
 pub mod group_score;
 pub mod kanji_node;

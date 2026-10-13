@@ -51,6 +51,15 @@ pyenv/
 !japanese-input/src/length_scale.rs
 !japanese-input/src/gen_svg.rs
 !japanese-input/src/recognizer.rs
+!japanese-input/src/ge_matcher/mod.rs
+!japanese-input/src/ge_matcher/runtime.rs
+!japanese-input/src/ge_matcher/host.rs
+!japanese-input/src/ge_matcher/program.rs
+!japanese-input/src/ge_matcher/costs.rs
+!japanese-input/src/ge_matcher/actions.rs
+!japanese-input/src/ge_matcher/gains.rs
+!japanese-input/src/ge_matcher/snapshot.rs
+!japanese-input/src/ge_matcher/totals.rs
 !japanese-input/tests/utils/mod.rs
 !japanese-input/tests/analyze.rs
 !japanese-input/tests/recognize.rs
