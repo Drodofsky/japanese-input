@@ -11,9 +11,7 @@ pyenv/
 !.gitignore
 !readme.md
 !LICENSE
-!License.txt
 !media/back.png
-!media/front.png
 !kanji-vg/Cargo.toml
 !kanji-vg/src/lib.rs
 !hands/Cargo.toml
@@ -40,15 +38,10 @@ pyenv/
 !japanese-input/src/map_space_to.rs
 !japanese-input/src/to_index.rs
 !japanese-input/src/transform.rs
-!japanese-input/src/assignment.rs
 !japanese-input/src/leaf_score.rs
 !japanese-input/src/leaf_matrix.rs
-!japanese-input/src/group_score.rs
 !japanese-input/src/weights.rs
 !japanese-input/src/match_strokes.rs
-!japanese-input/src/merge_variants.rs
-!japanese-input/src/cross_group_variants.rs
-!japanese-input/src/length_scale.rs
 !japanese-input/src/gen_svg.rs
 !japanese-input/src/recognizer.rs
 !japanese-input/src/ge_matcher/mod.rs
@@ -63,8 +56,6 @@ pyenv/
 !japanese-input/tests/utils/mod.rs
 !japanese-input/tests/analyze.rs
 !japanese-input/tests/recognize.rs
-!japanese-input/tests/hiragana.rs
-!japanese-input/tests/kanji.rs
 !japanese-input/tests/あお.rs
 !japanese-input/tests/あめ.rs
 !japanese-input/tests/いち.rs
@@ -86,7 +77,6 @@ pyenv/
 !japanese-input/tests/みる.rs
 !japanese-input/tests/むら.rs
 !japanese-input/tests/もり.rs
-!japanese-input/tests/merged_strokes.rs
 !japanese-input/benches/utils/mod.rs
 !japanese-input/benches/match_bench.rs
 !japanese-input/benches/recognizer_bench.rs

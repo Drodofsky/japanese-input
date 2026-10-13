@@ -1,12 +1,11 @@
-//! The Test Case Editor: create and edit `.bin` handwriting test cases — open them from a local folder (or draw a new one), check what `match_strokes` and the analyzer make of them, and hand-write the mapping a test should assert. Files stay byte-compatible with the addon repo's desktop `kanji-draw` tool (see `stroke_file.rs`), and every stroke-order picture is drawn by the library's own `SVGBuilder::draw_stroke_order`.
+//! The Test Case Editor: create and edit `.bin` handwriting test cases — open them from a local folder (or draw a new one), check what the matcher and the analyzer make of them, and hand-write the mapping a test should assert. Files stay byte-compatible with the addon repo's desktop `kanji-draw` tool (see `stroke_file.rs`), and every stroke-order picture is drawn by the library's own `SVGBuilder::draw_stroke_order`.
 
 use dioxus::prelude::*;
 use japanese_input::analyze::AnalyzeResult;
 use japanese_input::gen_svg::SVGBuilder;
-use japanese_input::match_strokes::{MISSING, match_strokes};
+use japanese_input::match_strokes::MISSING;
 use japanese_input::stroke_point::ToStrokeVector as _;
 use japanese_input::to_bez_path::ToBezPathVec as _;
-use japanese_input::weights::Weights;
 
 use crate::components::{VIEWBOX, path_d};
 use crate::data::{AppData, AppDataHandle};
@@ -19,7 +18,6 @@ const HINT_COLOR: &str = "var(--hint)";
 const INK_COLOR: &str = "var(--ink)";
 const CORNER_RADIUS: f32 = 6.0;
 /// Same beam width `Analyzer::analyze_kanji` and `kanji-draw` match with, so the order shown here is the one the analyzer actually judged.
-const BEAM_WIDTH: usize = 100;
 const MAX_CANDIDATES: usize = 5;
 const FOLDER_INPUT_ID: &str = "test-case-editor-folder-input";
 const FILES_INPUT_ID: &str = "test-case-editor-files-input";
@@ -126,7 +124,8 @@ impl Verdict {
 #[derive(Clone, PartialEq)]
 struct Candidate {
     order: Vec<u8>,
-    /// `match_strokes`' score; `None` for a hand-written mapping, which the matcher never scored.
+    /// Always `None` now: the evolved matcher produces one assignment and no comparable score.
+    /// Kept so the UI can still distinguish a matcher-produced mapping from a hand-written one.
     score: Option<f64>,
     /// The drawn strokes renumbered into the order this mapping assigns them.
     svg: String,
@@ -166,7 +165,7 @@ struct Report {
     drawn: Vec<Stroke>,
     /// How many strokes the reference has, i.e. how long a mapping must be. 0 if the character isn't in the reference data.
     reference_count: usize,
-    /// Best-first, from `match_strokes`.
+    /// The matcher's own mapping, plus any the user hand-wrote.
     candidates: Vec<Candidate>,
     recognized: Vec<(char, f64)>,
 }
@@ -177,27 +176,16 @@ fn build_report(data: &AppData, character: char, drawn: &[Stroke]) -> Report {
         .kanji_map
         .get(&character)
         .map(|node| {
-            let mut matches = match_strokes(
-                node.clone().to_analyzed(),
-                drawn.to_stroke_vector(),
-                Weights::default(),
-                BEAM_WIDTH,
+            // One candidate, not a ranked list: the evolved matcher in
+            // `japanese_input::ge_matcher` builds a single assignment and revises it, rather
+            // than enumerating slicings and keeping the best few. There is no beam to show and
+            // no score to sort by — so the list below is this one mapping plus whatever the
+            // user hand-writes beside it.
+            let order = japanese_input::ge_matcher::match_strokes_evolved(
+                &node.clone().to_analyzed(),
+                &drawn.to_stroke_vector(),
             );
-            // Different search paths can end in the same mapping; list each one once.
-            matches.dedup_by(|a, b| a.user_stroke_order == b.user_stroke_order);
-            matches
-                .into_iter()
-                .take(MAX_CANDIDATES)
-                .map(|m| {
-                    Candidate::new(
-                        data,
-                        character,
-                        drawn,
-                        m.user_stroke_order.to_vec(),
-                        Some(m.score),
-                    )
-                })
-                .collect()
+            vec![Candidate::new(data, character, drawn, order.to_vec(), None)]
         })
         .unwrap_or_default();
 

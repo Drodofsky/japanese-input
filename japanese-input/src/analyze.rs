@@ -9,12 +9,11 @@ use crate::{
     convert_stroke_index::ConvertStrokeIndex,
     gen_svg::SVGBuilder,
     map_space_to::MapSpaceTo as _,
-    match_strokes::{FILLER, MISSING, match_strokes},
+    match_strokes::MISSING,
     stroke_geometry::StrokeGeometry,
     stroke_point::StrokePoint,
     to_bez_path::ToBezPathVec as _,
     transform::Transform as _,
-    weights::Weights,
 };
 
 const MOVE_THRESHOLD: f64 = 0.3;
@@ -75,10 +74,10 @@ impl Analyzer {
         stroke_color: &str,
     ) -> Option<AnalyzeResult> {
         let kanji_tree = self.kanji_map.get(&kanji)?.clone().to_analyzed();
-        let mapping = match_strokes(kanji_tree, user_strokes.clone(), Weights::default(), 100)
-            .first()?
-            .user_stroke_order
-            .to_vec();
+        // The evolved matcher (see `crate::ge_matcher`), not the beam search in
+        // `crate::match_strokes`. It produces one assignment rather than a ranked beam, already
+        // in the public repeat notation, so there is nothing to pick from and nothing to convert.
+        let mapping = crate::ge_matcher::match_strokes_evolved(&kanji_tree, &user_strokes).to_vec();
         self.analyze_kanji_with_mapping(
             kanji,
             user_strokes,
@@ -214,9 +213,9 @@ impl Analyzer {
     }
 }
 
-/// Joined strokes aren't analyzed yet: every reference position taking part in a join (a
-/// drawn stroke index repeated in the mapping, or a [`FILLER`] run and the index opening it)
-/// is treated as missing, so the joined drawn stroke itself is left unused.
+/// Joined strokes aren't analyzed yet: every reference position taking part in a join — a drawn
+/// stroke index appearing more than once in the mapping — is treated as missing, so the joined
+/// drawn stroke itself is left unused.
 fn drop_joins(mapping: &mut [u8]) {
     let original = mapping.to_vec();
     for (position, value) in mapping.iter_mut().enumerate() {
@@ -228,8 +227,7 @@ fn drop_joins(mapping: &mut [u8]) {
             .iter()
             .enumerate()
             .any(|(other_position, &other)| other == current && other_position != position);
-        let opens_filler = original.get(position.saturating_add(1)) == Some(&FILLER);
-        if current == FILLER || repeated || opens_filler {
+        if repeated {
             *value = MISSING;
         }
     }
@@ -443,8 +441,5 @@ mod tests {
         drop_joins(&mut repeat);
         assert_eq!(repeat, [MISSING, MISSING, MISSING, 1, MISSING, MISSING, 3]);
 
-        let mut filler = [0, FILLER, 1, MISSING];
-        drop_joins(&mut filler);
-        assert_eq!(filler, [MISSING, MISSING, 1, MISSING]);
     }
 }
