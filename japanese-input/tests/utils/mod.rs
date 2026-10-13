@@ -5,7 +5,6 @@ use japanese_input::{
     analyze::{AnalyzeResult, Analyzer},
     analyzed_kanji_node::{self, AnalyzedKanjiNode},
     stroke_point::ToStrokeVector,
-    weights::Weights,
 };
 use serde::{Deserialize, Serialize};
 
@@ -78,18 +77,15 @@ pub fn load_kanji_node(map: &KanjiMap, c: char) -> AnalyzedKanjiNode {
     node.clone().to_analyzed()
 }
 
+/// Matches with the shipped matcher — the evolved one in `japanese_input::ge_matcher`, the same
+/// one `Analyzer::analyze_kanji` uses. Returns the single assignment it produces, already in the
+/// public repeat notation, rather than a ranked beam to pick from.
 #[must_use]
 pub fn match_strokes(
-    reference: AnalyzedKanjiNode,
+    reference: &AnalyzedKanjiNode,
     user: &[Vec<(f32, f32)>],
-) -> Vec<japanese_input::match_strokes::MatchInfo> {
-    japanese_input::match_strokes::match_strokes(
-        reference,
-        user.to_stroke_vector(),
-        Weights::default(),
-        5,
-    )
-    .clone()
+) -> japanese_input::match_strokes::StrokeVec {
+    japanese_input::ge_matcher::match_strokes_evolved(reference, &user.to_stroke_vector())
 }
 
 #[must_use]
