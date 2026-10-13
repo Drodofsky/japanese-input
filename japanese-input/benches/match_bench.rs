@@ -1,6 +1,6 @@
 use criterion::{Criterion, criterion_group, criterion_main};
 use japanese_input::{
-    match_strokes::match_strokes, stroke_point::ToStrokeVector, weights::Weights,
+    ge_matcher::match_strokes_evolved, stroke_point::ToStrokeVector,
 };
 
 mod utils;
@@ -14,11 +14,9 @@ fn bench_match(c: &mut Criterion) {
 
     c.bench_function("match_node 語", |b| {
         b.iter(|| {
-            match_strokes(
-                reference.clone(),
-                user.to_stroke_vector(),
-                Weights::default(),
-                5,
+            match_strokes_evolved(
+               &reference,
+                &user.to_stroke_vector(),
             )
         });
     });

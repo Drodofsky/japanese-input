@@ -45,6 +45,7 @@ pyenv/
 !japanese-input/src/gen_svg.rs
 !japanese-input/src/recognizer.rs
 !japanese-input/src/ge_matcher.rs
+!japanese-input/src/is_japanese.rs
 !japanese-input/src/ge_matcher/runtime.rs
 !japanese-input/src/ge_matcher/host.rs
 !japanese-input/src/ge_matcher/program.rs

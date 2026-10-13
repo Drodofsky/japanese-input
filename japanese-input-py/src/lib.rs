@@ -44,6 +44,11 @@ pub mod japanese_input_py {
 
     use crate::correct_answer;
 
+    #[pyfunction]
+    pub fn is_japanese(text: &str) -> bool {
+        japanese_input::is_japanese::is_japanese(text)
+    }
+
     #[pyclass]
     pub struct Recognizer {
         recognizer: NativeRecognizer,

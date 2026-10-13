@@ -168,7 +168,14 @@ def _on_question_shown(card: Card) -> None:
 
     _expected_answer = _get_expected_answer(card)
 
-  
+    if not japanese_input_py.is_japanese(_expected_answer):
+        if _input_widget is not None:
+            _input_widget.hide()
+            _input_widget.reset()
+        _expected_answer = ""
+        _recognized_answer = ""
+        return
+
     if _input_widget is None:
         _input_widget = InputWidget(canvas_size=300, kanji_grid=kanji_grid)
         web_parent = mw.reviewer.web.parentWidget()

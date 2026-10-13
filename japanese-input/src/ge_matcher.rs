@@ -3,7 +3,7 @@
 use crate::analyzed_kanji_node::AnalyzedKanjiNode;
 use crate::leaf_score::{LEAF_FEATURE_COUNT, LeafScore as _};
 use crate::match_strokes::{MISSING, StrokeVec, joined_reference_shape};
-use crate::shape::{HARMONICS, Shape, ToShape};
+use crate::shape::{Shape, ToShape};
 use crate::stroke_geometry::StrokeGeometry;
 use crate::stroke_point::StrokePoint;
 
