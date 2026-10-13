@@ -1,7 +1,7 @@
 //! All that connects the compiled program to real geometry: a leaf/stroke state array and a snapshot stack.
 
-use super::*;
 use super::runtime::Runtime;
+use super::*;
 
 pub struct Host<'a> {
     ctx: &'a StaticContext,
@@ -12,7 +12,12 @@ pub struct Host<'a> {
 
 impl<'a> Host<'a> {
     pub fn new(ctx: &'a StaticContext) -> Self {
-        Self { leaf_state: vec![LeafState::Open; ctx.leaf_count], stroke_state: vec![StrokeState::Open; ctx.stroke_count], ctx, state_stack: Vec::new() }
+        Self {
+            leaf_state: vec![LeafState::Open; ctx.leaf_count],
+            stroke_state: vec![StrokeState::Open; ctx.stroke_count],
+            ctx,
+            state_stack: Vec::new(),
+        }
     }
 }
 
@@ -35,13 +40,22 @@ impl Runtime for Host<'_> {
         self.ctx.stroke_count
     }
     fn open_leaf_count(&self) -> usize {
-        self.leaf_state.iter().filter(|state| **state == LeafState::Open).count()
+        self.leaf_state
+            .iter()
+            .filter(|state| **state == LeafState::Open)
+            .count()
     }
     fn open_stroke_count(&self) -> usize {
-        self.stroke_state.iter().filter(|state| **state == StrokeState::Open).count()
+        self.stroke_state
+            .iter()
+            .filter(|state| **state == StrokeState::Open)
+            .count()
     }
     fn merged_leaf_count(&self) -> usize {
-        self.leaf_state.iter().filter(|state| matches!(state, LeafState::Filled(_))).count()
+        self.leaf_state
+            .iter()
+            .filter(|state| matches!(state, LeafState::Filled(_)))
+            .count()
     }
 
     // ---- identities -------------------------------------------------------------
@@ -52,10 +66,11 @@ impl Runtime for Host<'_> {
         nth_open_stroke(&self.stroke_state, n)
     }
     fn matched_stroke_of(&self, leaf: Option<usize>) -> Option<usize> {
-        leaf.and_then(|leaf| self.leaf_state.get(leaf)).and_then(|state| match state {
-            LeafState::Matched(stroke) | LeafState::Filled(stroke) => Some(*stroke),
-            LeafState::Open | LeafState::Missing => None,
-        })
+        leaf.and_then(|leaf| self.leaf_state.get(leaf))
+            .and_then(|state| match state {
+                LeafState::Matched(stroke) | LeafState::Filled(stroke) => Some(*stroke),
+                LeafState::Open | LeafState::Missing => None,
+            })
     }
 
     // ---- predicates -------------------------------------------------------------
@@ -70,7 +85,12 @@ impl Runtime for Host<'_> {
     fn shape_cost(&self, leaf: Option<usize>, stroke: Option<usize>) -> f64 {
         shape_cost(self.ctx, leaf, stroke)
     }
-    fn merge_shape_cost(&self, start: Option<usize>, length: Option<usize>, stroke: Option<usize>) -> f64 {
+    fn merge_shape_cost(
+        &self,
+        start: Option<usize>,
+        length: Option<usize>,
+        stroke: Option<usize>,
+    ) -> f64 {
         merge_shape_cost(self.ctx, start, length, stroke)
     }
     fn best_match_for_leaf(&self, leaf: Option<usize>) -> f64 {
@@ -104,7 +124,13 @@ impl Runtime for Host<'_> {
         commit_missing(&mut self.leaf_state, leaf);
     }
     fn commit_merge(&mut self, start: Option<usize>, length: Option<usize>, stroke: Option<usize>) {
-        commit_merge(&mut self.leaf_state, &mut self.stroke_state, start, length, stroke);
+        commit_merge(
+            &mut self.leaf_state,
+            &mut self.stroke_state,
+            start,
+            length,
+            stroke,
+        );
     }
     fn uncommit(&mut self, leaf: Option<usize>) {
         commit_uncommit(&mut self.leaf_state, &mut self.stroke_state, leaf);
@@ -118,13 +144,27 @@ impl Runtime for Host<'_> {
 
     // ---- search -----------------------------------------------------------------
     fn push_state(&mut self, score: f64) {
-        push_state(&mut self.state_stack, &self.leaf_state, &self.stroke_state, score);
+        push_state(
+            &mut self.state_stack,
+            &self.leaf_state,
+            &self.stroke_state,
+            score,
+        );
     }
     fn pop_state(&mut self) {
-        pop_state(&mut self.state_stack, &mut self.leaf_state, &mut self.stroke_state);
+        pop_state(
+            &mut self.state_stack,
+            &mut self.leaf_state,
+            &mut self.stroke_state,
+        );
     }
     fn keep_best_state(&mut self, score: f64) {
-        keep_best_state(&mut self.state_stack, &mut self.leaf_state, &mut self.stroke_state, score);
+        keep_best_state(
+            &mut self.state_stack,
+            &mut self.leaf_state,
+            &mut self.stroke_state,
+            score,
+        );
     }
 
     // ---- trial support ----------------------------------------------------------

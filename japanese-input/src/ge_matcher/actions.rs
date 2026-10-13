@@ -2,9 +2,18 @@
 
 use super::*;
 
-pub fn commit_match(leaf_state: &mut [LeafState], stroke_state: &mut [StrokeState], leaf: Option<usize>, stroke: Option<usize>) {
-    let (Some(leaf), Some(stroke)) = (leaf, stroke) else { return };
-    if leaf_state.get(leaf) != Some(&LeafState::Open) || stroke_state.get(stroke) != Some(&StrokeState::Open) {
+pub fn commit_match(
+    leaf_state: &mut [LeafState],
+    stroke_state: &mut [StrokeState],
+    leaf: Option<usize>,
+    stroke: Option<usize>,
+) {
+    let (Some(leaf), Some(stroke)) = (leaf, stroke) else {
+        return;
+    };
+    if leaf_state.get(leaf) != Some(&LeafState::Open)
+        || stroke_state.get(stroke) != Some(&StrokeState::Open)
+    {
         return;
     }
     if let Some(state) = leaf_state.get_mut(leaf) {
@@ -24,14 +33,28 @@ pub fn commit_missing(leaf_state: &mut [LeafState], leaf: Option<usize>) {
     }
 }
 
-pub fn commit_merge(leaf_state: &mut [LeafState], stroke_state: &mut [StrokeState], start: Option<usize>, length: Option<usize>, stroke: Option<usize>) {
-    let (Some(start), Some(length), Some(stroke)) = (start, length, stroke) else { return };
+pub fn commit_merge(
+    leaf_state: &mut [LeafState],
+    stroke_state: &mut [StrokeState],
+    start: Option<usize>,
+    length: Option<usize>,
+    stroke: Option<usize>,
+) {
+    let (Some(start), Some(length), Some(stroke)) = (start, length, stroke) else {
+        return;
+    };
     if !(2..=MAX_MERGE_LENGTH).contains(&length) {
         return;
     }
-    let Some(end) = start.checked_add(length) else { return };
-    let Some(window) = leaf_state.get(start..end) else { return };
-    if !window.iter().all(|state| *state == LeafState::Open) || stroke_state.get(stroke) != Some(&StrokeState::Open) {
+    let Some(end) = start.checked_add(length) else {
+        return;
+    };
+    let Some(window) = leaf_state.get(start..end) else {
+        return;
+    };
+    if !window.iter().all(|state| *state == LeafState::Open)
+        || stroke_state.get(stroke) != Some(&StrokeState::Open)
+    {
         return;
     }
     if let Some(state) = leaf_state.get_mut(start) {
@@ -48,9 +71,15 @@ pub fn commit_merge(leaf_state: &mut [LeafState], stroke_state: &mut [StrokeStat
 }
 
 /// Reopens `leaf` and its stroke; through a merge run's start leaf this tears down the whole run, and through its middle it does nothing.
-pub fn commit_uncommit(leaf_state: &mut [LeafState], stroke_state: &mut [StrokeState], leaf: Option<usize>) {
+pub fn commit_uncommit(
+    leaf_state: &mut [LeafState],
+    stroke_state: &mut [StrokeState],
+    leaf: Option<usize>,
+) {
     let Some(leaf) = leaf else { return };
-    let Some(state) = leaf_state.get(leaf).copied() else { return };
+    let Some(state) = leaf_state.get(leaf).copied() else {
+        return;
+    };
     match state {
         LeafState::Matched(stroke) => {
             if let Some(slot) = leaf_state.get_mut(leaf) {
@@ -80,13 +109,21 @@ pub fn commit_uncommit(leaf_state: &mut [LeafState], stroke_state: &mut [StrokeS
 }
 
 /// Exchanges which stroke two plainly-`Matched` leaves point to; `stroke_state` is untouched, as both strokes stay `Used`.
-pub fn commit_swap_matches(leaf_state: &mut [LeafState], leaf_a: Option<usize>, leaf_b: Option<usize>) {
-    let (Some(leaf_a), Some(leaf_b)) = (leaf_a, leaf_b) else { return };
+pub fn commit_swap_matches(
+    leaf_state: &mut [LeafState],
+    leaf_a: Option<usize>,
+    leaf_b: Option<usize>,
+) {
+    let (Some(leaf_a), Some(leaf_b)) = (leaf_a, leaf_b) else {
+        return;
+    };
     if leaf_a == leaf_b {
         return;
     }
-    let (Some(LeafState::Matched(stroke_a)), Some(LeafState::Matched(stroke_b))) = (leaf_state.get(leaf_a).copied(), leaf_state.get(leaf_b).copied())
-    else {
+    let (Some(LeafState::Matched(stroke_a)), Some(LeafState::Matched(stroke_b))) = (
+        leaf_state.get(leaf_a).copied(),
+        leaf_state.get(leaf_b).copied(),
+    ) else {
         return;
     };
     if let Some(slot) = leaf_state.get_mut(leaf_a) {
@@ -107,4 +144,3 @@ pub fn matched_strokes_of_group(leaf_state: &[LeafState], members: &[usize]) -> 
         })
         .collect()
 }
-

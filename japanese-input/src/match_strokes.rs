@@ -26,7 +26,6 @@ use crate::{
 /// Marks a reference stroke the user never drew.
 pub const MISSING: u8 = u8::MAX;
 
-
 /// One mapping: for each reference stroke, which drawn stroke explains it.
 pub type StrokeVec = SmallVec<[u8; 32]>;
 

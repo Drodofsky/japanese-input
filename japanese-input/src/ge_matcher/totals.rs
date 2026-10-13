@@ -26,7 +26,9 @@ pub fn total_match_cost(ctx: &StaticContext, leaf_state: &[LeafState]) -> f64 {
         .iter()
         .enumerate()
         .filter_map(|(leaf, state)| match state {
-            LeafState::Matched(stroke) | LeafState::Filled(stroke) => Some(shape_cost(ctx, Some(leaf), Some(*stroke))),
+            LeafState::Matched(stroke) | LeafState::Filled(stroke) => {
+                Some(shape_cost(ctx, Some(leaf), Some(*stroke)))
+            }
             LeafState::Open | LeafState::Missing => None,
         })
         .sum()

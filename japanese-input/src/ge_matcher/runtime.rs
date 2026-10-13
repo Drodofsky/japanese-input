@@ -22,7 +22,12 @@ pub trait Runtime {
 
     // Per-pair costs.
     fn shape_cost(&self, leaf: Option<usize>, stroke: Option<usize>) -> f64;
-    fn merge_shape_cost(&self, start: Option<usize>, length: Option<usize>, stroke: Option<usize>) -> f64;
+    fn merge_shape_cost(
+        &self,
+        start: Option<usize>,
+        length: Option<usize>,
+        stroke: Option<usize>,
+    ) -> f64;
     fn best_match_for_leaf(&self, leaf: Option<usize>) -> f64;
 
     // Whole-assignment totals.
@@ -51,7 +56,6 @@ pub trait Runtime {
     fn begin_trial(&mut self) -> Self::Trial;
     fn rollback(&mut self, trial: Self::Trial);
     fn try_swap_groups_repaired(&mut self, leaf_a: Option<usize>, leaf_b: Option<usize>) -> bool;
-
 }
 
 /// Rounds to the nearest integer, rejecting anything that is not a plausible index.

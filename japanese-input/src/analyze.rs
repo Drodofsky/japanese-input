@@ -3,17 +3,10 @@ use core::ops::Range;
 use kurbo::{Affine, BezPath, Rect};
 
 use crate::{
-    KanjiMap,
-    analyzed_kanji_node::AnalyzedKanjiNode,
-    bbox::BBox as _,
-    convert_stroke_index::ConvertStrokeIndex,
-    gen_svg::SVGBuilder,
-    map_space_to::MapSpaceTo as _,
-    match_strokes::MISSING,
-    stroke_geometry::StrokeGeometry,
-    stroke_point::StrokePoint,
-    to_bez_path::ToBezPathVec as _,
-    transform::Transform as _,
+    KanjiMap, analyzed_kanji_node::AnalyzedKanjiNode, bbox::BBox as _,
+    convert_stroke_index::ConvertStrokeIndex, gen_svg::SVGBuilder, map_space_to::MapSpaceTo as _,
+    match_strokes::MISSING, stroke_geometry::StrokeGeometry, stroke_point::StrokePoint,
+    to_bez_path::ToBezPathVec as _, transform::Transform as _,
 };
 
 const MOVE_THRESHOLD: f64 = 0.3;
@@ -440,6 +433,5 @@ mod tests {
         let mut repeat = [0, 0, 0, 1, 2, 2, 3];
         drop_joins(&mut repeat);
         assert_eq!(repeat, [MISSING, MISSING, MISSING, 1, MISSING, MISSING, 3]);
-
     }
 }

@@ -18,11 +18,22 @@ pub mod totals;
 
 // Re-exported for the submodules, which all `use super::*`; several are unused here and used heavily by siblings.
 #[allow(unused_imports)]
-use actions::{commit_match, commit_merge, commit_missing, commit_swap_matches, commit_uncommit, matched_strokes_of_group};
+use actions::{
+    commit_match, commit_merge, commit_missing, commit_swap_matches, commit_uncommit,
+    matched_strokes_of_group,
+};
 #[allow(unused_imports)]
-use costs::{LOG_RATIO_EPS, best_match_for_leaf, drawn_centroid_gap, feature_cost, log_ratio, merge_shape_cost, order_cost, placement_cost, position_cost, reference_centroid_gap, relative_length_cost, shape_cost, shape_features};
+use costs::{
+    LOG_RATIO_EPS, best_match_for_leaf, drawn_centroid_gap, feature_cost, log_ratio,
+    merge_shape_cost, order_cost, placement_cost, position_cost, reference_centroid_gap,
+    relative_length_cost, shape_cost, shape_features,
+};
 #[allow(unused_imports)]
-use gains::{commit_swap_groups, commit_swap_groups_repaired, commit_swap_if_better, common_ancestor_ranges, pairwise_gain_operator, range_members, relative_order_cost, repair_criterion, swap_gain, swap_groups_span, total_group_pairwise_cost, total_pairwise_cost};
+use gains::{
+    commit_swap_groups, commit_swap_groups_repaired, commit_swap_if_better, common_ancestor_ranges,
+    pairwise_gain_operator, range_members, relative_order_cost, repair_criterion, swap_gain,
+    swap_groups_span, total_group_pairwise_cost, total_pairwise_cost,
+};
 #[allow(unused_imports)]
 use snapshot::{Snapshot, keep_best_state, pop_state, push_state, restore_snapshot};
 #[allow(unused_imports)]
@@ -71,12 +82,21 @@ pub struct StaticContext {
 }
 
 #[must_use]
-pub fn build_static_context(reference: &AnalyzedKanjiNode, drawn: &[Vec<StrokePoint>]) -> StaticContext {
+pub fn build_static_context(
+    reference: &AnalyzedKanjiNode,
+    drawn: &[Vec<StrokePoint>],
+) -> StaticContext {
     let reference_leaves = reference.collect_strokes();
     let reference_shapes: Vec<Shape> = reference_leaves.iter().map(ToShape::to_shape).collect();
-    let reference_geometry: Vec<StrokeGeometry> = reference_leaves.iter().map(|leaf| StrokeGeometry::from_stroke(leaf)).collect();
+    let reference_geometry: Vec<StrokeGeometry> = reference_leaves
+        .iter()
+        .map(|leaf| StrokeGeometry::from_stroke(leaf))
+        .collect();
     let drawn_shapes: Vec<Shape> = drawn.iter().map(ToShape::to_shape).collect();
-    let drawn_geometry: Vec<StrokeGeometry> = drawn.iter().map(|stroke| StrokeGeometry::from_stroke(stroke)).collect();
+    let drawn_geometry: Vec<StrokeGeometry> = drawn
+        .iter()
+        .map(|stroke| StrokeGeometry::from_stroke(stroke))
+        .collect();
 
     let leaf_count = reference_leaves.len();
     let stroke_count = drawn.len();
@@ -102,7 +122,9 @@ pub fn to_stroke_vec(leaf_state: &[LeafState]) -> StrokeVec {
     leaf_state
         .iter()
         .map(|state| match state {
-            LeafState::Matched(stroke) | LeafState::Filled(stroke) => u8::try_from(*stroke).unwrap_or(MISSING),
+            LeafState::Matched(stroke) | LeafState::Filled(stroke) => {
+                u8::try_from(*stroke).unwrap_or(MISSING)
+            }
             LeafState::Open | LeafState::Missing => MISSING,
         })
         .collect()
@@ -119,12 +141,32 @@ fn group_topology(root: &AnalyzedKanjiNode, leaf_count: usize) -> GroupTopology 
     let mut group_counts: Vec<usize> = Vec::new();
     let mut cursor = 0_usize;
     let mut next_id = 0_usize;
-    walk_topology(root, None, &mut cursor, &mut next_id, &mut parent_id, &mut group_counts);
-    let group_size = parent_id.iter().map(|&id| group_counts.get(id).copied().unwrap_or(1)).collect();
-    GroupTopology { parent_id, group_size }
+    walk_topology(
+        root,
+        None,
+        &mut cursor,
+        &mut next_id,
+        &mut parent_id,
+        &mut group_counts,
+    );
+    let group_size = parent_id
+        .iter()
+        .map(|&id| group_counts.get(id).copied().unwrap_or(1))
+        .collect();
+    GroupTopology {
+        parent_id,
+        group_size,
+    }
 }
 
-fn walk_topology(node: &AnalyzedKanjiNode, current_group: Option<usize>, cursor: &mut usize, next_id: &mut usize, parent_id: &mut [usize], group_counts: &mut Vec<usize>) {
+fn walk_topology(
+    node: &AnalyzedKanjiNode,
+    current_group: Option<usize>,
+    cursor: &mut usize,
+    next_id: &mut usize,
+    parent_id: &mut [usize],
+    group_counts: &mut Vec<usize>,
+) {
     match node {
         AnalyzedKanjiNode::Stroke { .. } => {
             let group = current_group.unwrap_or_else(|| {
@@ -156,7 +198,11 @@ fn walk_topology(node: &AnalyzedKanjiNode, current_group: Option<usize>, cursor:
 
 #[must_use]
 pub fn ratio(part: usize, whole: usize) -> f64 {
-    if whole == 0 { 0.0 } else { part.min(whole) as f64 / whole as f64 }
+    if whole == 0 {
+        0.0
+    } else {
+        part.min(whole) as f64 / whole as f64
+    }
 }
 
 /// Rounds to the nearest integer, rejecting negatives, `NaN` and infinities rather than wrapping them into a huge `usize`.
@@ -171,17 +217,30 @@ pub fn to_index(value: f64) -> Option<usize> {
 #[must_use]
 pub fn nth_open_leaf(leaf_state: &[LeafState], n: Option<usize>) -> Option<usize> {
     let n = n?;
-    leaf_state.iter().enumerate().filter(|(_, state)| **state == LeafState::Open).nth(n).map(|(index, _)| index)
+    leaf_state
+        .iter()
+        .enumerate()
+        .filter(|(_, state)| **state == LeafState::Open)
+        .nth(n)
+        .map(|(index, _)| index)
 }
 
 #[must_use]
 pub fn nth_open_stroke(stroke_state: &[StrokeState], n: Option<usize>) -> Option<usize> {
     let n = n?;
-    stroke_state.iter().enumerate().filter(|(_, state)| **state == StrokeState::Open).nth(n).map(|(index, _)| index)
+    stroke_state
+        .iter()
+        .enumerate()
+        .filter(|(_, state)| **state == StrokeState::Open)
+        .nth(n)
+        .map(|(index, _)| index)
 }
 
 /// Matches drawn strokes against a kanji tree, in the public repeat notation: a join repeats its stroke's index, an unexplained leaf is [`MISSING`].
 #[must_use]
-pub fn match_strokes_evolved(kanji_tree: &AnalyzedKanjiNode, user_strokes: &[Vec<StrokePoint>]) -> StrokeVec {
+pub fn match_strokes_evolved(
+    kanji_tree: &AnalyzedKanjiNode,
+    user_strokes: &[Vec<StrokePoint>],
+) -> StrokeVec {
     host::run(kanji_tree, user_strokes)
 }

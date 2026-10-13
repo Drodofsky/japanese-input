@@ -10,10 +10,7 @@ fn wp() {
 
     let result = match_strokes(&reference, &user);
 
-    assert_eq!(
-        result.as_slice(),
-        vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    );
+    assert_eq!(result.as_slice(), vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
 }
 
 #[test]
@@ -24,8 +21,5 @@ fn wp_wo() {
 
     let result = match_strokes(&reference, &user);
 
-    assert_eq!(
-        result.as_slice(),
-        vec![6, 7, 8, 9, 0, 1, 2, 3, 4, 5]
-    );
+    assert_eq!(result.as_slice(), vec![6, 7, 8, 9, 0, 1, 2, 3, 4, 5]);
 }

@@ -91,8 +91,5 @@ fn m2() {
     let result = match_strokes(&reference, &user);
     println!("{:#?}", result);
 
-    assert_eq!(
-        result.as_slice(),
-        vec![u8::MAX, u8::MAX, 0]
-    );
+    assert_eq!(result.as_slice(), vec![u8::MAX, u8::MAX, 0]);
 }
