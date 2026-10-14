@@ -12,6 +12,7 @@ pyo3 = {version = "0.29", features = ["extension-module","experimental-inspect",
 postcard = { version = "1", features = ["alloc"] }
 serde = { version = "1", features = ["derive"] }
 rayon = "1"
+wana_kana = "5"
 japanese-input = {path = "../japanese-input"}
 
 

@@ -7,7 +7,6 @@ pub mod convert_lossy;
 pub mod convert_stroke_index;
 pub mod ge_matcher;
 pub mod gen_svg;
-pub mod is_japanese;
 pub mod kanji_node;
 pub mod leaf_matrix;
 pub mod leaf_score;

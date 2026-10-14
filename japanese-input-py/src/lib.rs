@@ -41,12 +41,13 @@ pub mod japanese_input_py {
     use pyo3::prelude::*;
     use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
     use std::fs::read;
+    use wana_kana::IsJapaneseStr as _;
 
     use crate::correct_answer;
 
     #[pyfunction]
     pub fn is_japanese(text: &str) -> bool {
-        japanese_input::is_japanese::is_japanese(text)
+        text.is_japanese()
     }
 
     #[pyclass]
